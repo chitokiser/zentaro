@@ -1,0 +1,137 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-body);
+  --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-display);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-copper: var(--copper);
+  --color-wood: var(--wood);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  /* ZENTARO premium dark-green / gold / wood / copper palette */
+  --background: #0a1912;
+  --foreground: #f3ecd9;
+  --card: #0f2419;
+  --card-foreground: #f3ecd9;
+  --popover: #0f2419;
+  --popover-foreground: #f3ecd9;
+  --primary: #c9a24b;
+  --primary-foreground: #10240f;
+  --secondary: #16301f;
+  --secondary-foreground: #f3ecd9;
+  --muted: #132a1c;
+  --muted-foreground: #a9b8a9;
+  --accent: #8a5a33;
+  --accent-foreground: #f3ecd9;
+  --destructive: #b3543f;
+  --border: rgba(201, 162, 75, 0.16);
+  --input: rgba(201, 162, 75, 0.22);
+  --ring: #c9a24b;
+  --chart-1: #c9a24b;
+  --chart-2: #8a5a33;
+  --chart-3: #4f7a5c;
+  --chart-4: #7d8f6d;
+  --chart-5: #e4d3a1;
+  --radius: 0.5rem;
+  --sidebar: #0f2419;
+  --sidebar-foreground: #f3ecd9;
+  --sidebar-primary: #c9a24b;
+  --sidebar-primary-foreground: #10240f;
+  --sidebar-accent: #16301f;
+  --sidebar-accent-foreground: #f3ecd9;
+  --sidebar-border: rgba(201, 162, 75, 0.16);
+  --sidebar-ring: #c9a24b;
+
+  --gold: #c9a24b;
+  --gold-foreground: #10240f;
+  --copper: #b3703f;
+  --wood: #5c3d24;
+}
+
+/* Single premium dark theme by design — .dark mirrors :root so shadcn's
+   dark-mode utilities don't fall back to a mismatched light palette. */
+.dark {
+  --background: #0a1912;
+  --foreground: #f3ecd9;
+  --card: #0f2419;
+  --card-foreground: #f3ecd9;
+  --popover: #0f2419;
+  --popover-foreground: #f3ecd9;
+  --primary: #c9a24b;
+  --primary-foreground: #10240f;
+  --secondary: #16301f;
+  --secondary-foreground: #f3ecd9;
+  --muted: #132a1c;
+  --muted-foreground: #a9b8a9;
+  --accent: #8a5a33;
+  --accent-foreground: #f3ecd9;
+  --destructive: #b3543f;
+  --border: rgba(201, 162, 75, 0.16);
+  --input: rgba(201, 162, 75, 0.22);
+  --ring: #c9a24b;
+  --sidebar: #0f2419;
+  --sidebar-foreground: #f3ecd9;
+  --sidebar-primary: #c9a24b;
+  --sidebar-primary-foreground: #10240f;
+  --sidebar-accent: #16301f;
+  --sidebar-accent-foreground: #f3ecd9;
+  --sidebar-border: rgba(201, 162, 75, 0.16);
+  --sidebar-ring: #c9a24b;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+}
