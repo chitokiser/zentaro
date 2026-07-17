@@ -25,5 +25,8 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
+# Claude Code harness state
+.claude/
+
 # Test coverage
 coverage/

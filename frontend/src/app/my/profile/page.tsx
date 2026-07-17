@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { getToken, login, register, clearToken } from "@/lib/auth-client"
+import { GoogleSignInButton } from "@/components/google-sign-in-button"
 
 export default function ProfilePage() {
   const [mode, setMode] = useState<"login" | "register">("login")
@@ -103,6 +104,14 @@ export default function ProfilePage() {
           {loading ? "처리 중..." : mode === "login" ? "로그인" : "회원가입"}
         </Button>
       </form>
+
+      <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
+        <span className="h-px flex-1 bg-border/60" />
+        또는
+        <span className="h-px flex-1 bg-border/60" />
+      </div>
+
+      <GoogleSignInButton onSuccess={() => setLoggedIn(true)} />
     </div>
   )
 }

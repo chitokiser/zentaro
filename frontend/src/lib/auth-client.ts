@@ -49,6 +49,18 @@ export async function login(email: string, password: string) {
   return data;
 }
 
+export async function loginWithGoogle(idToken: string) {
+  const res = await fetch(`${API_URL}/auth/google`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ idToken }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  const data = await res.json();
+  setToken(data.accessToken);
+  return data;
+}
+
 function authHeaders(): HeadersInit {
   const token = getToken();
   if (!token) throw new Error("로그인이 필요합니다.");

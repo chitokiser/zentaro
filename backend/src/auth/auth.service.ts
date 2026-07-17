@@ -4,21 +4,31 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
+import { OAuth2Client } from 'google-auth-library';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
+import { GoogleLoginDto } from './dto/google-login.dto';
 
 @Injectable()
 export class AuthService {
+  private readonly googleClient: OAuth2Client;
+
   constructor(
     @Inject(FIRESTORE) private readonly db: Firestore,
     private readonly jwt: JwtService,
-  ) {}
+    private readonly config: ConfigService,
+  ) {
+    this.googleClient = new OAuth2Client(
+      this.config.get<string>('GOOGLE_CLIENT_ID'),
+    );
+  }
 
   private usersCol() {
     return this.db.collection(COLLECTIONS.USERS);
@@ -64,6 +74,46 @@ export class AuthService {
     }
 
     return this.issueToken(doc.id, dto.email);
+  }
+
+  async googleLogin(dto: GoogleLoginDto) {
+    const audience = this.config.get<string>('GOOGLE_CLIENT_ID');
+    let payload: { email?: string; name?: string; picture?: string } | undefined;
+    try {
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: dto.idToken,
+        audience,
+      });
+      payload = ticket.getPayload();
+    } catch {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+    if (!payload?.email) {
+      throw new UnauthorizedException('Invalid Google token');
+    }
+
+    const existing = await this.usersCol()
+      .where('email', '==', payload.email)
+      .limit(1)
+      .get();
+
+    if (!existing.empty) {
+      const doc = existing.docs[0];
+      return this.issueToken(doc.id, payload.email);
+    }
+
+    const docRef = await this.usersCol().add({
+      email: payload.email,
+      displayName: payload.name ?? payload.email,
+      photoUrl: payload.picture ?? null,
+      points: 0,
+      missionsCompleted: 0,
+      isAdmin: false,
+      source: 'zentaro_web_google',
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    return this.issueToken(docRef.id, payload.email);
   }
 
   private issueToken(uid: string, email: string) {
