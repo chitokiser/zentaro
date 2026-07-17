@@ -1,4 +1,5 @@
 import { PageHeader, Section } from "@/components/page-header"
+import { BrandPhilosophy } from "@/components/brand-philosophy"
 
 export default function CompanyPage() {
   return (
@@ -8,13 +9,8 @@ export default function CompanyPage() {
         title="Company"
         description="브랜드 스토리, CEO 인사말, Vision & Mission"
       />
-      <Section id="brand-story" title="브랜드 스토리">
-        <p>
-          ZENTARO는 증류, 허브, 숙성, 사람이라는 네 가지 여정이 만나 완성되는
-          크래프트 증류소입니다. 구리 단식 증류기에서 한 방울씩 뽑아낸
-          스피릿에 엄선한 보태니컬을 더해, 시간이 빚어내는 깊은 풍미를
-          병에 담습니다.
-        </p>
+      <Section id="brand-story" title="브랜드 스토리" className="max-w-5xl">
+        <BrandPhilosophy />
       </Section>
       <Section id="ceo-message" title="CEO 인사말" className="border-t border-border/60">
         <p>

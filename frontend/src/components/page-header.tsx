@@ -1,3 +1,5 @@
+import { cn } from "@/lib/utils"
+
 export function PageHeader({
   eyebrow,
   title,
@@ -40,7 +42,7 @@ export function Section({
   return (
     <section
       id={id}
-      className={`mx-auto max-w-4xl scroll-mt-24 px-4 py-14 sm:px-6 lg:px-8 ${className ?? ""}`}
+      className={cn("mx-auto max-w-4xl scroll-mt-24 px-4 py-14 sm:px-6 lg:px-8", className)}
     >
       <h2 className="font-display text-2xl font-semibold sm:text-3xl">
         {title}
