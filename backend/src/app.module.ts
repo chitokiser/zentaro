@@ -6,6 +6,7 @@ import { FirebaseModule } from './firebase/firebase.module';
 import { AuthModule } from './auth/auth.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ProductsModule } from './products/products.module';
+import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { ProductsModule } from './products/products.module';
     AuthModule,
     WalletModule,
     ProductsModule,
+    TicketsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

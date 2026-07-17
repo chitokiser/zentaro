@@ -49,11 +49,55 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-export async function fetchWallet() {
+function authHeaders(): HeadersInit {
   const token = getToken();
   if (!token) throw new Error("로그인이 필요합니다.");
-  const res = await fetch(`${API_URL}/wallet`, {
-    headers: { Authorization: `Bearer ${token}` },
+  return { Authorization: `Bearer ${token}` };
+}
+
+export async function fetchWallet() {
+  const res = await fetch(`${API_URL}/wallet`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface Ticket {
+  code: string;
+  ownerId: string | null;
+  status: "unused" | "used";
+  source: string;
+}
+
+export async function fetchMyTickets(): Promise<Ticket[]> {
+  const res = await fetch(`${API_URL}/tickets/mine`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function registerTicket(code: string) {
+  const res = await fetch(`${API_URL}/tickets/register`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function transferTicket(code: string, toEmail: string) {
+  const res = await fetch(`${API_URL}/tickets/transfer`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ code, toEmail }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function useTicket(code: string) {
+  const res = await fetch(`${API_URL}/tickets/${code}/use`, {
+    method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
