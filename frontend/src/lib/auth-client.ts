@@ -114,3 +114,61 @@ export async function useTicket(code: string) {
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface CjSearchResultItem {
+  cjProductId: string;
+  name: string;
+  imageUrl: string | null;
+  sellPrice: string;
+  category: string;
+  sku: string;
+}
+
+export interface AdminProduct {
+  id: string;
+  name: string;
+  category: string;
+  priceAp: number;
+  imageUrl: string | null;
+  cjProductId?: string;
+  featured: boolean;
+}
+
+export async function searchCjProducts(keyword: string, pageNum = 1) {
+  const params = new URLSearchParams({ keyword, pageNum: String(pageNum), pageSize: "20" });
+  const res = await fetch(`${API_URL}/cj/search?${params}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json() as Promise<{ total: number; items: CjSearchResultItem[] }>;
+}
+
+export async function importCjProduct(input: {
+  cjProductId: string;
+  name: string;
+  category: string;
+  imageUrl?: string | null;
+  cjSellPrice?: string;
+  priceAp: number;
+}) {
+  const res = await fetch(`${API_URL}/products/import-cj`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchAllProductsAdmin(): Promise<AdminProduct[]> {
+  const res = await fetch(`${API_URL}/products`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deleteProductAdmin(id: string) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

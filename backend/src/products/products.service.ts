@@ -8,6 +8,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
+import { ImportProductDto } from '../cj/dto/import-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -21,6 +22,38 @@ export class ProductsService {
       .get();
 
     return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async listAll() {
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_PRODUCTS)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async importFromCj(dto: ImportProductDto) {
+    const docRef = await this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).add({
+      name: dto.name,
+      category: dto.category,
+      priceAp: dto.priceAp,
+      imageUrl: dto.imageUrl ?? null,
+      description: `${dto.name} (CJ Dropshipping · ${dto.cjSellPrice ?? 'n/a'})`,
+      cjProductId: dto.cjProductId,
+      featured: true,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+    return { id: docRef.id };
+  }
+
+  async remove(productId: string) {
+    const ref = this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(productId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new NotFoundException('Product not found');
+    }
+    await ref.delete();
+    return { id: productId };
   }
 
   /**

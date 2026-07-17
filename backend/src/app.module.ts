@@ -7,6 +7,7 @@ import { AuthModule } from './auth/auth.module';
 import { WalletModule } from './wallet/wallet.module';
 import { ProductsModule } from './products/products.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { CjModule } from './cj/cj.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { TicketsModule } from './tickets/tickets.module';
     WalletModule,
     ProductsModule,
     TicketsModule,
+    CjModule,
   ],
   controllers: [AppController],
   providers: [AppService],

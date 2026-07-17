@@ -19,13 +19,6 @@ function generateCode(): string {
 export class TicketsService {
   constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
-  async assertAdmin(uid: string) {
-    const userSnap = await this.db.collection(COLLECTIONS.USERS).doc(uid).get();
-    if (!userSnap.exists || !userSnap.data()?.isAdmin) {
-      throw new ForbiddenException('Admin access required');
-    }
-  }
-
   async issue(source: string, count: number) {
     const batch = this.db.batch();
     const codes: string[] = [];
