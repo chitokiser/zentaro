@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../common/collections';
 
 export interface WalletView {
   ap: number;
+  exp: number;
   timeToken: number;
   jumpToken: number;
   rewardPoint: number;
@@ -14,6 +15,7 @@ export interface WalletView {
 }
 
 const DEFAULT_WALLET = {
+  exp: 0,
   timeToken: 0,
   jumpToken: 0,
   rewardPoint: 0,
@@ -50,6 +52,7 @@ export class WalletService {
 
     return {
       ap: user.points ?? 0,
+      exp: wallet.exp ?? 0,
       timeToken: wallet.timeToken ?? 0,
       jumpToken: wallet.jumpToken ?? 0,
       rewardPoint: wallet.rewardPoint ?? 0,

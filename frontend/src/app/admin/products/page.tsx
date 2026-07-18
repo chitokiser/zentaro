@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   searchCjProducts,
   importCjProduct,
+  createDirectProduct,
   fetchAllProductsAdmin,
   deleteProductAdmin,
   type CjSearchResultItem,
@@ -16,11 +17,20 @@ export default function AdminProductsPage() {
   const [keyword, setKeyword] = useState("")
   const [results, setResults] = useState<CjSearchResultItem[] | null>(null)
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
+  const [costInputs, setCostInputs] = useState<Record<string, string>>({})
   const [products, setProducts] = useState<AdminProduct[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+
+  const [directName, setDirectName] = useState("")
+  const [directCategory, setDirectCategory] = useState("")
+  const [directDescription, setDirectDescription] = useState("")
+  const [directImageUrl, setDirectImageUrl] = useState("")
+  const [directPriceAp, setDirectPriceAp] = useState("")
+  const [directCostAp, setDirectCostAp] = useState("")
+  const [directBusy, setDirectBusy] = useState(false)
 
   const loadProducts = useCallback(() => {
     fetchAllProductsAdmin()
@@ -49,8 +59,13 @@ export default function AdminProductsPage() {
 
   async function handleImport(item: CjSearchResultItem) {
     const priceAp = Number(priceInputs[item.cjProductId])
+    const costAp = Number(costInputs[item.cjProductId])
     if (!priceAp || priceAp <= 0) {
       setError("AP 가격을 입력해주세요.")
+      return
+    }
+    if (!costAp || costAp < 0 || costAp > priceAp) {
+      setError("원가(AP)를 판매가 이하로 입력해주세요.")
       return
     }
     setBusyId(item.cjProductId)
@@ -64,6 +79,7 @@ export default function AdminProductsPage() {
         imageUrl: item.imageUrl,
         cjSellPrice: item.sellPrice,
         priceAp,
+        costAp,
       })
       setMessage(`"${item.name}"을(를) 쇼핑몰에 추가했습니다.`)
       loadProducts()
@@ -71,6 +87,45 @@ export default function AdminProductsPage() {
       setError(err instanceof Error ? err.message : "추가에 실패했습니다.")
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function handleCreateDirect(e: React.FormEvent) {
+    e.preventDefault()
+    const priceAp = Number(directPriceAp)
+    const costAp = Number(directCostAp)
+    if (!priceAp || priceAp <= 0) {
+      setError("AP 가격을 입력해주세요.")
+      return
+    }
+    if (!costAp || costAp < 0 || costAp > priceAp) {
+      setError("원가(AP)를 판매가 이하로 입력해주세요.")
+      return
+    }
+    setDirectBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      await createDirectProduct({
+        name: directName,
+        category: directCategory,
+        description: directDescription || undefined,
+        imageUrl: directImageUrl || undefined,
+        priceAp,
+        costAp,
+      })
+      setMessage(`"${directName}"을(를) 직배송 상품으로 등록했습니다.`)
+      setDirectName("")
+      setDirectCategory("")
+      setDirectDescription("")
+      setDirectImageUrl("")
+      setDirectPriceAp("")
+      setDirectCostAp("")
+      loadProducts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "등록에 실패했습니다.")
+    } finally {
+      setDirectBusy(false)
     }
   }
 
@@ -146,11 +201,21 @@ export default function AdminProductsPage() {
                 <input
                   type="number"
                   min={1}
-                  placeholder="AP 가격"
-                  className="w-24 rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
+                  placeholder="AP 판매가"
+                  className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
                   value={priceInputs[item.cjProductId] ?? ""}
                   onChange={(e) =>
                     setPriceInputs((prev) => ({ ...prev, [item.cjProductId]: e.target.value }))
+                  }
+                />
+                <input
+                  type="number"
+                  min={0}
+                  placeholder="원가(AP)"
+                  className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
+                  value={costInputs[item.cjProductId] ?? ""}
+                  onChange={(e) =>
+                    setCostInputs((prev) => ({ ...prev, [item.cjProductId]: e.target.value }))
                   }
                 />
                 <Button
@@ -168,17 +233,80 @@ export default function AdminProductsPage() {
       ) : null}
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
+        <h3 className="font-display text-base font-medium">직배송 상품 직접 등록</h3>
+        <p className="mt-1 text-xs text-muted-foreground">
+          CJ Dropshipping을 거치지 않고 ZENTARO가 직접 재고를 보유·배송하는 상품(세계 유명 주류, ZENTARO 자체 제품)을 등록합니다.
+        </p>
+        <form onSubmit={handleCreateDirect} className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="상품명"
+            value={directName}
+            onChange={(e) => setDirectName(e.target.value)}
+            required
+          />
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="카테고리 (예: Whisky)"
+            value={directCategory}
+            onChange={(e) => setDirectCategory(e.target.value)}
+            required
+          />
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
+            placeholder="설명 (선택)"
+            value={directDescription}
+            onChange={(e) => setDirectDescription(e.target.value)}
+          />
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
+            placeholder="이미지 URL (선택)"
+            value={directImageUrl}
+            onChange={(e) => setDirectImageUrl(e.target.value)}
+          />
+          <input
+            type="number"
+            min={1}
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="AP 판매가"
+            value={directPriceAp}
+            onChange={(e) => setDirectPriceAp(e.target.value)}
+            required
+          />
+          <input
+            type="number"
+            min={0}
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="원가(AP)"
+            value={directCostAp}
+            onChange={(e) => setDirectCostAp(e.target.value)}
+            required
+          />
+          <Button
+            type="submit"
+            disabled={directBusy}
+            className="sm:col-span-2 bg-primary text-primary-foreground hover:bg-primary/90"
+          >
+            직배송 상품 등록
+          </Button>
+        </form>
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-5">
         <h3 className="font-display text-base font-medium">등록된 상품 ({products?.length ?? 0})</h3>
         <div className="mt-4 flex flex-col gap-2">
           {products?.map((product) => (
             <div key={product.id} className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2">
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium">{product.name}</span>
                 <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
-                <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} AP</span>
-                {product.cjProductId ? (
-                  <Badge variant="secondary" className="text-[10px]">CJ</Badge>
-                ) : null}
+                <span className="text-xs text-muted-foreground">
+                  {product.priceAp.toLocaleString()} AP
+                  {typeof product.costAp === "number" ? ` (원가 ${product.costAp.toLocaleString()})` : ""}
+                </span>
+                <Badge variant="secondary" className="text-[10px]">
+                  {product.fulfillmentType === "direct" ? "직배송" : "드랍쉬핑"}
+                </Badge>
               </div>
               <Button
                 size="sm"

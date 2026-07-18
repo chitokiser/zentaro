@@ -5,6 +5,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { ProductsService } from './products.service';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
+import { CreateDirectProductDto } from './dto/create-direct-product.dto';
+import { PurchaseProductDto } from './dto/purchase-product.dto';
 
 @Controller('products')
 export class ProductsController {
@@ -27,6 +29,12 @@ export class ProductsController {
     return this.productsService.importFromCj(dto);
   }
 
+  @Post('direct')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  createDirect(@Body() dto: CreateDirectProductDto) {
+    return this.productsService.createDirect(dto);
+  }
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
   remove(@Param('id') id: string) {
@@ -38,7 +46,8 @@ export class ProductsController {
   purchase(
     @Param('id') id: string,
     @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: PurchaseProductDto,
   ) {
-    return this.productsService.purchaseWithAp(user.uid, id);
+    return this.productsService.purchase(user.uid, id, dto.expToUse ?? 0);
   }
 }

@@ -129,7 +129,19 @@ export class AuthService {
     if (this.isAdminEmail(email)) {
       await this.usersCol().doc(uid).set({ isAdmin: true }, { merge: true });
     }
+    const snap = await this.usersCol().doc(uid).get();
+    const isAdmin = snap.data()?.isAdmin === true;
     const accessToken = this.jwt.sign({ sub: uid, email });
-    return { accessToken, uid };
+    return { accessToken, uid, isAdmin };
+  }
+
+  async getMe(uid: string) {
+    const snap = await this.usersCol().doc(uid).get();
+    const data = snap.data() ?? {};
+    return {
+      uid,
+      email: data.email ?? null,
+      isAdmin: data.isAdmin === true,
+    };
   }
 }

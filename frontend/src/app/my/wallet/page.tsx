@@ -6,6 +6,7 @@ import { fetchWallet } from "@/lib/auth-client"
 
 interface WalletData {
   ap: number
+  exp: number
   timeToken: number
   jumpToken: number
   rewardPoint: number
@@ -15,6 +16,7 @@ interface WalletData {
 
 const TILES: { key: keyof WalletData; label: string }[] = [
   { key: "ap", label: "AP (Reward Point)" },
+  { key: "exp", label: "EXP (Mall 마진 결제)" },
   { key: "timeToken", label: "Time Token" },
   { key: "jumpToken", label: "Jump Token" },
   { key: "rewardPoint", label: "Bonus Reward Point" },
@@ -47,7 +49,7 @@ export default function WalletPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {TILES.map((tile) => (
           <div key={tile.key} className="rounded-lg border border-border/60 bg-card p-4">
             <span className="text-xs text-muted-foreground">{tile.label}</span>

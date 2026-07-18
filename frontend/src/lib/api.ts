@@ -5,6 +5,8 @@ export interface Product {
   name: string;
   category: string;
   priceAp: number;
+  costAp?: number;
+  fulfillmentType?: "dropshipping" | "direct";
   imageUrl: string | null;
   description: string;
 }

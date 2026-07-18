@@ -4,6 +4,7 @@ import { MessageCircle, Camera, Send, PlayCircle } from "lucide-react"
 const FOOTER_LINKS = [
   { label: "About", href: "/about/company" },
   { label: "Contact", href: "/contact" },
+  { label: "인증/허가", href: "/about/certifications" },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
   { label: "Official Community", href: "/community" },

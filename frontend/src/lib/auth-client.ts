@@ -8,12 +8,21 @@ export function getToken(): string | null {
   return window.localStorage.getItem(TOKEN_KEY);
 }
 
+const AUTH_CHANGED_EVENT = "zentaro:auth-changed";
+
 export function setToken(token: string) {
   window.localStorage.setItem(TOKEN_KEY, token);
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 }
 
 export function clearToken() {
   window.localStorage.removeItem(TOKEN_KEY);
+  window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
+}
+
+export function onAuthChanged(callback: () => void) {
+  window.addEventListener(AUTH_CHANGED_EVENT, callback);
+  return () => window.removeEventListener(AUTH_CHANGED_EVENT, callback);
 }
 
 async function parseErrorMessage(res: Response): Promise<string> {
@@ -67,7 +76,29 @@ function authHeaders(): HeadersInit {
   return { Authorization: `Bearer ${token}` };
 }
 
-export async function fetchWallet() {
+export interface Me {
+  uid: string;
+  email: string | null;
+  isAdmin: boolean;
+}
+
+export async function fetchMe(): Promise<Me> {
+  const res = await fetch(`${API_URL}/auth/me`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface Wallet {
+  ap: number;
+  exp: number;
+  timeToken: number;
+  jumpToken: number;
+  rewardPoint: number;
+  tickets: string[];
+  nfts: string[];
+}
+
+export async function fetchWallet(): Promise<Wallet> {
   const res = await fetch(`${API_URL}/wallet`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
@@ -124,11 +155,15 @@ export interface CjSearchResultItem {
   sku: string;
 }
 
+export type FulfillmentType = "dropshipping" | "direct";
+
 export interface AdminProduct {
   id: string;
   name: string;
   category: string;
   priceAp: number;
+  costAp?: number;
+  fulfillmentType?: FulfillmentType;
   imageUrl: string | null;
   cjProductId?: string;
   featured: boolean;
@@ -148,8 +183,26 @@ export async function importCjProduct(input: {
   imageUrl?: string | null;
   cjSellPrice?: string;
   priceAp: number;
+  costAp: number;
 }) {
   const res = await fetch(`${API_URL}/products/import-cj`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function createDirectProduct(input: {
+  name: string;
+  category: string;
+  description?: string;
+  imageUrl?: string | null;
+  priceAp: number;
+  costAp: number;
+}) {
+  const res = await fetch(`${API_URL}/products/direct`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
@@ -171,6 +224,22 @@ export async function deleteProductAdmin(id: string) {
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
+}
+
+export async function purchaseProduct(id: string, expToUse = 0) {
+  const res = await fetch(`${API_URL}/products/${id}/purchase`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ expToUse }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json() as Promise<{
+    orderId: string;
+    apPaid: number;
+    expPaid: number;
+    remainingAp: number;
+    remainingExp: number;
+  }>;
 }
 
 export const CONTRIBUTION_ITEM_LABELS: Record<string, string> = {

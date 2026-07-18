@@ -1,10 +1,6 @@
 import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
-export class ImportProductDto {
-  @IsString()
-  @MinLength(1)
-  cjProductId: string;
-
+export class CreateDirectProductDto {
   @IsString()
   @MinLength(1)
   name: string;
@@ -15,11 +11,11 @@ export class ImportProductDto {
 
   @IsOptional()
   @IsString()
-  imageUrl?: string;
+  description?: string;
 
   @IsOptional()
   @IsString()
-  cjSellPrice?: string;
+  imageUrl?: string;
 
   @IsNumber()
   @Min(0)

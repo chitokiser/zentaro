@@ -2,9 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { Menu, User, Wallet } from "lucide-react"
+import { Menu, Shield, User, Wallet } from "lucide-react"
 
 import { MAIN_NAV } from "@/lib/nav"
+import { getToken, fetchMe, onAuthChanged } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -22,6 +23,21 @@ import {
 
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
+  const [isAdmin, setIsAdmin] = React.useState(false)
+
+  React.useEffect(() => {
+    function refresh() {
+      if (!getToken()) {
+        setIsAdmin(false)
+        return
+      }
+      fetchMe()
+        .then((me) => setIsAdmin(me.isAdmin))
+        .catch(() => setIsAdmin(false))
+    }
+    refresh()
+    return onAuthChanged(refresh)
+  }, [])
 
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
@@ -63,6 +79,14 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          {isAdmin ? (
+            <Button asChild variant="outline" size="sm" className="gap-1.5 border-primary/50 text-primary hover:bg-secondary">
+              <Link href="/admin">
+                <Shield className="size-4" />
+                관리자모드
+              </Link>
+            </Button>
+          ) : null}
           <Button asChild variant="ghost" size="sm" className="gap-1.5 text-foreground/90 hover:text-primary">
             <Link href="/my/wallet">
               <Wallet className="size-4" />
@@ -110,6 +134,16 @@ export function SiteHeader() {
                   </div>
                 </div>
               ))}
+              {isAdmin ? (
+                <Link
+                  href="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-md border border-primary/50 px-3 py-2 text-center text-sm font-medium text-primary"
+                >
+                  <Shield className="size-4" />
+                  관리자모드
+                </Link>
+              ) : null}
               <Link
                 href="/my/profile"
                 onClick={() => setMobileOpen(false)}
