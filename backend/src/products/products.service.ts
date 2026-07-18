@@ -68,6 +68,17 @@ export class ProductsService {
     return { id: docRef.id };
   }
 
+  async getOne(productId: string) {
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_PRODUCTS)
+      .doc(productId)
+      .get();
+    if (!snap.exists) {
+      throw new NotFoundException('Product not found');
+    }
+    return { id: snap.id, ...snap.data() };
+  }
+
   async remove(productId: string) {
     const ref = this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(productId);
     const snap = await ref.get();
@@ -80,11 +91,14 @@ export class ProductsService {
 
   /**
    * Spends AP (the shared aim119 points economy) plus optional EXP (a
-   * zentaro-only currency) to buy a product. Only the product's margin
-   * (priceAp - costAp) may be covered by EXP — the cost portion must always
-   * be paid in AP. Debits users/{uid}.points and logs a shared `transactions`
-   * ledger entry for the AP portion only (EXP is zentaro-only, so it isn't
-   * written to the shared ledger other aim119 apps read from).
+   * zentaro-only currency) to buy a product. Dropshipping products may cover
+   * up to 80% of their margin (priceAp - costAp) with EXP — the remainder,
+   * including the full cost portion, is always paid in AP. Direct-stock
+   * (자체재고) products don't accept EXP at all: 100% AP (cash payment via a
+   * PG is planned but not wired up yet). Debits users/{uid}.points and logs
+   * a shared `transactions` ledger entry for the AP portion only (EXP is
+   * zentaro-only, so it isn't written to the shared ledger other aim119 apps
+   * read from).
    */
   async purchase(uid: string, productId: string, expToUse = 0) {
     const productRef = this.db
@@ -110,12 +124,20 @@ export class ProductsService {
       const product = productSnap.data()!;
       const priceAp: number = product.priceAp ?? 0;
       const costAp: number = product.costAp ?? priceAp;
+      const fulfillmentType: string = product.fulfillmentType ?? 'dropshipping';
       const margin = Math.max(0, priceAp - costAp);
+      const maxExp =
+        fulfillmentType === 'dropshipping' ? Math.floor(margin * 0.8) : 0;
       const currentPoints: number = userSnap.data()!.points ?? 0;
       const currentExp: number = walletSnap.exists ? (walletSnap.data()!.exp ?? 0) : 0;
 
-      if (expToUse > margin) {
-        throw new BadRequestException('상품 마진을 초과하는 EXP는 사용할 수 없습니다.');
+      if (expToUse > 0 && fulfillmentType !== 'dropshipping') {
+        throw new BadRequestException(
+          '직배송(자체재고) 상품은 EXP로 결제할 수 없습니다. AP 결제만 가능합니다.',
+        );
+      }
+      if (expToUse > maxExp) {
+        throw new BadRequestException('마진의 80%를 초과하는 EXP는 사용할 수 없습니다.');
       }
       if (expToUse > currentExp) {
         throw new BadRequestException('EXP 잔액이 부족합니다.');

@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { getToken, fetchWallet, purchaseProduct } from "@/lib/auth-client"
@@ -22,6 +23,8 @@ export function ProductCard({ product }: { product: Product }) {
 
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
+  const isDropshipping = (product.fulfillmentType ?? "dropshipping") === "dropshipping"
+  const maxExp = isDropshipping ? Math.floor(margin * 0.8) : 0
 
   async function handleOpen() {
     setOpen(true)
@@ -34,7 +37,7 @@ export function ProductCard({ product }: { product: Product }) {
     try {
       const wallet = await fetchWallet()
       setExpBalance(wallet.exp)
-      setExpToUse(Math.min(margin, wallet.exp))
+      setExpToUse(Math.min(maxExp, wallet.exp))
     } catch (err) {
       setError(err instanceof Error ? err.message : "오류가 발생했습니다.")
     }
@@ -57,9 +60,19 @@ export function ProductCard({ product }: { product: Product }) {
 
   return (
     <div className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card">
-      <div className="flex aspect-square items-center justify-center bg-secondary/60 text-xs text-muted-foreground">
-        {product.category}
-      </div>
+      <Link href={`/mall/${product.id}`} className="relative flex aspect-square items-center justify-center bg-secondary/60 text-xs text-muted-foreground">
+        {product.imageUrl ? (
+          <Image
+            src={product.imageUrl}
+            alt={product.name}
+            fill
+            className="object-cover"
+            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+          />
+        ) : (
+          product.category
+        )}
+      </Link>
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <div className="flex flex-wrap gap-1">
           <Badge variant="outline" className="w-fit border-primary/40 text-[10px] text-primary">
@@ -69,11 +82,15 @@ export function ProductCard({ product }: { product: Product }) {
             {FULFILLMENT_LABEL[product.fulfillmentType ?? "dropshipping"]}
           </Badge>
         </div>
-        <span className="text-sm font-medium text-foreground">{product.name}</span>
+        <Link href={`/mall/${product.id}`} className="text-sm font-medium text-foreground hover:text-primary">
+          {product.name}
+        </Link>
         <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} AP</span>
-        {margin > 0 ? (
-          <span className="text-[11px] text-primary">최대 {margin.toLocaleString()} EXP로 마진 결제 가능</span>
-        ) : null}
+        {maxExp > 0 ? (
+          <span className="text-[11px] text-primary">최대 {maxExp.toLocaleString()} EXP로 결제 가능 (마진의 80%)</span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground">AP 100% 결제 상품</span>
+        )}
 
         {!open ? (
           <Button size="sm" className="mt-1 bg-primary text-primary-foreground hover:bg-primary/90" onClick={handleOpen}>

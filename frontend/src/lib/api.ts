@@ -37,6 +37,16 @@ export async function getFeaturedProducts(): Promise<Product[]> {
   }
 }
 
+export async function getProduct(id: string): Promise<Product | null> {
+  try {
+    const res = await fetch(`${API_URL}/products/${id}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
+
 export interface WebzinePost {
   id: string;
   title: string;

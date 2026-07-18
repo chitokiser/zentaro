@@ -23,6 +23,11 @@ export class ProductsController {
     return this.productsService.listAll();
   }
 
+  @Get(':id')
+  getOne(@Param('id') id: string) {
+    return this.productsService.getOne(id);
+  }
+
   @Post('import-cj')
   @UseGuards(JwtAuthGuard, AdminGuard)
   importFromCj(@Body() dto: ImportProductDto) {
