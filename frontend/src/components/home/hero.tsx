@@ -1,13 +1,48 @@
+"use client"
+
+import { useEffect, useState } from "react"
+import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 
+const SLIDES = [
+  "/images/hero/5.png",
+  "/images/hero/3.png",
+  "/images/hero/6.png",
+  "/images/hero/4.png",
+]
+
 export function Hero() {
+  const [active, setActive] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActive((i) => (i + 1) % SLIDES.length)
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
   return (
     <section className="relative flex min-h-[92vh] items-center justify-center overflow-hidden bg-background">
-      {/* Placeholder for the full-bleed brand video; swap the gradient below for a <video> element once footage is ready. */}
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-secondary via-background to-background" />
+      {SLIDES.map((src, i) => (
+        <Image
+          key={src}
+          src={src}
+          alt=""
+          fill
+          priority={i === 0}
+          sizes="100vw"
+          className={`object-cover object-[center_25%] transition-opacity duration-[2000ms] ease-in-out ${
+            i === active ? "opacity-45" : "opacity-0"
+          }`}
+        />
+      ))}
+
+      {/* Dark green wash + vignette so the photography reads as premium, not a snapshot */}
+      <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-background/50 to-background" />
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_var(--background)_95%)]" />
       <div
-        className="absolute inset-0 opacity-[0.15]"
+        className="absolute inset-0 opacity-[0.12] mix-blend-overlay"
         style={{
           backgroundImage:
             "repeating-linear-gradient(115deg, transparent 0px, transparent 2px, rgba(201,162,75,0.4) 2px, transparent 3px)",
@@ -20,12 +55,12 @@ export function Hero() {
         <span className="text-xs font-medium uppercase tracking-[0.4em] text-primary">
           Craft Distillery
         </span>
-        <h1 className="font-display text-5xl font-semibold leading-tight text-foreground sm:text-6xl md:text-7xl">
+        <h1 className="font-display text-5xl font-semibold leading-tight text-foreground drop-shadow-[0_2px_20px_rgba(0,0,0,0.6)] sm:text-6xl md:text-7xl">
           Every Bottle
           <br />
           Tells a Story
         </h1>
-        <p className="max-w-xl text-balance text-base text-muted-foreground sm:text-lg">
+        <p className="max-w-xl text-balance text-base text-muted-foreground drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-lg">
           진(Gin), 위스키, 리큐르 — 보태니컬을 증류하는 ZENTARO의 여정을
           만나보세요.
         </p>

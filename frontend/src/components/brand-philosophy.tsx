@@ -19,7 +19,7 @@ const MANIFESTO_LINES = [
   "Every authentic story begins with its origin.",
 ]
 
-const SLOGAN_CANDIDATES = [
+const SLOGANS = [
   "Crafted in Balance",
   "The Art of Refined Whisky",
   "Taste the Balance",
@@ -126,13 +126,13 @@ export function BrandPhilosophy() {
         </p>
       </div>
 
-      {/* Slogan candidates */}
+      {/* Slogans */}
       <div>
         <h3 className="text-center text-xs font-medium uppercase tracking-[0.3em] text-muted-foreground">
-          슬로건 후보
+          슬로건
         </h3>
         <div className="mt-4 flex flex-wrap justify-center gap-2">
-          {SLOGAN_CANDIDATES.map((slogan) => (
+          {SLOGANS.map((slogan) => (
             <span
               key={slogan}
               className="rounded-full border border-primary/30 bg-card px-4 py-1.5 text-xs text-foreground"
