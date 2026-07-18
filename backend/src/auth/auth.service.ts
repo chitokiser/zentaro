@@ -116,7 +116,19 @@ export class AuthService {
     return this.issueToken(docRef.id, payload.email);
   }
 
-  private issueToken(uid: string, email: string) {
+  private isAdminEmail(email: string): boolean {
+    const adminEmails = this.config
+      .get<string>('ADMIN_EMAILS', '')
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    return adminEmails.includes(email.toLowerCase());
+  }
+
+  private async issueToken(uid: string, email: string) {
+    if (this.isAdminEmail(email)) {
+      await this.usersCol().doc(uid).set({ isAdmin: true }, { merge: true });
+    }
     const accessToken = this.jwt.sign({ sub: uid, email });
     return { accessToken, uid };
   }
