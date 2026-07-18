@@ -35,6 +35,21 @@ cp .env.local.example .env.local
 npm run dev             # http://localhost:3000
 ```
 
+## Deployment
+
+- **Frontend (Netlify)**: this repo is a monorepo (`frontend/` + `backend/`), so Netlify needs
+  `netlify.toml` at the repo root (already committed) telling it the app lives in `frontend/`.
+  In the Netlify site's dashboard, make sure **Site settings → Build & deploy → Base directory**
+  is either unset or matches `frontend` — a conflicting UI override there beats `netlify.toml`.
+  Set the env var `NEXT_PUBLIC_API_URL` to the deployed backend's URL (see below); without it,
+  the site still renders but Mall/Wallet/login all silently fail since they'd be calling
+  `localhost:3001`, which doesn't exist on Netlify's servers or any visitor's machine.
+- **Backend (Railway or similar)**: the NestJS backend only runs on `localhost:3001` today — it
+  isn't deployed anywhere public yet. Deploy `backend/` as its own service (Railway, Render,
+  Fly.io, etc.), set the same env vars as `backend/.env.example`, then point the frontend's
+  `NEXT_PUBLIC_API_URL` at that service's public URL and set `FRONTEND_URL` on the backend to
+  the Netlify URL (for CORS).
+
 ## Status
 
 현재까지 구현된 범위: 프로젝트 뼈대, 메인 페이지(Hero~Footer), 메인 메뉴 전체 라우팅 스켈레톤,
