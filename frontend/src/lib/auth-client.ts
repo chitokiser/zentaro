@@ -226,6 +226,58 @@ export async function deleteProductAdmin(id: string) {
   return res.json();
 }
 
+export interface AdminPost {
+  id: string;
+  title: string;
+  contentHtml: string;
+  videoUrl: string | null;
+  tags: string[];
+  source: "ai" | "admin";
+  authorName: string;
+  published: boolean;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function fetchAllPostsAdmin(): Promise<AdminPost[]> {
+  const res = await fetch(`${API_URL}/posts/admin/all`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function createPost(input: {
+  title: string;
+  contentHtml: string;
+  videoUrl?: string;
+  tags: string[];
+}) {
+  const res = await fetch(`${API_URL}/posts`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deletePostAdmin(id: string) {
+  const res = await fetch(`${API_URL}/posts/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function generateAiPost(tag?: string) {
+  const res = await fetch(`${API_URL}/ai-writer/generate`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ tag }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function purchaseProduct(id: string, expToUse = 0) {
   const res = await fetch(`${API_URL}/products/${id}/purchase`, {
     method: "POST",

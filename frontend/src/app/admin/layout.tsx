@@ -5,6 +5,7 @@ const ADMIN_SECTIONS = [
   { label: "회원 관리", href: "/admin/members" },
   { label: "Ticket 발급", href: "/admin/tickets" },
   { label: "현물출자 심사", href: "/admin/contributions" },
+  { label: "웹진 관리", href: "/admin/webzine" },
   { label: "NFT 관리", href: "/admin/nft" },
   { label: "공지사항", href: "/admin/notices" },
   { label: "팝업 관리", href: "/admin/popups" },

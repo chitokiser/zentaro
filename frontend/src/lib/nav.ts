@@ -54,6 +54,11 @@ export const MAIN_NAV: NavGroup[] = [
         href: "/rewards/contribution",
         description: "오크통·브랜디·위스키·진·럼 → 쇼핑머니 지급",
       },
+      {
+        label: "ZENTARO 웹진",
+        href: "/webzine",
+        description: "술·미식 매거진 (AI 자동작성 + 관리자 블로그)",
+      },
     ],
   },
   {

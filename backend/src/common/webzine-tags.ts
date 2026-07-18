@@ -1,0 +1,16 @@
+export const WEBZINE_TAGS = [
+  '허브',
+  '증류주',
+  '위스키',
+  '와인',
+  '럼',
+  '드라이진',
+  '보드카',
+  '전통주',
+  '기능성음료',
+  '햄',
+  '치즈',
+  '훈제',
+] as const;
+
+export type WebzineTag = (typeof WEBZINE_TAGS)[number];

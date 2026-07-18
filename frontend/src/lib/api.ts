@@ -36,3 +36,36 @@ export async function getFeaturedProducts(): Promise<Product[]> {
     return FALLBACK_PRODUCTS;
   }
 }
+
+export interface WebzinePost {
+  id: string;
+  title: string;
+  contentHtml: string;
+  videoUrl: string | null;
+  tags: string[];
+  source: "ai" | "admin";
+  authorName: string;
+  published: boolean;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function getPosts(tag?: string): Promise<WebzinePost[]> {
+  try {
+    const params = tag ? `?tag=${encodeURIComponent(tag)}` : "";
+    const res = await fetch(`${API_URL}/posts${params}`, { next: { revalidate: 60 } });
+    if (!res.ok) return [];
+    return res.json();
+  } catch {
+    return [];
+  }
+}
+
+export async function getPost(id: string): Promise<WebzinePost | null> {
+  try {
+    const res = await fetch(`${API_URL}/posts/${id}`, { next: { revalidate: 60 } });
+    if (!res.ok) return null;
+    return res.json();
+  } catch {
+    return null;
+  }
+}
