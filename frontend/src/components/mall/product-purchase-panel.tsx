@@ -63,7 +63,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
     <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4">
       {maxExp > 0 ? (
         <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-          사용할 EXP (보유: {expBalance?.toLocaleString() ?? 0}, 최대 {maxExp.toLocaleString()} · 마진의 80%)
+          사용할 EXP (보유: {expBalance?.toLocaleString() ?? 0}, 최대 {maxExp.toLocaleString()})
           <input
             type="number"
             min={0}
