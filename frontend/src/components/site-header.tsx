@@ -5,7 +5,7 @@ import Link from "next/link"
 import { Menu, Shield, User, Wallet } from "lucide-react"
 
 import { MAIN_NAV } from "@/lib/nav"
-import { getToken, fetchMe, onAuthChanged } from "@/lib/auth-client"
+import { getToken, fetchMe, fetchWallet, onAuthChanged, type Wallet as WalletData } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -24,16 +24,21 @@ import {
 export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [isAdmin, setIsAdmin] = React.useState(false)
+  const [wallet, setWallet] = React.useState<WalletData | null>(null)
 
   React.useEffect(() => {
     function refresh() {
       if (!getToken()) {
         setIsAdmin(false)
+        setWallet(null)
         return
       }
       fetchMe()
         .then((me) => setIsAdmin(me.isAdmin))
         .catch(() => setIsAdmin(false))
+      fetchWallet()
+        .then(setWallet)
+        .catch(() => setWallet(null))
     }
     refresh()
     return onAuthChanged(refresh)
@@ -79,6 +84,19 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          {wallet ? (
+            <div className="mr-1 flex items-center gap-2.5 rounded-full border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs">
+              <span className="text-muted-foreground">
+                포인트 <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
+              </span>
+              <span className="text-muted-foreground">
+                AP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
+              </span>
+              <span className="text-muted-foreground">
+                EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
+              </span>
+            </div>
+          ) : null}
           {isAdmin ? (
             <Button asChild variant="outline" size="sm" className="gap-1.5 border-primary/50 text-primary hover:bg-secondary">
               <Link href="/admin">
@@ -115,6 +133,19 @@ export function SiteHeader() {
               </SheetTitle>
             </SheetHeader>
             <div className="flex flex-col gap-6 overflow-y-auto px-4 pb-6">
+              {wallet ? (
+                <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-secondary/40 px-3 py-2 text-xs">
+                  <span className="text-muted-foreground">
+                    포인트 <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    AP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
+                  </span>
+                  <span className="text-muted-foreground">
+                    EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
+                  </span>
+                </div>
+              ) : null}
               {MAIN_NAV.map((group) => (
                 <div key={group.label} className="flex flex-col gap-2">
                   <span className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
