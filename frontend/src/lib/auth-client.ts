@@ -172,3 +172,75 @@ export async function deleteProductAdmin(id: string) {
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export const CONTRIBUTION_ITEM_LABELS: Record<string, string> = {
+  oak_barrel: "오크통",
+  brandy: "브랜디",
+  whisky: "위스키",
+  gin: "진",
+  rum: "럼",
+  other: "기타",
+};
+
+export interface Contribution {
+  id: string;
+  userId: string;
+  email: string;
+  itemType: string;
+  quantity: number;
+  description: string;
+  contactPhone: string;
+  address: string | null;
+  status: "pending" | "approved" | "rejected";
+  apAmount: number | null;
+  rejectReason: string | null;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function submitContribution(input: {
+  itemType: string;
+  quantity: number;
+  description: string;
+  contactPhone: string;
+  address?: string;
+}) {
+  const res = await fetch(`${API_URL}/contributions`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchMyContributions(): Promise<Contribution[]> {
+  const res = await fetch(`${API_URL}/contributions/mine`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchAllContributionsAdmin(): Promise<Contribution[]> {
+  const res = await fetch(`${API_URL}/contributions`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function approveContribution(id: string, apAmount: number) {
+  const res = await fetch(`${API_URL}/contributions/${id}/approve`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ apAmount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function rejectContribution(id: string, reason?: string) {
+  const res = await fetch(`${API_URL}/contributions/${id}/reject`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

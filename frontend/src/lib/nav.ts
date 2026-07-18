@@ -49,6 +49,11 @@ export const MAIN_NAV: NavGroup[] = [
         href: "/rewards/jump-token",
         description: "점프토큰 보유자 혜택",
       },
+      {
+        label: "현물출자",
+        href: "/rewards/contribution",
+        description: "오크통·브랜디·위스키·진·럼 → 쇼핑머니 지급",
+      },
     ],
   },
   {
