@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -7,14 +7,20 @@ import { ProductsService } from './products.service';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 import { PurchaseProductDto } from './dto/purchase-product.dto';
+import { MALL_CATEGORIES } from '../common/mall-categories';
 
 @Controller('products')
 export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Get('featured')
-  getFeatured() {
-    return this.productsService.getFeatured();
+  getFeatured(@Query('mainCategory') mainCategory?: string) {
+    return this.productsService.getFeatured(mainCategory);
+  }
+
+  @Get('categories')
+  getCategories() {
+    return MALL_CATEGORIES;
   }
 
   @Get()

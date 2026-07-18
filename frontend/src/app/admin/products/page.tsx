@@ -12,12 +12,15 @@ import {
   type CjSearchResultItem,
   type AdminProduct,
 } from "@/lib/auth-client"
+import { MALL_MAIN_CATEGORIES, getSubcategories } from "@/lib/mall-categories"
 
 export default function AdminProductsPage() {
   const [keyword, setKeyword] = useState("")
   const [results, setResults] = useState<CjSearchResultItem[] | null>(null)
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
   const [costInputs, setCostInputs] = useState<Record<string, string>>({})
+  const [mainCategoryInputs, setMainCategoryInputs] = useState<Record<string, string>>({})
+  const [subCategoryInputs, setSubCategoryInputs] = useState<Record<string, string>>({})
   const [products, setProducts] = useState<AdminProduct[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -25,7 +28,8 @@ export default function AdminProductsPage() {
   const [busyId, setBusyId] = useState<string | null>(null)
 
   const [directName, setDirectName] = useState("")
-  const [directCategory, setDirectCategory] = useState("")
+  const [directMainCategory, setDirectMainCategory] = useState("")
+  const [directSubCategory, setDirectSubCategory] = useState("")
   const [directDescription, setDirectDescription] = useState("")
   const [directImageUrl, setDirectImageUrl] = useState("")
   const [directPriceAp, setDirectPriceAp] = useState("")
@@ -60,6 +64,18 @@ export default function AdminProductsPage() {
   async function handleImport(item: CjSearchResultItem) {
     const priceAp = Number(priceInputs[item.cjProductId])
     const costAp = Number(costInputs[item.cjProductId])
+    const mainCategory = mainCategoryInputs[item.cjProductId]
+    const subs = mainCategory ? getSubcategories(mainCategory) : []
+    const subCategory = subCategoryInputs[item.cjProductId] || (subs.length === 0 ? mainCategory : "")
+
+    if (!mainCategory) {
+      setError("카테고리(대분류)를 선택해주세요.")
+      return
+    }
+    if (subs.length > 0 && !subCategory) {
+      setError("세부 카테고리를 선택해주세요.")
+      return
+    }
     if (!priceAp || priceAp <= 0) {
       setError("AP 가격을 입력해주세요.")
       return
@@ -75,7 +91,8 @@ export default function AdminProductsPage() {
       await importCjProduct({
         cjProductId: item.cjProductId,
         name: item.name,
-        category: item.category,
+        mainCategory,
+        category: subCategory,
         imageUrl: item.imageUrl,
         cjSellPrice: item.sellPrice,
         priceAp,
@@ -94,6 +111,17 @@ export default function AdminProductsPage() {
     e.preventDefault()
     const priceAp = Number(directPriceAp)
     const costAp = Number(directCostAp)
+    const subs = directMainCategory ? getSubcategories(directMainCategory) : []
+    const subCategory = directSubCategory || (subs.length === 0 ? directMainCategory : "")
+
+    if (!directMainCategory) {
+      setError("카테고리(대분류)를 선택해주세요.")
+      return
+    }
+    if (subs.length > 0 && !subCategory) {
+      setError("세부 카테고리를 선택해주세요.")
+      return
+    }
     if (!priceAp || priceAp <= 0) {
       setError("AP 가격을 입력해주세요.")
       return
@@ -108,7 +136,8 @@ export default function AdminProductsPage() {
     try {
       await createDirectProduct({
         name: directName,
-        category: directCategory,
+        mainCategory: directMainCategory,
+        category: subCategory,
         description: directDescription || undefined,
         imageUrl: directImageUrl || undefined,
         priceAp,
@@ -116,7 +145,8 @@ export default function AdminProductsPage() {
       })
       setMessage(`"${directName}"을(를) 직배송 상품으로 등록했습니다.`)
       setDirectName("")
-      setDirectCategory("")
+      setDirectMainCategory("")
+      setDirectSubCategory("")
       setDirectDescription("")
       setDirectImageUrl("")
       setDirectPriceAp("")
@@ -198,6 +228,36 @@ export default function AdminProductsPage() {
               <span className="text-sm font-medium">{item.name}</span>
               <span className="text-xs text-muted-foreground">CJ 판매가: {item.sellPrice}</span>
               <div className="flex gap-2">
+                <select
+                  className="flex-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
+                  value={mainCategoryInputs[item.cjProductId] ?? ""}
+                  onChange={(e) => {
+                    const value = e.target.value
+                    setMainCategoryInputs((prev) => ({ ...prev, [item.cjProductId]: value }))
+                    setSubCategoryInputs((prev) => ({ ...prev, [item.cjProductId]: "" }))
+                  }}
+                >
+                  <option value="">대분류 선택</option>
+                  {MALL_MAIN_CATEGORIES.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+                {getSubcategories(mainCategoryInputs[item.cjProductId] ?? "").length > 0 ? (
+                  <select
+                    className="flex-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
+                    value={subCategoryInputs[item.cjProductId] ?? ""}
+                    onChange={(e) =>
+                      setSubCategoryInputs((prev) => ({ ...prev, [item.cjProductId]: e.target.value }))
+                    }
+                  >
+                    <option value="">세부 카테고리</option>
+                    {getSubcategories(mainCategoryInputs[item.cjProductId] ?? "").map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                ) : null}
+              </div>
+              <div className="flex gap-2">
                 <input
                   type="number"
                   min={1}
@@ -245,13 +305,33 @@ export default function AdminProductsPage() {
             onChange={(e) => setDirectName(e.target.value)}
             required
           />
-          <input
-            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-            placeholder="카테고리 (예: Whisky)"
-            value={directCategory}
-            onChange={(e) => setDirectCategory(e.target.value)}
+          <select
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+            value={directMainCategory}
+            onChange={(e) => {
+              setDirectMainCategory(e.target.value)
+              setDirectSubCategory("")
+            }}
             required
-          />
+          >
+            <option value="">대분류 선택</option>
+            {MALL_MAIN_CATEGORIES.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          {getSubcategories(directMainCategory).length > 0 ? (
+            <select
+              className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+              value={directSubCategory}
+              onChange={(e) => setDirectSubCategory(e.target.value)}
+              required
+            >
+              <option value="">세부 카테고리 선택</option>
+              {getSubcategories(directMainCategory).map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          ) : null}
           <input
             className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
             placeholder="설명 (선택)"
@@ -299,6 +379,9 @@ export default function AdminProductsPage() {
             <div key={product.id} className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2">
               <div className="flex flex-wrap items-center gap-3">
                 <span className="text-sm font-medium">{product.name}</span>
+                {product.mainCategory ? (
+                  <Badge variant="outline" className="text-[10px]">{product.mainCategory}</Badge>
+                ) : null}
                 <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
                 <span className="text-xs text-muted-foreground">
                   {product.priceAp.toLocaleString()} AP

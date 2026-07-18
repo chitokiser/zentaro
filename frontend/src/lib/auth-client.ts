@@ -160,6 +160,7 @@ export type FulfillmentType = "dropshipping" | "direct";
 export interface AdminProduct {
   id: string;
   name: string;
+  mainCategory?: string;
   category: string;
   priceAp: number;
   costAp?: number;
@@ -179,6 +180,7 @@ export async function searchCjProducts(keyword: string, pageNum = 1) {
 export async function importCjProduct(input: {
   cjProductId: string;
   name: string;
+  mainCategory: string;
   category: string;
   imageUrl?: string | null;
   cjSellPrice?: string;
@@ -196,6 +198,7 @@ export async function importCjProduct(input: {
 
 export async function createDirectProduct(input: {
   name: string;
+  mainCategory: string;
   category: string;
   description?: string;
   imageUrl?: string | null;

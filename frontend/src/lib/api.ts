@@ -3,6 +3,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 export interface Product {
   id: string;
   name: string;
+  mainCategory?: string;
   category: string;
   priceAp: number;
   costAp?: number;
@@ -24,14 +25,16 @@ const FALLBACK_PRODUCTS: Product[] = [
   { id: "fallback-10", name: "Herb Shampoo", category: "Herb Cosmetics", priceAp: 18000, imageUrl: null, description: "" },
 ];
 
-export async function getFeaturedProducts(): Promise<Product[]> {
+export async function getFeaturedProducts(mainCategory?: string): Promise<Product[]> {
   try {
-    const res = await fetch(`${API_URL}/products/featured`, {
+    const params = mainCategory ? `?mainCategory=${encodeURIComponent(mainCategory)}` : "";
+    const res = await fetch(`${API_URL}/products/featured${params}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return FALLBACK_PRODUCTS;
     const data = await res.json();
-    return Array.isArray(data) && data.length > 0 ? data : FALLBACK_PRODUCTS;
+    if (!Array.isArray(data)) return FALLBACK_PRODUCTS;
+    return mainCategory ? data : data.length > 0 ? data : FALLBACK_PRODUCTS;
   } catch {
     return FALLBACK_PRODUCTS;
   }

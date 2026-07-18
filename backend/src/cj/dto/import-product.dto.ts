@@ -1,4 +1,5 @@
-import { IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { MALL_MAIN_CATEGORIES } from '../../common/mall-categories';
 
 export class ImportProductDto {
   @IsString()
@@ -8,6 +9,9 @@ export class ImportProductDto {
   @IsString()
   @MinLength(1)
   name: string;
+
+  @IsIn(MALL_MAIN_CATEGORIES)
+  mainCategory: string;
 
   @IsString()
   @MinLength(1)

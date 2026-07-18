@@ -15,14 +15,16 @@ import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 export class ProductsService {
   constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
-  async getFeatured() {
+  async getFeatured(mainCategory?: string) {
     const snap = await this.db
       .collection(COLLECTIONS.ZENTARO_PRODUCTS)
       .where('featured', '==', true)
-      .limit(20)
+      .limit(200)
       .get();
 
-    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+    return snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .filter((product: any) => !mainCategory || product.mainCategory === mainCategory);
   }
 
   async listAll() {
@@ -36,6 +38,7 @@ export class ProductsService {
   async importFromCj(dto: ImportProductDto) {
     const docRef = await this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).add({
       name: dto.name,
+      mainCategory: dto.mainCategory,
       category: dto.category,
       priceAp: dto.priceAp,
       costAp: dto.costAp,
@@ -56,6 +59,7 @@ export class ProductsService {
   async createDirect(dto: CreateDirectProductDto) {
     const docRef = await this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).add({
       name: dto.name,
+      mainCategory: dto.mainCategory,
       category: dto.category,
       priceAp: dto.priceAp,
       costAp: dto.costAp,
