@@ -2,6 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { Menu, Shield, User, Wallet } from "lucide-react"
 
 import { MAIN_NAV } from "@/lib/nav"
@@ -47,11 +48,15 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/90 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <Link
-          href="/"
-          className="font-display text-xl font-semibold tracking-[0.2em] text-primary"
-        >
-          ZENTARO
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/images/brand/logo.png"
+            alt="ZENTARO"
+            width={240}
+            height={160}
+            priority
+            className="h-14 w-auto"
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
