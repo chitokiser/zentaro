@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -12,6 +13,11 @@ import {
   type AdminPost,
 } from "@/lib/auth-client"
 import { WEBZINE_TAGS } from "@/lib/webzine-tags"
+
+function extractThumbnail(html: string): string | null {
+  const match = html.match(/<img[^>]+src="([^"]+)"/)
+  return match ? match[1] : null
+}
 
 export default function AdminWebzinePage() {
   const [posts, setPosts] = useState<AdminPost[] | null>(null)
@@ -165,7 +171,7 @@ export default function AdminWebzinePage() {
           onChange={(e) => setAiTag(e.target.value)}
         >
           <option value="">(자동 순환)</option>
-          {WEBZINE_TAGS.map((t) => (
+          {WEBZINE_TAGS.filter((t) => t !== "🎬 젠타로 동영상").map((t) => (
             <option key={t} value={t}>
               {t}
             </option>
@@ -227,9 +233,16 @@ export default function AdminWebzinePage() {
       <div className="rounded-lg border border-border/60 bg-card p-5">
         <h3 className="font-display text-base font-medium">게시글 ({posts?.length ?? 0})</h3>
         <div className="mt-4 flex flex-col gap-2">
-          {posts?.map((post) => (
+          {posts?.map((post) => {
+            const thumbnail = extractThumbnail(post.contentHtml)
+            return (
             <div key={post.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 px-4 py-2">
               <div className="flex flex-wrap items-center gap-2">
+                {thumbnail ? (
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary/60">
+                    <Image src={thumbnail} alt={post.title} fill className="object-cover" sizes="40px" />
+                  </div>
+                ) : null}
                 <span className="text-sm font-medium">{post.title}</span>
                 <Badge variant="secondary" className="text-[10px]">
                   {post.source === "ai" ? "AI" : "관리자"}
@@ -259,7 +272,8 @@ export default function AdminWebzinePage() {
                 </Button>
               </div>
             </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

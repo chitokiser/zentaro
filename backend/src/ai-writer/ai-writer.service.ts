@@ -17,6 +17,10 @@ const IMAGE_QUERY_BY_TAG: Record<string, string> = {
   '👑 ZenTaro Story': 'luxury whiskey lifestyle',
 };
 
+// ZENTARO's own video/CF content is posted manually by admins, not AI-generated.
+const AI_EXCLUDED_TAGS = new Set(['🎬 젠타로 동영상']);
+const AI_TAGS = WEBZINE_TAGS.filter((t) => !AI_EXCLUDED_TAGS.has(t));
+
 @Injectable()
 export class AiWriterService {
   private readonly logger = new Logger(AiWriterService.name);
@@ -37,7 +41,7 @@ export class AiWriterService {
   }
 
   private nextTag(): string {
-    const tag = WEBZINE_TAGS[this.tagCursor % WEBZINE_TAGS.length];
+    const tag = AI_TAGS[this.tagCursor % AI_TAGS.length];
     this.tagCursor += 1;
     return tag;
   }
@@ -45,7 +49,7 @@ export class AiWriterService {
   // Once a day, one article per category (6 tags = 6 posts/day).
   @Cron('0 9 * * *')
   async handleCron() {
-    for (const tag of WEBZINE_TAGS) {
+    for (const tag of AI_TAGS) {
       await this.generateOne(tag);
     }
   }
