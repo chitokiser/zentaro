@@ -4,6 +4,7 @@ import { Cron } from '@nestjs/schedule';
 import Anthropic from '@anthropic-ai/sdk';
 import { PostsService } from '../posts/posts.service';
 import { WEBZINE_TAGS } from '../common/webzine-tags';
+import { CrossPostService } from '../cross-post/cross-post.service';
 
 const GEMINI_MODEL = 'gemini-2.5-flash';
 
@@ -27,6 +28,7 @@ export class AiWriterService {
   constructor(
     private readonly config: ConfigService,
     private readonly postsService: PostsService,
+    private readonly crossPostService: CrossPostService,
   ) {
     const anthropicKey = this.config.get<string>('ANTHROPIC_API_KEY');
     this.anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey }) : null;
@@ -40,10 +42,12 @@ export class AiWriterService {
     return tag;
   }
 
-  // Every 2 hours (00:00, 02:00, 04:00, ... 22:00) — 12 posts/day.
-  @Cron('0 */2 * * *')
+  // Once a day, one article per category (6 tags = 6 posts/day).
+  @Cron('0 9 * * *')
   async handleCron() {
-    await this.generateOne();
+    for (const tag of WEBZINE_TAGS) {
+      await this.generateOne(tag);
+    }
   }
 
   async generateOne(tag?: string) {
@@ -101,6 +105,16 @@ export class AiWriterService {
       'ZENTARO AI',
     );
     this.logger.log(`AI webzine post created: "${parsed.title}" (${chosenTag})`);
+
+    this.crossPostService
+      .postEverywhere({
+        id: result.id,
+        title: parsed.title,
+        contentHtml,
+        imageUrl,
+      })
+      .catch((err) => this.logger.error(`Cross-posting failed: ${err}`));
+
     return result;
   }
 
