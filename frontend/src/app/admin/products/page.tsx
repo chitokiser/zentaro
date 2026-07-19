@@ -389,6 +389,18 @@ export default function AdminProductsPage() {
           {products?.map((product) => (
             <div key={product.id} className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2">
               <div className="flex flex-wrap items-center gap-3">
+                {product.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={product.imageUrl}
+                    alt={product.name}
+                    className="h-10 w-10 shrink-0 rounded-md border border-border/40 object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary/60 text-[9px] text-muted-foreground">
+                    없음
+                  </div>
+                )}
                 <span className="text-sm font-medium">{product.name}</span>
                 {product.mainCategory ? (
                   <Badge variant="outline" className="text-[10px]">{product.mainCategory}</Badge>
