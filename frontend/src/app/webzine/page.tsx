@@ -38,7 +38,7 @@ export default async function WebzinePage({
       <PageHeader
         eyebrow="서비스"
         title="ZENTARO 웹진"
-        description="증류주, 허브, 미식에 관한 이야기 — AI가 2시간마다 자동으로, 관리자가 직접 작성합니다."
+        description="증류주, 허브, 미식에 관한 이야기"
       />
       <div className="mx-auto max-w-6xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap gap-2">
