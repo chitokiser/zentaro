@@ -16,10 +16,27 @@ const notoSansKr = Noto_Sans_KR({
   weight: ["300", "400", "500", "700"],
 });
 
+const title = "ZENTARO | Every Bottle Tells a Story";
+const description =
+  "ZENTARO — 프리미엄 크래프트 증류소. Dry Gin, Whisky, Liqueur와 보태니컬 리서치 랩, 그리고 ZENTARO Mall · Bottle Cap Rewards 생태계.";
+
 export const metadata: Metadata = {
-  title: "ZENTARO | Every Bottle Tells a Story",
-  description:
-    "ZENTARO — 프리미엄 크래프트 증류소. Dry Gin, Whisky, Liqueur와 보태니컬 리서치 랩, 그리고 Bottle Cap Rewards 생태계.",
+  title,
+  description,
+  metadataBase: new URL("https://zentaro.netlify.app"),
+  openGraph: {
+    title,
+    description,
+    url: "https://zentaro.netlify.app",
+    siteName: "ZENTARO",
+    locale: "ko_KR",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title,
+    description,
+  },
 };
 
 export default function RootLayout({
