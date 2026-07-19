@@ -30,6 +30,7 @@ export default function AdminProductsPage() {
   const [message, setMessage] = useState<string | null>(null)
   const [searching, setSearching] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [importResults, setImportResults] = useState<Record<string, { ok: boolean; text: string }>>({})
 
   const [directName, setDirectName] = useState("")
   const [directMainCategory, setDirectMainCategory] = useState("")
@@ -80,25 +81,29 @@ export default function AdminProductsPage() {
     const subs = mainCategory ? getSubcategories(mainCategory) : []
     const subCategory = subCategoryInputs[item.cjProductId] || (subs.length === 0 ? mainCategory : "")
 
+    setImportResults((prev) => {
+      const next = { ...prev }
+      delete next[item.cjProductId]
+      return next
+    })
+
     if (!mainCategory) {
-      setError("카테고리(대분류)를 선택해주세요.")
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "카테고리(대분류)를 선택해주세요." } }))
       return
     }
     if (subs.length > 0 && !subCategory) {
-      setError("세부 카테고리를 선택해주세요.")
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "세부 카테고리를 선택해주세요." } }))
       return
     }
     if (!priceAp || priceAp <= 0) {
-      setError("AP 가격을 입력해주세요.")
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "AP 가격을 입력해주세요." } }))
       return
     }
     if (!costAp || costAp < 0 || costAp > priceAp) {
-      setError("원가(AP)를 판매가 이하로 입력해주세요.")
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "원가(AP)를 판매가 이하로 입력해주세요." } }))
       return
     }
     setBusyId(item.cjProductId)
-    setError(null)
-    setMessage(null)
     try {
       await importCjProduct({
         cjProductId: item.cjProductId,
@@ -110,10 +115,13 @@ export default function AdminProductsPage() {
         priceAp,
         costAp,
       })
-      setMessage(`"${item.name}"을(를) 쇼핑몰에 추가했습니다.`)
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: true, text: "추가 완료" } }))
       loadProducts()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "추가에 실패했습니다.")
+      setImportResults((prev) => ({
+        ...prev,
+        [item.cjProductId]: { ok: false, text: err instanceof Error ? err.message : "추가에 실패했습니다." },
+      }))
     } finally {
       setBusyId(null)
     }
@@ -362,9 +370,14 @@ export default function AdminProductsPage() {
                   onClick={() => handleImport(item)}
                   className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
                 >
-                  몰에 추가
+                  {busyId === item.cjProductId ? "추가 중..." : "몰에 추가"}
                 </Button>
               </div>
+              {importResults[item.cjProductId] ? (
+                <p className={importResults[item.cjProductId].ok ? "text-[11px] text-primary" : "text-[11px] text-destructive"}>
+                  {importResults[item.cjProductId].text}
+                </p>
+              ) : null}
             </div>
           ))}
         </div>
