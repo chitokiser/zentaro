@@ -7,6 +7,7 @@ import {
   searchCjProducts,
   importCjProduct,
   createDirectProduct,
+  updateProductAdmin,
   fetchAllProductsAdmin,
   deleteProductAdmin,
   type CjSearchResultItem,
@@ -36,6 +37,7 @@ export default function AdminProductsPage() {
   const [directPriceAp, setDirectPriceAp] = useState("")
   const [directCostAp, setDirectCostAp] = useState("")
   const [directBusy, setDirectBusy] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const loadProducts = useCallback(() => {
     fetchAllProductsAdmin()
@@ -135,7 +137,7 @@ export default function AdminProductsPage() {
     setError(null)
     setMessage(null)
     try {
-      await createDirectProduct({
+      const payload = {
         name: directName,
         mainCategory: directMainCategory,
         category: subCategory,
@@ -146,8 +148,15 @@ export default function AdminProductsPage() {
           : undefined,
         priceAp,
         costAp,
-      })
-      setMessage(`"${directName}"을(를) 직배송 상품으로 등록했습니다.`)
+      }
+      if (editingId) {
+        await updateProductAdmin(editingId, payload)
+        setMessage(`"${directName}"을(를) 수정했습니다.`)
+      } else {
+        await createDirectProduct(payload)
+        setMessage(`"${directName}"을(를) 직배송 상품으로 등록했습니다.`)
+      }
+      setEditingId(null)
       setDirectName("")
       setDirectMainCategory("")
       setDirectSubCategory("")
@@ -158,10 +167,37 @@ export default function AdminProductsPage() {
       setDirectCostAp("")
       loadProducts()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "등록에 실패했습니다.")
+      setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
     } finally {
       setDirectBusy(false)
     }
+  }
+
+  function handleEdit(product: AdminProduct) {
+    setEditingId(product.id)
+    setDirectName(product.name)
+    setDirectMainCategory(product.mainCategory ?? "")
+    setDirectSubCategory(product.category ?? "")
+    setDirectDescription(product.description ?? "")
+    setDirectImageUrl(product.imageUrl ?? "")
+    setDirectBadges((product.badges ?? []).join(", "))
+    setDirectPriceAp(String(product.priceAp ?? ""))
+    setDirectCostAp(String(product.costAp ?? ""))
+    setMessage(null)
+    setError(null)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setDirectName("")
+    setDirectMainCategory("")
+    setDirectSubCategory("")
+    setDirectDescription("")
+    setDirectImageUrl("")
+    setDirectBadges("")
+    setDirectPriceAp("")
+    setDirectCostAp("")
   }
 
   async function handleDelete(id: string, name: string) {
@@ -298,9 +334,13 @@ export default function AdminProductsPage() {
       ) : null}
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="font-display text-base font-medium">직배송 상품 직접 등록</h3>
+        <h3 className="font-display text-base font-medium">
+          {editingId ? "상품 수정" : "직배송 상품 직접 등록"}
+        </h3>
         <p className="mt-1 text-xs text-muted-foreground">
-          CJ Dropshipping을 거치지 않고 ZENTARO가 직접 재고를 보유·배송하는 상품(세계 유명 주류, ZENTARO 자체 제품)을 등록합니다.
+          {editingId
+            ? "아래 항목을 수정하고 저장하세요."
+            : "CJ Dropshipping을 거치지 않고 ZENTARO가 직접 재고를 보유·배송하는 상품(세계 유명 주류, ZENTARO 자체 제품)을 등록합니다."}
         </p>
         <form onSubmit={handleCreateDirect} className="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2">
           <input
@@ -373,13 +413,20 @@ export default function AdminProductsPage() {
             onChange={(e) => setDirectCostAp(e.target.value)}
             required
           />
-          <Button
-            type="submit"
-            disabled={directBusy}
-            className="sm:col-span-2 bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            직배송 상품 등록
-          </Button>
+          <div className="flex gap-2 sm:col-span-2">
+            <Button
+              type="submit"
+              disabled={directBusy}
+              className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              {directBusy ? "저장 중..." : editingId ? "수정 저장" : "직배송 상품 등록"}
+            </Button>
+            {editingId ? (
+              <Button type="button" variant="ghost" disabled={directBusy} onClick={handleCancelEdit}>
+                취소
+              </Button>
+            ) : null}
+          </div>
         </form>
       </div>
 
@@ -414,14 +461,24 @@ export default function AdminProductsPage() {
                   {product.fulfillmentType === "direct" ? "직배송" : "드랍쉬핑"}
                 </Badge>
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busyId === product.id}
-                onClick={() => handleDelete(product.id, product.name)}
-              >
-                삭제
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === product.id}
+                  onClick={() => handleEdit(product)}
+                >
+                  수정
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === product.id}
+                  onClick={() => handleDelete(product.id, product.name)}
+                >
+                  삭제
+                </Button>
+              </div>
             </div>
           ))}
         </div>

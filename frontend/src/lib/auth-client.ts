@@ -162,6 +162,8 @@ export interface AdminProduct {
   name: string;
   mainCategory?: string;
   category: string;
+  description?: string;
+  badges?: string[];
   priceAp: number;
   costAp?: number;
   fulfillmentType?: FulfillmentType;
@@ -208,6 +210,28 @@ export async function createDirectProduct(input: {
 }) {
   const res = await fetch(`${API_URL}/products/direct`, {
     method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateProductAdmin(
+  id: string,
+  input: Partial<{
+    name: string;
+    mainCategory: string;
+    category: string;
+    description: string;
+    imageUrl: string;
+    badges: string[];
+    priceAp: number;
+    costAp: number;
+  }>,
+) {
+  const res = await fetch(`${API_URL}/products/${id}`, {
+    method: "PUT",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });

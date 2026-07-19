@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -6,6 +6,7 @@ import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { ProductsService } from './products.service';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 import { PurchaseProductDto } from './dto/purchase-product.dto';
 import { MALL_CATEGORIES } from '../common/mall-categories';
 
@@ -44,6 +45,12 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   createDirect(@Body() dto: CreateDirectProductDto) {
     return this.productsService.createDirect(dto);
+  }
+
+  @Put(':id')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    return this.productsService.update(id, dto);
   }
 
   @Delete(':id')

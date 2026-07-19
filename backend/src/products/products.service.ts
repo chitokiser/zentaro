@@ -10,6 +10,7 @@ import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductsService {
@@ -82,6 +83,16 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
     return { id: snap.id, ...snap.data() };
+  }
+
+  async update(productId: string, dto: UpdateProductDto) {
+    const ref = this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(productId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new NotFoundException('Product not found');
+    }
+    await ref.update({ ...dto, updatedAt: FieldValue.serverTimestamp() });
+    return { id: productId };
   }
 
   async remove(productId: string) {
