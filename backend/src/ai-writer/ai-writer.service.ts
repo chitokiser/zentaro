@@ -121,18 +121,28 @@ export class AiWriterService {
   private async fetchFreeImage(tag: string): Promise<string | null> {
     if (!this.pexelsApiKey) return null;
     const query = IMAGE_QUERY_BY_TAG[tag] ?? 'craft spirits bar';
+    // Pick a random page each time so repeated calls for the same tag draw
+    // from a wide pool instead of always returning the same top result.
+    const page = 1 + Math.floor(Math.random() * 5);
     try {
-      const res = await fetch(
-        `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=1&orientation=landscape`,
-        { headers: { Authorization: this.pexelsApiKey } },
-      );
+      const [usedUrls, res] = await Promise.all([
+        this.postsService.getUsedImageUrls(tag),
+        fetch(
+          `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20&page=${page}&orientation=landscape`,
+          { headers: { Authorization: this.pexelsApiKey } },
+        ),
+      ]);
       if (!res.ok) {
         this.logger.warn(`Pexels API error (${res.status}) for query "${query}"`);
         return null;
       }
       const body = await res.json();
-      const url = body?.photos?.[0]?.src?.large;
-      return typeof url === 'string' ? url : null;
+      const photos: Array<{ src?: { large?: string } }> = body?.photos ?? [];
+      const candidates = photos.map((p) => p.src?.large).filter((u): u is string => typeof u === 'string');
+      const unused = candidates.filter((u) => !usedUrls.has(u));
+      const pool = unused.length > 0 ? unused : candidates;
+      if (pool.length === 0) return null;
+      return pool[Math.floor(Math.random() * pool.length)];
     } catch (err) {
       this.logger.warn(`Pexels fetch failed for query "${query}": ${err}`);
       return null;
