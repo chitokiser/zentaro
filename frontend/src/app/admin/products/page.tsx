@@ -32,6 +32,7 @@ export default function AdminProductsPage() {
   const [directSubCategory, setDirectSubCategory] = useState("")
   const [directDescription, setDirectDescription] = useState("")
   const [directImageUrl, setDirectImageUrl] = useState("")
+  const [directBadges, setDirectBadges] = useState("")
   const [directPriceAp, setDirectPriceAp] = useState("")
   const [directCostAp, setDirectCostAp] = useState("")
   const [directBusy, setDirectBusy] = useState(false)
@@ -140,6 +141,9 @@ export default function AdminProductsPage() {
         category: subCategory,
         description: directDescription || undefined,
         imageUrl: directImageUrl || undefined,
+        badges: directBadges
+          ? directBadges.split(",").map((b) => b.trim()).filter(Boolean)
+          : undefined,
         priceAp,
         costAp,
       })
@@ -149,6 +153,7 @@ export default function AdminProductsPage() {
       setDirectSubCategory("")
       setDirectDescription("")
       setDirectImageUrl("")
+      setDirectBadges("")
       setDirectPriceAp("")
       setDirectCostAp("")
       loadProducts()
@@ -343,6 +348,12 @@ export default function AdminProductsPage() {
             placeholder="이미지 URL (선택)"
             value={directImageUrl}
             onChange={(e) => setDirectImageUrl(e.target.value)}
+          />
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
+            placeholder="배지 (쉼표로 구분, 예: 싱글 몰트, 셰리 캐스크, 피트·스모키)"
+            value={directBadges}
+            onChange={(e) => setDirectBadges(e.target.value)}
           />
           <input
             type="number"

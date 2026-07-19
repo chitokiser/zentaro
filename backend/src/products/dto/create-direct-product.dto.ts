@@ -1,4 +1,4 @@
-import { IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
 import { MALL_MAIN_CATEGORIES } from '../../common/mall-categories';
 
 export class CreateDirectProductDto {
@@ -20,6 +20,11 @@ export class CreateDirectProductDto {
   @IsOptional()
   @IsString()
   imageUrl?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  badges?: string[];
 
   @IsNumber()
   @Min(0)

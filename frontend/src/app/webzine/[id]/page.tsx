@@ -13,6 +13,15 @@ function getYoutubeEmbedUrl(url: string): string | null {
   return match ? `https://www.youtube.com/embed/${match[1]}` : null
 }
 
+function getVimeoEmbedUrl(url: string): string | null {
+  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
+  return match ? `https://player.vimeo.com/video/${match[1]}` : null
+}
+
+function isDirectVideoFile(url: string): boolean {
+  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
+}
+
 export default async function WebzinePostPage({
   params,
 }: {
@@ -25,7 +34,10 @@ export default async function WebzinePostPage({
     notFound()
   }
 
-  const embedUrl = post.videoUrl ? getYoutubeEmbedUrl(post.videoUrl) : null
+  const embedUrl = post.videoUrl
+    ? (getYoutubeEmbedUrl(post.videoUrl) ?? getVimeoEmbedUrl(post.videoUrl))
+    : null
+  const directVideo = post.videoUrl && !embedUrl && isDirectVideoFile(post.videoUrl) ? post.videoUrl : null
 
   return (
     <div>
@@ -52,6 +64,10 @@ export default async function WebzinePostPage({
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
             />
+          </div>
+        ) : directVideo ? (
+          <div className="mb-8 aspect-video w-full overflow-hidden rounded-lg border border-border/60 bg-black">
+            <video src={directVideo} controls className="h-full w-full" />
           </div>
         ) : post.videoUrl ? (
           <a

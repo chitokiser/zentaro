@@ -81,6 +81,11 @@ export function ProductCard({ product }: { product: Product }) {
           <Badge variant="secondary" className="w-fit text-[10px]">
             {FULFILLMENT_LABEL[product.fulfillmentType ?? "dropshipping"]}
           </Badge>
+          {product.badges?.map((b) => (
+            <Badge key={b} variant="outline" className="w-fit border-gold/40 text-[10px]">
+              {b}
+            </Badge>
+          ))}
         </div>
         <Link href={`/mall/${product.id}`} className="text-sm font-medium text-foreground hover:text-primary">
           {product.name}

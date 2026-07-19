@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import {
   fetchAllPostsAdmin,
   createPost,
+  updatePost,
   deletePostAdmin,
   generateAiPost,
   type AdminPost,
@@ -25,6 +26,7 @@ export default function AdminWebzinePage() {
   const [videoUrl, setVideoUrl] = useState("")
   const [contentHtml, setContentHtml] = useState("")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchAllPostsAdmin()
@@ -52,23 +54,53 @@ export default function AdminWebzinePage() {
     setError(null)
     setMessage(null)
     try {
-      await createPost({
-        title,
-        contentHtml,
-        videoUrl: videoUrl.trim() || undefined,
-        tags: selectedTags,
-      })
-      setMessage(`"${title}"을(를) 웹진에 게시했습니다.`)
+      if (editingId) {
+        await updatePost(editingId, {
+          title,
+          contentHtml,
+          videoUrl: videoUrl.trim() || undefined,
+          tags: selectedTags,
+        })
+        setMessage(`"${title}"을(를) 수정했습니다.`)
+      } else {
+        await createPost({
+          title,
+          contentHtml,
+          videoUrl: videoUrl.trim() || undefined,
+          tags: selectedTags,
+        })
+        setMessage(`"${title}"을(를) 웹진에 게시했습니다.`)
+      }
+      setEditingId(null)
       setTitle("")
       setVideoUrl("")
       setContentHtml("")
       setSelectedTags([])
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "게시에 실패했습니다.")
+      setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
     } finally {
       setBusy(false)
     }
+  }
+
+  function handleEdit(post: AdminPost) {
+    setEditingId(post.id)
+    setTitle(post.title)
+    setVideoUrl(post.videoUrl ?? "")
+    setContentHtml(post.contentHtml)
+    setSelectedTags(post.tags)
+    setMessage(null)
+    setError(null)
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  function handleCancelEdit() {
+    setEditingId(null)
+    setTitle("")
+    setVideoUrl("")
+    setContentHtml("")
+    setSelectedTags([])
   }
 
   async function handleGenerateAi() {
@@ -145,7 +177,9 @@ export default function AdminWebzinePage() {
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="font-display text-base font-medium">직접 글쓰기</h3>
+        <h3 className="font-display text-base font-medium">
+          {editingId ? "글 수정" : "직접 글쓰기"}
+        </h3>
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
           placeholder="제목"
@@ -155,13 +189,13 @@ export default function AdminWebzinePage() {
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="영상 링크 (선택, YouTube 등)"
+          placeholder="영상 링크 (선택, YouTube/Vimeo/mp4 등)"
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
         />
         <textarea
           className="min-h-48 rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs"
-          placeholder="본문 HTML (예: <h3>소제목</h3><p>내용...</p>)"
+          placeholder="본문 HTML (예: <img src=&quot;...&quot;><h3>소제목</h3><p>내용...</p>) - 썸네일은 첫 번째 img 태그입니다"
           value={contentHtml}
           onChange={(e) => setContentHtml(e.target.value)}
           required
@@ -178,9 +212,16 @@ export default function AdminWebzinePage() {
             </Badge>
           ))}
         </div>
-        <Button type="submit" disabled={busy} className="self-start bg-primary text-primary-foreground hover:bg-primary/90">
-          게시하기
-        </Button>
+        <div className="flex gap-2">
+          <Button type="submit" disabled={busy} className="self-start bg-primary text-primary-foreground hover:bg-primary/90">
+            {busy ? "저장 중..." : editingId ? "수정 저장" : "게시하기"}
+          </Button>
+          {editingId ? (
+            <Button type="button" variant="ghost" disabled={busy} onClick={handleCancelEdit} className="self-start">
+              취소
+            </Button>
+          ) : null}
+        </div>
       </form>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
@@ -199,14 +240,24 @@ export default function AdminWebzinePage() {
                   </Badge>
                 ))}
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busyId === post.id}
-                onClick={() => handleDelete(post.id, post.title)}
-              >
-                삭제
-              </Button>
+              <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === post.id}
+                  onClick={() => handleEdit(post)}
+                >
+                  수정
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busyId === post.id}
+                  onClick={() => handleDelete(post.id, post.title)}
+                >
+                  삭제
+                </Button>
+              </div>
             </div>
           ))}
         </div>

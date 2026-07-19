@@ -51,6 +51,11 @@ export default async function ProductDetailPage({
               <Badge variant="secondary">
                 {FULFILLMENT_LABEL[product.fulfillmentType ?? "dropshipping"]}
               </Badge>
+              {product.badges?.map((b) => (
+                <Badge key={b} variant="outline" className="border-gold/40">
+                  {b}
+                </Badge>
+              ))}
             </div>
             <p className="font-display text-2xl font-semibold text-primary">
               {product.priceAp.toLocaleString()} AP

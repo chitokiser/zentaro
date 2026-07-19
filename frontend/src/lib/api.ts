@@ -10,6 +10,7 @@ export interface Product {
   fulfillmentType?: "dropshipping" | "direct";
   imageUrl: string | null;
   description: string;
+  badges?: string[];
 }
 
 const FALLBACK_PRODUCTS: Product[] = [

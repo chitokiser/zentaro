@@ -202,6 +202,7 @@ export async function createDirectProduct(input: {
   category: string;
   description?: string;
   imageUrl?: string | null;
+  badges?: string[];
   priceAp: number;
   costAp: number;
 }) {
@@ -255,6 +256,24 @@ export async function createPost(input: {
 }) {
   const res = await fetch(`${API_URL}/posts`, {
     method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updatePost(
+  id: string,
+  input: Partial<{
+    title: string;
+    contentHtml: string;
+    videoUrl: string;
+    tags: string[];
+  }>,
+) {
+  const res = await fetch(`${API_URL}/posts/${id}`, {
+    method: "PUT",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });

@@ -65,6 +65,7 @@ export class ProductsService {
       costAp: dto.costAp,
       imageUrl: dto.imageUrl ?? null,
       description: dto.description ?? dto.name,
+      badges: dto.badges ?? [],
       fulfillmentType: 'direct',
       featured: true,
       createdAt: FieldValue.serverTimestamp(),
