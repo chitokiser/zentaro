@@ -1,16 +1,10 @@
 export const WEBZINE_TAGS = [
-  '허브',
-  '증류주',
-  '위스키',
-  '와인',
-  '럼',
-  '드라이진',
-  '보드카',
-  '전통주',
-  '기능성음료',
-  '햄',
-  '치즈',
-  '훈제',
+  '🥃 증류주',
+  '🌿 보태니컬',
+  '🧪 증류기술',
+  '🍖 미식(치즈·햄·훈제·BBQ)',
+  '💪 기능성음료&칵테일',
+  '👑 ZenTaro Story',
 ] as const;
 
 export type WebzineTag = (typeof WEBZINE_TAGS)[number];
