@@ -18,6 +18,9 @@ import { MALL_MAIN_CATEGORIES, getSubcategories } from "@/lib/mall-categories"
 export default function AdminProductsPage() {
   const [keyword, setKeyword] = useState("")
   const [results, setResults] = useState<CjSearchResultItem[] | null>(null)
+  const [searchPage, setSearchPage] = useState(1)
+  const [searchTotal, setSearchTotal] = useState(0)
+  const SEARCH_PAGE_SIZE = 20
   const [priceInputs, setPriceInputs] = useState<Record<string, string>>({})
   const [costInputs, setCostInputs] = useState<Record<string, string>>({})
   const [mainCategoryInputs, setMainCategoryInputs] = useState<Record<string, string>>({})
@@ -51,12 +54,18 @@ export default function AdminProductsPage() {
 
   async function handleSearch(e: React.FormEvent) {
     e.preventDefault()
+    await runSearch(1)
+  }
+
+  async function runSearch(page: number) {
     setSearching(true)
     setError(null)
     setMessage(null)
     try {
-      const { items } = await searchCjProducts(keyword)
+      const { items, total } = await searchCjProducts(keyword, page)
       setResults(items)
+      setSearchTotal(total)
+      setSearchPage(page)
     } catch (err) {
       setError(err instanceof Error ? err.message : "검색에 실패했습니다.")
     } finally {
@@ -249,6 +258,34 @@ export default function AdminProductsPage() {
       </form>
 
       {results ? (
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+            <span>
+              전체 {searchTotal.toLocaleString()}건 중 {(searchPage - 1) * SEARCH_PAGE_SIZE + 1}
+              -{(searchPage - 1) * SEARCH_PAGE_SIZE + results.length}
+            </span>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={searching || searchPage <= 1}
+                onClick={() => runSearch(searchPage - 1)}
+              >
+                이전
+              </Button>
+              <span className="px-1 py-1">{searchPage} 페이지</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={searching || searchPage * SEARCH_PAGE_SIZE >= searchTotal}
+                onClick={() => runSearch(searchPage + 1)}
+              >
+                다음
+              </Button>
+            </div>
+          </div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {results.length === 0 ? (
             <p className="text-sm text-muted-foreground">검색 결과가 없습니다.</p>
@@ -330,6 +367,7 @@ export default function AdminProductsPage() {
               </div>
             </div>
           ))}
+        </div>
         </div>
       ) : null}
 
