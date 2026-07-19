@@ -1,3 +1,4 @@
+import Image from "next/image"
 import Link from "next/link"
 import { getFeaturedProducts } from "@/lib/api"
 import { Badge } from "@/components/ui/badge"
@@ -27,8 +28,18 @@ export async function ShoppingMall() {
               href="/mall"
               className="group flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card transition-all hover:border-primary/60"
             >
-              <div className="flex aspect-square items-center justify-center bg-secondary/60 text-xs text-muted-foreground">
-                {product.category}
+              <div className="relative flex aspect-square items-center justify-center bg-secondary/60 text-xs text-muted-foreground">
+                {product.imageUrl ? (
+                  <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
+                  />
+                ) : (
+                  product.category
+                )}
               </div>
               <div className="flex flex-1 flex-col gap-1.5 p-3">
                 <Badge
