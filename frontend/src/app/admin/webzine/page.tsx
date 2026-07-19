@@ -13,10 +13,32 @@ import {
   type AdminPost,
 } from "@/lib/auth-client"
 import { WEBZINE_TAGS } from "@/lib/webzine-tags"
+import { getYoutubeThumbnail, isDirectVideoFile } from "@/lib/video-utils"
 
 function extractThumbnail(html: string): string | null {
   const match = html.match(/<img[^>]+src="([^"]+)"/)
   return match ? match[1] : null
+}
+
+function getPostThumbnail(post: AdminPost): { url: string; isVideoFrame: boolean } | null {
+  const imgThumbnail = extractThumbnail(post.contentHtml)
+  if (imgThumbnail) return { url: imgThumbnail, isVideoFrame: false }
+  if (!post.videoUrl) return null
+  const ytThumb = getYoutubeThumbnail(post.videoUrl)
+  if (ytThumb) return { url: ytThumb, isVideoFrame: false }
+  if (isDirectVideoFile(post.videoUrl)) return { url: post.videoUrl, isVideoFrame: true }
+  return null
+}
+
+function textToHtml(text: string): string {
+  const escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+  return escaped
+    .split(/\n{2,}/)
+    .map((para) => `<p>${para.replace(/\n/g, "<br>")}</p>`)
+    .join("")
 }
 
 export default function AdminWebzinePage() {
@@ -31,6 +53,7 @@ export default function AdminWebzinePage() {
   const [title, setTitle] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
   const [contentHtml, setContentHtml] = useState("")
+  const [contentMode, setContentMode] = useState<"html" | "text">("html")
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
 
@@ -60,10 +83,11 @@ export default function AdminWebzinePage() {
     setError(null)
     setMessage(null)
     try {
+      const finalHtml = contentMode === "text" ? textToHtml(contentHtml) : contentHtml
       if (editingId) {
         await updatePost(editingId, {
           title,
-          contentHtml,
+          contentHtml: finalHtml,
           videoUrl: videoUrl.trim() || undefined,
           tags: selectedTags,
         })
@@ -71,7 +95,7 @@ export default function AdminWebzinePage() {
       } else {
         await createPost({
           title,
-          contentHtml,
+          contentHtml: finalHtml,
           videoUrl: videoUrl.trim() || undefined,
           tags: selectedTags,
         })
@@ -81,6 +105,7 @@ export default function AdminWebzinePage() {
       setTitle("")
       setVideoUrl("")
       setContentHtml("")
+      setContentMode("html")
       setSelectedTags([])
       load()
     } catch (err) {
@@ -95,6 +120,7 @@ export default function AdminWebzinePage() {
     setTitle(post.title)
     setVideoUrl(post.videoUrl ?? "")
     setContentHtml(post.contentHtml)
+    setContentMode("html")
     setSelectedTags(post.tags)
     setMessage(null)
     setError(null)
@@ -106,6 +132,7 @@ export default function AdminWebzinePage() {
     setTitle("")
     setVideoUrl("")
     setContentHtml("")
+    setContentMode("html")
     setSelectedTags([])
   }
 
@@ -199,9 +226,29 @@ export default function AdminWebzinePage() {
           value={videoUrl}
           onChange={(e) => setVideoUrl(e.target.value)}
         />
+        <div className="flex gap-1">
+          <Badge
+            variant={contentMode === "html" ? "default" : "outline"}
+            className="cursor-pointer text-[10px]"
+            onClick={() => setContentMode("html")}
+          >
+            HTML
+          </Badge>
+          <Badge
+            variant={contentMode === "text" ? "default" : "outline"}
+            className="cursor-pointer text-[10px]"
+            onClick={() => setContentMode("text")}
+          >
+            일반 텍스트
+          </Badge>
+        </div>
         <textarea
-          className="min-h-48 rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs"
-          placeholder="본문 HTML (예: <img src=&quot;...&quot;><h3>소제목</h3><p>내용...</p>) - 썸네일은 첫 번째 img 태그입니다"
+          className={contentMode === "html" ? "min-h-48 rounded-md border border-border/60 bg-background px-3 py-2 font-mono text-xs" : "min-h-48 rounded-md border border-border/60 bg-background px-3 py-2 text-sm"}
+          placeholder={
+            contentMode === "html"
+              ? "본문 HTML (예: <img src=&quot;...&quot;><h3>소제목</h3><p>내용...</p>) - 썸네일은 첫 번째 img 태그입니다"
+              : "본문 내용을 그냥 텍스트로 입력하세요 (줄바꿈은 자동으로 문단/줄바꿈 처리됩니다)"
+          }
           value={contentHtml}
           onChange={(e) => setContentHtml(e.target.value)}
           required
@@ -234,13 +281,17 @@ export default function AdminWebzinePage() {
         <h3 className="font-display text-base font-medium">게시글 ({posts?.length ?? 0})</h3>
         <div className="mt-4 flex flex-col gap-2">
           {posts?.map((post) => {
-            const thumbnail = extractThumbnail(post.contentHtml)
+            const thumbnail = getPostThumbnail(post)
             return (
             <div key={post.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 px-4 py-2">
               <div className="flex flex-wrap items-center gap-2">
                 {thumbnail ? (
-                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary/60">
-                    <Image src={thumbnail} alt={post.title} fill className="object-cover" sizes="40px" />
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-black">
+                    {thumbnail.isVideoFrame ? (
+                      <video src={thumbnail.url} muted playsInline preload="metadata" className="h-full w-full object-cover" />
+                    ) : (
+                      <Image src={thumbnail.url} alt={post.title} fill className="object-cover" sizes="40px" />
+                    )}
                   </div>
                 ) : null}
                 <span className="text-sm font-medium">{post.title}</span>

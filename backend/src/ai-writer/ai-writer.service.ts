@@ -122,35 +122,46 @@ export class AiWriterService {
     return result;
   }
 
+  // Never reuse an image already used on a past post — retries across
+  // several random pages and gives up (no image) rather than repeat one.
   private async fetchFreeImage(tag: string): Promise<string | null> {
     if (!this.pexelsApiKey) return null;
     const query = IMAGE_QUERY_BY_TAG[tag] ?? 'craft spirits bar';
-    // Pick a random page each time so repeated calls for the same tag draw
-    // from a wide pool instead of always returning the same top result.
-    const page = 1 + Math.floor(Math.random() * 5);
-    try {
-      const [usedUrls, res] = await Promise.all([
-        this.postsService.getUsedImageUrls(tag),
-        fetch(
+    const usedUrls = await this.postsService.getUsedImageUrls();
+    const triedPages = new Set<number>();
+
+    for (let attempt = 0; attempt < 5; attempt++) {
+      let page: number;
+      do {
+        page = 1 + Math.floor(Math.random() * 20);
+      } while (triedPages.has(page) && triedPages.size < 20);
+      triedPages.add(page);
+
+      try {
+        const res = await fetch(
           `https://api.pexels.com/v1/search?query=${encodeURIComponent(query)}&per_page=20&page=${page}&orientation=landscape`,
           { headers: { Authorization: this.pexelsApiKey } },
-        ),
-      ]);
-      if (!res.ok) {
-        this.logger.warn(`Pexels API error (${res.status}) for query "${query}"`);
-        return null;
+        );
+        if (!res.ok) {
+          this.logger.warn(`Pexels API error (${res.status}) for query "${query}"`);
+          continue;
+        }
+        const body = await res.json();
+        const photos: Array<{ src?: { large?: string } }> = body?.photos ?? [];
+        const candidates = photos
+          .map((p) => p.src?.large)
+          .filter((u): u is string => typeof u === 'string');
+        const unused = candidates.filter((u) => !usedUrls.has(u));
+        if (unused.length > 0) {
+          return unused[Math.floor(Math.random() * unused.length)];
+        }
+      } catch (err) {
+        this.logger.warn(`Pexels fetch failed for query "${query}": ${err}`);
       }
-      const body = await res.json();
-      const photos: Array<{ src?: { large?: string } }> = body?.photos ?? [];
-      const candidates = photos.map((p) => p.src?.large).filter((u): u is string => typeof u === 'string');
-      const unused = candidates.filter((u) => !usedUrls.has(u));
-      const pool = unused.length > 0 ? unused : candidates;
-      if (pool.length === 0) return null;
-      return pool[Math.floor(Math.random() * pool.length)];
-    } catch (err) {
-      this.logger.warn(`Pexels fetch failed for query "${query}": ${err}`);
-      return null;
     }
+
+    this.logger.warn(`No unused Pexels image found for query "${query}" after retries — posting without an image.`);
+    return null;
   }
 
   private async callGemini(prompt: string): Promise<string | null> {

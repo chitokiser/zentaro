@@ -2,8 +2,9 @@ import Image from "next/image"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
-import { getPosts } from "@/lib/api"
+import { getPosts, type WebzinePost } from "@/lib/api"
 import { WEBZINE_TAGS } from "@/lib/webzine-tags"
+import { getYoutubeThumbnail, isDirectVideoFile } from "@/lib/video-utils"
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
@@ -12,6 +13,16 @@ function stripHtml(html: string): string {
 function extractThumbnail(html: string): string | null {
   const match = html.match(/<img[^>]+src="([^"]+)"/)
   return match ? match[1] : null
+}
+
+function getPostThumbnail(post: WebzinePost): { url: string; isVideoFrame: boolean } | null {
+  const imgThumbnail = extractThumbnail(post.contentHtml)
+  if (imgThumbnail) return { url: imgThumbnail, isVideoFrame: false }
+  if (!post.videoUrl) return null
+  const ytThumb = getYoutubeThumbnail(post.videoUrl)
+  if (ytThumb) return { url: ytThumb, isVideoFrame: false }
+  if (isDirectVideoFile(post.videoUrl)) return { url: post.videoUrl, isVideoFrame: true }
+  return null
 }
 
 export default async function WebzinePage({
@@ -50,7 +61,7 @@ export default async function WebzinePage({
         ) : (
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => {
-              const thumbnail = extractThumbnail(post.contentHtml)
+              const thumbnail = getPostThumbnail(post)
               return (
                 <Link
                   key={post.id}
@@ -58,14 +69,24 @@ export default async function WebzinePage({
                   className="flex flex-col gap-2 overflow-hidden rounded-xl border border-border/60 bg-card p-4 transition-colors hover:border-primary/60"
                 >
                   {thumbnail && (
-                    <div className="relative -mx-4 -mt-4 mb-1 aspect-video overflow-hidden">
-                      <Image
-                        src={thumbnail}
-                        alt={post.title}
-                        fill
-                        sizes="(max-width: 768px) 100vw, 33vw"
-                        className="object-cover"
-                      />
+                    <div className="relative -mx-4 -mt-4 mb-1 aspect-video overflow-hidden bg-black">
+                      {thumbnail.isVideoFrame ? (
+                        <video
+                          src={thumbnail.url}
+                          muted
+                          playsInline
+                          preload="metadata"
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Image
+                          src={thumbnail.url}
+                          alt={post.title}
+                          fill
+                          sizes="(max-width: 768px) 100vw, 33vw"
+                          className="object-cover"
+                        />
+                      )}
                     </div>
                   )}
                   <div className="flex flex-wrap gap-1">

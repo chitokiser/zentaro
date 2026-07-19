@@ -31,12 +31,12 @@ export class PostsService {
       .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
   }
 
-  async getUsedImageUrls(tag?: string): Promise<Set<string>> {
+  // Site-wide: an image already used on any past post must never be reused.
+  async getUsedImageUrls(): Promise<Set<string>> {
     const snap = await this.col().get();
     const urls = new Set<string>();
     for (const doc of snap.docs) {
-      const data = doc.data() as { tags?: string[]; contentHtml?: string };
-      if (tag && !(data.tags ?? []).includes(tag)) continue;
+      const data = doc.data() as { contentHtml?: string };
       const match = data.contentHtml?.match(/<img[^>]+src="([^"]+)"/);
       if (match) urls.add(match[1]);
     }

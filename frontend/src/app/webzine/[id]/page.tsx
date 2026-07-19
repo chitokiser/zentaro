@@ -3,24 +3,9 @@ import { notFound } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { getPost } from "@/lib/api"
+import { getYoutubeEmbedUrl, getVimeoEmbedUrl, isDirectVideoFile } from "@/lib/video-utils"
 
 const ZENTARO_URL = "https://zentaro.netlify.app/"
-
-function getYoutubeEmbedUrl(url: string): string | null {
-  const match = url.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([\w-]{11})/,
-  )
-  return match ? `https://www.youtube.com/embed/${match[1]}` : null
-}
-
-function getVimeoEmbedUrl(url: string): string | null {
-  const match = url.match(/vimeo\.com\/(?:video\/)?(\d+)/)
-  return match ? `https://player.vimeo.com/video/${match[1]}` : null
-}
-
-function isDirectVideoFile(url: string): boolean {
-  return /\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)
-}
 
 export default async function WebzinePostPage({
   params,
