@@ -15,6 +15,19 @@ import {
 } from "@/lib/auth-client"
 import { MALL_MAIN_CATEGORIES, getSubcategories } from "@/lib/mall-categories"
 
+const AP_PER_USD = 10000
+
+function parseUsdPrice(sellPrice: string): number | null {
+  const nums = sellPrice.match(/[\d.]+/g)?.map(Number).filter((n) => !Number.isNaN(n)) ?? []
+  if (nums.length === 0) return null
+  return Math.max(...nums)
+}
+
+function calcApFromUsd(usd: number): { costAp: number; priceAp: number } {
+  const costAp = Math.round((usd * AP_PER_USD) / 100) * 100
+  return { costAp, priceAp: costAp * 2 }
+}
+
 export default function AdminProductsPage() {
   const [keyword, setKeyword] = useState("")
   const [results, setResults] = useState<CjSearchResultItem[] | null>(null)
@@ -67,6 +80,18 @@ export default function AdminProductsPage() {
       setResults(items)
       setSearchTotal(total)
       setSearchPage(page)
+
+      const prefillCost: Record<string, string> = {}
+      const prefillPrice: Record<string, string> = {}
+      for (const item of items) {
+        const usd = parseUsdPrice(item.sellPrice)
+        if (usd === null) continue
+        const { costAp, priceAp } = calcApFromUsd(usd)
+        prefillCost[item.cjProductId] = String(costAp)
+        prefillPrice[item.cjProductId] = String(priceAp)
+      }
+      setCostInputs((prev) => ({ ...prev, ...prefillCost }))
+      setPriceInputs((prev) => ({ ...prev, ...prefillPrice }))
     } catch (err) {
       setError(err instanceof Error ? err.message : "검색에 실패했습니다.")
     } finally {
@@ -238,6 +263,9 @@ export default function AdminProductsPage() {
         <h2 className="font-display text-xl font-semibold">상품 관리</h2>
         <p className="mt-2 text-sm text-muted-foreground">
           CJ Dropshipping에서 상품을 검색해 ZENTARO Mall에 추가하거나, 등록된 상품을 삭제합니다.
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          원가는 CJ 판매가(USD) 기준 10,000 AP = $1로 자동 계산되고, 판매가는 원가의 2배로 자동 설정됩니다. 필요하면 직접 수정할 수 있습니다. (EXP 결제는 마진의 최대 80%까지 자동 적용됩니다.)
         </p>
       </div>
 
