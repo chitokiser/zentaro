@@ -17,15 +17,19 @@ export class ProductsService {
   constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
   async getFeatured(mainCategory?: string) {
-    const snap = await this.db
+    // Filtering by mainCategory at the Firestore level (rather than fetching
+    // a capped batch of all featured products and filtering in JS) avoids
+    // silently truncating a category's results once the site-wide featured
+    // count exceeds the query limit.
+    let query = this.db
       .collection(COLLECTIONS.ZENTARO_PRODUCTS)
-      .where('featured', '==', true)
-      .limit(200)
-      .get();
+      .where('featured', '==', true);
+    if (mainCategory) {
+      query = query.where('mainCategory', '==', mainCategory);
+    }
+    const snap = await query.limit(500).get();
 
-    return snap.docs
-      .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((product: any) => !mainCategory || product.mainCategory === mainCategory);
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
   }
 
   async listAll() {
