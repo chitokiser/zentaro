@@ -1,7 +1,10 @@
+import Image from "next/image"
 import { notFound } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { getPost } from "@/lib/api"
+
+const ZENTARO_URL = "https://zentaro.netlify.app/"
 
 function getYoutubeEmbedUrl(url: string): string | null {
   const match = url.match(
@@ -38,9 +41,6 @@ export default async function WebzinePostPage({
               {t}
             </Badge>
           ))}
-          <Badge variant="secondary" className="text-[10px]">
-            {post.source === "ai" ? "AI 자동작성" : "관리자 작성"}
-          </Badge>
         </div>
 
         {embedUrl ? (
@@ -68,6 +68,28 @@ export default async function WebzinePostPage({
           className="text-sm leading-relaxed text-foreground sm:text-base [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:font-display [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:first:mt-0 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-4 [&_ul]:mb-4"
           dangerouslySetInnerHTML={{ __html: post.contentHtml }}
         />
+
+        <a
+          href={ZENTARO_URL}
+          className="mt-10 flex items-center justify-between gap-4 rounded-xl border border-primary/30 bg-primary/5 px-5 py-4 transition-colors hover:bg-primary/10"
+        >
+          <div className="flex items-center gap-3">
+            <Image
+              src="/images/brand/logo.png"
+              alt="ZENTARO"
+              width={36}
+              height={36}
+              className="h-9 w-auto"
+            />
+            <div>
+              <p className="font-display text-sm font-medium">ZENTARO 바로가기</p>
+              <p className="text-xs text-muted-foreground">
+                프리미엄 크래프트 증류소 ZENTARO에서 더 많은 이야기를 만나보세요
+              </p>
+            </div>
+          </div>
+          <span className="text-sm text-primary">→</span>
+        </a>
       </div>
     </div>
   )
