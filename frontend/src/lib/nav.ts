@@ -1,3 +1,5 @@
+import { DICTIONARIES } from "@/lib/i18n/translations";
+
 export interface NavLeaf {
   label: string;
   href: string;
@@ -10,64 +12,66 @@ export interface NavGroup {
   items: NavLeaf[];
 }
 
-export const MAIN_NAV: NavGroup[] = [
-  {
-    label: "ZENTARO 소개",
-    href: "/about/company",
-    items: [
-      { label: "브랜드 스토리", href: "/about/company#brand-story" },
-      { label: "CEO 인사말", href: "/about/company#ceo-message" },
-      { label: "Vision & Mission", href: "/about/company#vision-mission" },
-      { label: "증류소 소개", href: "/about/distillery#intro" },
-      { label: "증류 과정", href: "/about/distillery#process" },
-      { label: "Barrel Room", href: "/about/distillery#barrel-room" },
-      { label: "증류 장비 소개", href: "/about/distillery#equipment" },
-      { label: "연구소 소개", href: "/about/research-lab#intro" },
-      { label: "개발 프로젝트", href: "/about/research-lab#projects" },
-      { label: "Botanical Library", href: "/about/research-lab#botanical-library" },
-      { label: "실험실", href: "/about/research-lab#lab" },
-      { label: "사업부 소개", href: "/about/business" },
-    ],
-  },
-  {
-    label: "서비스",
-    href: "/mall",
-    items: [
-      { label: "ZENTARO Mall", href: "/mall", description: "프리미엄 쇼핑몰" },
-      {
-        label: "Bottle Cap Rewards",
-        href: "/rewards/bottle-cap",
-        description: "병뚜껑 리워드",
-      },
-      {
-        label: "NFT Rewards",
-        href: "/rewards/nft",
-        description: "NFT 컬렉션",
-      },
-      {
-        label: "Jump Token Holder",
-        href: "/rewards/jump-token",
-        description: "점프토큰 보유자 혜택",
-      },
-      {
-        label: "현물출자",
-        href: "/rewards/contribution",
-        description: "오크통·브랜디·위스키·진·럼 → 쇼핑머니 지급",
-      },
-      {
-        label: "ZENTARO 웹진",
-        href: "/webzine",
-        description: "술·미식 매거진 (AI 자동작성 + 관리자 블로그)",
-      },
-    ],
-  },
-  {
-    label: "My Page",
-    href: "/my/profile",
-    items: [
-      { label: "Profile", href: "/my/profile", description: "회원정보" },
-      { label: "Mentor", href: "/my/mentor", description: "멘토 관리" },
-      { label: "My Wallet", href: "/my/wallet", description: "내 지갑" },
-    ],
-  },
-];
+export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
+  return [
+    {
+      label: t.nav.about.label,
+      href: "/about/company",
+      items: [
+        { label: t.nav.aboutItems.brandStory, href: "/about/company#brand-story" },
+        { label: t.nav.aboutItems.ceoMessage, href: "/about/company#ceo-message" },
+        { label: t.nav.aboutItems.vision, href: "/about/company#vision-mission" },
+        { label: t.nav.aboutItems.distilleryIntro, href: "/about/distillery#intro" },
+        { label: t.nav.aboutItems.distilleryProcess, href: "/about/distillery#process" },
+        { label: t.nav.aboutItems.barrelRoom, href: "/about/distillery#barrel-room" },
+        { label: t.nav.aboutItems.equipment, href: "/about/distillery#equipment" },
+        { label: t.nav.aboutItems.labIntro, href: "/about/research-lab#intro" },
+        { label: t.nav.aboutItems.projects, href: "/about/research-lab#projects" },
+        { label: t.nav.aboutItems.botanicalLibrary, href: "/about/research-lab#botanical-library" },
+        { label: t.nav.aboutItems.lab, href: "/about/research-lab#lab" },
+        { label: t.nav.aboutItems.business, href: "/about/business" },
+      ],
+    },
+    {
+      label: t.nav.service.label,
+      href: "/mall",
+      items: [
+        { label: t.nav.serviceItems.mall, href: "/mall", description: t.nav.serviceItems.mallDesc },
+        {
+          label: t.nav.serviceItems.bottleCap,
+          href: "/rewards/bottle-cap",
+          description: t.nav.serviceItems.bottleCapDesc,
+        },
+        {
+          label: t.nav.serviceItems.nft,
+          href: "/rewards/nft",
+          description: t.nav.serviceItems.nftDesc,
+        },
+        {
+          label: t.nav.serviceItems.jumpToken,
+          href: "/rewards/jump-token",
+          description: t.nav.serviceItems.jumpTokenDesc,
+        },
+        {
+          label: t.nav.serviceItems.contribution,
+          href: "/rewards/contribution",
+          description: t.nav.serviceItems.contributionDesc,
+        },
+        {
+          label: t.nav.serviceItems.webzine,
+          href: "/webzine",
+          description: t.nav.serviceItems.webzineDesc,
+        },
+      ],
+    },
+    {
+      label: t.nav.myPage.label,
+      href: "/my/profile",
+      items: [
+        { label: t.nav.myPageItems.profile, href: "/my/profile", description: t.nav.myPageItems.profileDesc },
+        { label: t.nav.myPageItems.mentor, href: "/my/mentor", description: t.nav.myPageItems.mentorDesc },
+        { label: t.nav.myPageItems.wallet, href: "/my/wallet", description: t.nav.myPageItems.walletDesc },
+      ],
+    },
+  ];
+}

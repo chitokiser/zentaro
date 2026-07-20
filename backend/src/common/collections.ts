@@ -15,4 +15,5 @@ export const COLLECTIONS = {
   ZENTARO_CONTRIBUTIONS: 'zentaro_contributions',
   ZENTARO_POSTS: 'zentaro_posts',
   ZENTARO_VENDOR_INQUIRIES: 'zentaro_vendor_inquiries',
+  ZENTARO_BOTTLE_CAP_CLAIMS: 'zentaro_bottle_cap_claims',
 } as const;

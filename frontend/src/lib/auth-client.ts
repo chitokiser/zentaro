@@ -534,6 +534,74 @@ export async function rejectContribution(id: string, reason?: string) {
   return res.json();
 }
 
+export interface BottleCapClaim {
+  id: string;
+  userId: string;
+  email: string;
+  isZentaro: boolean;
+  brand: string;
+  quantity: number;
+  sealConfirmed: boolean;
+  contactPhone: string;
+  trackingNumber: string | null;
+  note: string | null;
+  status: "pending" | "approved" | "rejected";
+  apAmount: number | null;
+  expAmount: number | null;
+  rejectReason: string | null;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function submitBottleCapClaim(input: {
+  isZentaro: boolean;
+  brand: string;
+  quantity: number;
+  sealConfirmed: boolean;
+  contactPhone: string;
+  trackingNumber?: string;
+  note?: string;
+}) {
+  const res = await fetch(`${API_URL}/bottle-cap-claims`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchMyBottleCapClaims(): Promise<BottleCapClaim[]> {
+  const res = await fetch(`${API_URL}/bottle-cap-claims/mine`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchAllBottleCapClaimsAdmin(): Promise<BottleCapClaim[]> {
+  const res = await fetch(`${API_URL}/bottle-cap-claims`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function approveBottleCapClaim(id: string, apAmount: number) {
+  const res = await fetch(`${API_URL}/bottle-cap-claims/${id}/approve`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ apAmount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function rejectBottleCapClaim(id: string, reason?: string) {
+  const res = await fetch(`${API_URL}/bottle-cap-claims/${id}/reject`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface VendorInquiry {
   id: string;
   productName: string;

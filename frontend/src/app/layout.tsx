@@ -4,6 +4,7 @@ import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/lib/cart-context";
+import { I18nProvider } from "@/lib/i18n/i18n-context";
 
 const playfair = Playfair_Display({
   variable: "--font-display",
@@ -30,7 +31,7 @@ export const metadata: Metadata = {
     description,
     url: "https://zentaro.netlify.app",
     siteName: "ZENTARO",
-    locale: "ko_KR",
+    locale: "vi_VN",
     type: "website",
   },
   twitter: {
@@ -47,15 +48,17 @@ export default function RootLayout({
 }>) {
   return (
     <html
-      lang="ko"
+      lang="vi"
       className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
-        <CartProvider>
-          <SiteHeader />
-          <main className="flex-1">{children}</main>
-          <SiteFooter />
-        </CartProvider>
+        <I18nProvider>
+          <CartProvider>
+            <SiteHeader />
+            <main className="flex-1">{children}</main>
+            <SiteFooter />
+          </CartProvider>
+        </I18nProvider>
       </body>
     </html>
   );
