@@ -15,6 +15,7 @@ import { COLLECTIONS } from '../common/collections';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { ShippingAddressDto } from './dto/shipping-address.dto';
 
 @Injectable()
 export class AuthService {
@@ -143,5 +144,15 @@ export class AuthService {
       email: data.email ?? null,
       isAdmin: data.isAdmin === true,
     };
+  }
+
+  async getShippingAddress(uid: string) {
+    const snap = await this.usersCol().doc(uid).get();
+    return snap.data()?.shippingAddress ?? null;
+  }
+
+  async updateShippingAddress(uid: string, dto: ShippingAddressDto) {
+    await this.usersCol().doc(uid).set({ shippingAddress: dto }, { merge: true });
+    return dto;
   }
 }

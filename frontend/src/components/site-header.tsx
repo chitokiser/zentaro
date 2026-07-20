@@ -3,10 +3,11 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Menu, Shield, User, Wallet } from "lucide-react"
+import { Menu, Shield, ShoppingCart, User, Wallet } from "lucide-react"
 
 import { MAIN_NAV } from "@/lib/nav"
 import { getToken, fetchMe, fetchWallet, onAuthChanged, type Wallet as WalletData } from "@/lib/auth-client"
+import { CartBadge } from "@/components/cart-badge"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -89,6 +90,7 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
+          <CartBadge />
           {wallet ? (
             <div className="mr-1 flex items-center gap-2.5 rounded-full border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs">
               <span className="text-muted-foreground">
@@ -138,6 +140,14 @@ export function SiteHeader() {
               </SheetTitle>
             </SheetHeader>
             <div className="flex flex-col gap-6 overflow-y-auto px-4 pb-6">
+              <Link
+                href="/checkout"
+                onClick={() => setMobileOpen(false)}
+                className="flex items-center gap-2 rounded-md border border-border/60 px-3 py-2 text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
+              >
+                <ShoppingCart className="size-4" />
+                장바구니
+              </Link>
               {wallet ? (
                 <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-secondary/40 px-3 py-2 text-xs">
                   <span className="text-muted-foreground">

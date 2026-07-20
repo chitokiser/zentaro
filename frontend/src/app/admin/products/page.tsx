@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useMemo, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
@@ -53,8 +53,44 @@ export default function AdminProductsPage() {
   const [directBadges, setDirectBadges] = useState("")
   const [directPriceAp, setDirectPriceAp] = useState("")
   const [directCostAp, setDirectCostAp] = useState("")
+  const [directSupplierName, setDirectSupplierName] = useState("")
+  const [directSupplierContact, setDirectSupplierContact] = useState("")
+  const [directSupplierCostKrw, setDirectSupplierCostKrw] = useState("")
   const [directBusy, setDirectBusy] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
+
+  const [listSearch, setListSearch] = useState("")
+  const [listCategoryFilter, setListCategoryFilter] = useState("")
+  const [listSortBy, setListSortBy] = useState<"default" | "category" | "name">("default")
+
+  const listCategories = useMemo(() => {
+    const set = new Set<string>()
+    products?.forEach((p) => {
+      if (p.mainCategory) set.add(p.mainCategory)
+    })
+    return Array.from(set).sort()
+  }, [products])
+
+  const visibleProducts = useMemo(() => {
+    let list = products ?? []
+    const keyword = listSearch.trim().toLowerCase()
+    if (keyword) {
+      list = list.filter((p) => p.name.toLowerCase().includes(keyword))
+    }
+    if (listCategoryFilter) {
+      list = list.filter((p) => p.mainCategory === listCategoryFilter)
+    }
+    if (listSortBy === "category") {
+      list = [...list].sort((a, b) => {
+        const mainCmp = (a.mainCategory ?? "").localeCompare(b.mainCategory ?? "", "ko")
+        if (mainCmp !== 0) return mainCmp
+        return a.category.localeCompare(b.category, "ko")
+      })
+    } else if (listSortBy === "name") {
+      list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ko"))
+    }
+    return list
+  }, [products, listSearch, listCategoryFilter, listSortBy])
 
   const loadProducts = useCallback(() => {
     fetchAllProductsAdmin()
@@ -190,6 +226,9 @@ export default function AdminProductsPage() {
           : undefined,
         priceAp,
         costAp,
+        supplierName: directSupplierName || undefined,
+        supplierContact: directSupplierContact || undefined,
+        supplierCostKrw: directSupplierCostKrw ? Number(directSupplierCostKrw) : undefined,
       }
       if (editingId) {
         await updateProductAdmin(editingId, payload)
@@ -207,6 +246,9 @@ export default function AdminProductsPage() {
       setDirectBadges("")
       setDirectPriceAp("")
       setDirectCostAp("")
+      setDirectSupplierName("")
+      setDirectSupplierContact("")
+      setDirectSupplierCostKrw("")
       loadProducts()
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
@@ -225,6 +267,9 @@ export default function AdminProductsPage() {
     setDirectBadges((product.badges ?? []).join(", "))
     setDirectPriceAp(String(product.priceAp ?? ""))
     setDirectCostAp(String(product.costAp ?? ""))
+    setDirectSupplierName(product.supplierName ?? "")
+    setDirectSupplierContact(product.supplierContact ?? "")
+    setDirectSupplierCostKrw(product.supplierCostKrw ? String(product.supplierCostKrw) : "")
     setMessage(null)
     setError(null)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -240,6 +285,9 @@ export default function AdminProductsPage() {
     setDirectBadges("")
     setDirectPriceAp("")
     setDirectCostAp("")
+    setDirectSupplierName("")
+    setDirectSupplierContact("")
+    setDirectSupplierCostKrw("")
   }
 
   async function handleDelete(id: string, name: string) {
@@ -492,6 +540,27 @@ export default function AdminProductsPage() {
             onChange={(e) => setDirectCostAp(e.target.value)}
             required
           />
+          <p className="mt-2 text-xs font-medium text-muted-foreground sm:col-span-2">공급업체 정보 (선택)</p>
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="제조사 / 공급업체명"
+            value={directSupplierName}
+            onChange={(e) => setDirectSupplierName(e.target.value)}
+          />
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="연락처 (전화/이메일)"
+            value={directSupplierContact}
+            onChange={(e) => setDirectSupplierContact(e.target.value)}
+          />
+          <input
+            type="number"
+            min={0}
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
+            placeholder="공급원가 (원)"
+            value={directSupplierCostKrw}
+            onChange={(e) => setDirectSupplierCostKrw(e.target.value)}
+          />
           <div className="flex gap-2 sm:col-span-2">
             <Button
               type="submit"
@@ -510,56 +579,99 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="font-display text-base font-medium">등록된 상품 ({products?.length ?? 0})</h3>
+        <h3 className="font-display text-base font-medium">
+          등록된 상품 ({visibleProducts.length}{visibleProducts.length !== (products?.length ?? 0) ? ` / 전체 ${products?.length ?? 0}` : ""})
+        </h3>
+        <div className="mt-3 flex flex-wrap gap-2">
+          <input
+            className="min-w-[180px] flex-1 rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            placeholder="상품명 검색"
+            value={listSearch}
+            onChange={(e) => setListSearch(e.target.value)}
+          />
+          <select
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+            value={listCategoryFilter}
+            onChange={(e) => setListCategoryFilter(e.target.value)}
+          >
+            <option value="">전체 카테고리</option>
+            {listCategories.map((c) => (
+              <option key={c} value={c}>{c}</option>
+            ))}
+          </select>
+          <select
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+            value={listSortBy}
+            onChange={(e) => setListSortBy(e.target.value as "default" | "category" | "name")}
+          >
+            <option value="default">등록순</option>
+            <option value="category">카테고리순</option>
+            <option value="name">이름순</option>
+          </select>
+        </div>
         <div className="mt-4 flex flex-col gap-2">
-          {products?.map((product) => (
-            <div key={product.id} className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2">
-              <div className="flex flex-wrap items-center gap-3">
-                {product.imageUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={product.imageUrl}
-                    alt={product.name}
-                    className="h-10 w-10 shrink-0 rounded-md border border-border/40 object-cover"
-                  />
-                ) : (
-                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary/60 text-[9px] text-muted-foreground">
-                    없음
+          {visibleProducts.length === 0 ? (
+            <p className="text-sm text-muted-foreground">조건에 맞는 상품이 없습니다.</p>
+          ) : null}
+          {visibleProducts.map((product) => {
+            const hasSupplierInfo = product.supplierName || product.supplierContact || product.supplierCostKrw
+            return (
+              <div key={product.id} className="flex flex-col gap-1 rounded-md border border-border/40 px-4 py-2">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center gap-3">
+                    {product.imageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={product.imageUrl}
+                        alt={product.name}
+                        className="h-10 w-10 shrink-0 rounded-md border border-border/40 object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-secondary/60 text-[9px] text-muted-foreground">
+                        없음
+                      </div>
+                    )}
+                    <span className="text-sm font-medium">{product.name}</span>
+                    {product.mainCategory ? (
+                      <Badge variant="outline" className="text-[10px]">{product.mainCategory}</Badge>
+                    ) : null}
+                    <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {product.priceAp.toLocaleString()} AP
+                      {typeof product.costAp === "number" ? ` (원가 ${product.costAp.toLocaleString()})` : ""}
+                    </span>
+                    <Badge variant="secondary" className="text-[10px]">
+                      {product.fulfillmentType === "direct" ? "직배송" : "드랍쉬핑"}
+                    </Badge>
                   </div>
-                )}
-                <span className="text-sm font-medium">{product.name}</span>
-                {product.mainCategory ? (
-                  <Badge variant="outline" className="text-[10px]">{product.mainCategory}</Badge>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busyId === product.id}
+                      onClick={() => handleEdit(product)}
+                    >
+                      수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busyId === product.id}
+                      onClick={() => handleDelete(product.id, product.name)}
+                    >
+                      삭제
+                    </Button>
+                  </div>
+                </div>
+                {hasSupplierInfo ? (
+                  <p className="pl-[52px] text-[11px] text-muted-foreground">
+                    공급업체: {product.supplierName || "-"} · 연락처: {product.supplierContact || "-"} · 공급원가:{" "}
+                    {typeof product.supplierCostKrw === "number" ? `${product.supplierCostKrw.toLocaleString()}원` : "-"}
+                  </p>
                 ) : null}
-                <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
-                <span className="text-xs text-muted-foreground">
-                  {product.priceAp.toLocaleString()} AP
-                  {typeof product.costAp === "number" ? ` (원가 ${product.costAp.toLocaleString()})` : ""}
-                </span>
-                <Badge variant="secondary" className="text-[10px]">
-                  {product.fulfillmentType === "direct" ? "직배송" : "드랍쉬핑"}
-                </Badge>
               </div>
-              <div className="flex gap-1">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === product.id}
-                  onClick={() => handleEdit(product)}
-                >
-                  수정
-                </Button>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  disabled={busyId === product.id}
-                  onClick={() => handleDelete(product.id, product.name)}
-                >
-                  삭제
-                </Button>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

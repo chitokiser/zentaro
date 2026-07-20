@@ -12,6 +12,8 @@ import { CjModule } from './cj/cj.module';
 import { ContributionsModule } from './contributions/contributions.module';
 import { PostsModule } from './posts/posts.module';
 import { AiWriterModule } from './ai-writer/ai-writer.module';
+import { OrdersModule } from './orders/orders.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { AiWriterModule } from './ai-writer/ai-writer.module';
     ContributionsModule,
     PostsModule,
     AiWriterModule,
+    MailModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

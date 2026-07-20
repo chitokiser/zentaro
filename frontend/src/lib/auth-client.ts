@@ -170,6 +170,9 @@ export interface AdminProduct {
   imageUrl: string | null;
   cjProductId?: string;
   featured: boolean;
+  supplierName?: string | null;
+  supplierContact?: string | null;
+  supplierCostKrw?: number | null;
 }
 
 export async function searchCjProducts(keyword: string, pageNum = 1) {
@@ -207,6 +210,9 @@ export async function createDirectProduct(input: {
   badges?: string[];
   priceAp: number;
   costAp: number;
+  supplierName?: string;
+  supplierContact?: string;
+  supplierCostKrw?: number;
 }) {
   const res = await fetch(`${API_URL}/products/direct`, {
     method: "POST",
@@ -228,6 +234,9 @@ export async function updateProductAdmin(
     badges: string[];
     priceAp: number;
     costAp: number;
+    supplierName: string;
+    supplierContact: string;
+    supplierCostKrw: number;
   }>,
 ) {
   const res = await fetch(`${API_URL}/products/${id}`, {
@@ -324,20 +333,132 @@ export async function generateAiPost(tag?: string) {
   return res.json();
 }
 
-export async function purchaseProduct(id: string, expToUse = 0) {
-  const res = await fetch(`${API_URL}/products/${id}/purchase`, {
+export interface ShippingAddress {
+  recipientName: string;
+  phone: string;
+  postalCode: string;
+  addressLine1: string;
+  addressLine2?: string;
+  deliveryMemo?: string;
+}
+
+export async function fetchShippingAddress(): Promise<ShippingAddress | null> {
+  const res = await fetch(`${API_URL}/auth/shipping-address`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateShippingAddress(input: ShippingAddress): Promise<ShippingAddress> {
+  const res = await fetch(`${API_URL}/auth/shipping-address`, {
+    method: "PUT",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface CheckoutOrderItem {
+  productId: string;
+  quantity: number;
+  productName: string;
+  fulfillmentType: FulfillmentType;
+  priceAp: number;
+  costAp: number;
+  apPaid: number;
+  expPaid: number;
+}
+
+export interface AdminOrder {
+  id: string;
+  userId: string;
+  items: CheckoutOrderItem[];
+  shippingAddress: ShippingAddress;
+  totalPriceAp: number;
+  totalCostAp: number;
+  totalApPaid: number;
+  totalExpPaid: number;
+  status: "paid" | "shipped" | "delivered" | "cancelled";
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function checkoutCart(input: {
+  items: Array<{ productId: string; quantity: number }>;
+  expToUse?: number;
+  shippingAddress: ShippingAddress;
+  saveAddress?: boolean;
+}) {
+  const res = await fetch(`${API_URL}/orders/checkout`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ expToUse }),
+    body: JSON.stringify(input),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json() as Promise<{
     orderId: string;
-    apPaid: number;
-    expPaid: number;
+    totalApPaid: number;
+    totalExpPaid: number;
     remainingAp: number;
     remainingExp: number;
   }>;
+}
+
+export async function fetchAllOrders(status?: string): Promise<AdminOrder[]> {
+  const params = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await fetch(`${API_URL}/orders${params}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateOrderStatus(id: string, status: string) {
+  const res = await fetch(`${API_URL}/orders/${id}/status`, {
+    method: "PATCH",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchUnreadOrderCount(): Promise<{ count: number }> {
+  const res = await fetch(`${API_URL}/orders/unread-count`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface SalesReportRow {
+  date: string;
+  fulfillmentType: string;
+  orderCount: number;
+  totalRevenue: number;
+  totalCost: number;
+  totalMargin: number;
+  totalApPaid: number;
+  totalExpPaid: number;
+}
+
+export interface SalesReport {
+  startDate: string;
+  endDate: string;
+  totals: {
+    orderCount: number;
+    totalRevenue: number;
+    totalCost: number;
+    totalMargin: number;
+    totalApPaid: number;
+    totalExpPaid: number;
+  };
+  byDateType: SalesReportRow[];
+}
+
+export async function fetchSalesReport(startDate?: string, endDate?: string): Promise<SalesReport> {
+  const params = new URLSearchParams();
+  if (startDate) params.set("startDate", startDate);
+  if (endDate) params.set("endDate", endDate);
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/orders/report${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
 }
 
 export const CONTRIBUTION_ITEM_LABELS: Record<string, string> = {

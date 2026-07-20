@@ -33,4 +33,17 @@ export class CreateDirectProductDto {
   @IsNumber()
   @Min(0)
   costAp: number;
+
+  @IsOptional()
+  @IsString()
+  supplierName?: string;
+
+  @IsOptional()
+  @IsString()
+  supplierContact?: string;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  supplierCostKrw?: number;
 }

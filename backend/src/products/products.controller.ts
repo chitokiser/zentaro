@@ -1,13 +1,10 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
-import { CurrentUser } from '../auth/current-user.decorator';
-import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { ProductsService } from './products.service';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { PurchaseProductDto } from './dto/purchase-product.dto';
 import { MALL_CATEGORIES } from '../common/mall-categories';
 
 @Controller('products')
@@ -57,15 +54,5 @@ export class ProductsController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   remove(@Param('id') id: string) {
     return this.productsService.remove(id);
-  }
-
-  @Post(':id/purchase')
-  @UseGuards(JwtAuthGuard)
-  purchase(
-    @Param('id') id: string,
-    @CurrentUser() user: CurrentUserPayload,
-    @Body() dto: PurchaseProductDto,
-  ) {
-    return this.productsService.purchase(user.uid, id, dto.expToUse ?? 0);
   }
 }

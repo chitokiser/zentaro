@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Post, Put, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { CurrentUser } from './current-user.decorator';
 import type { CurrentUserPayload } from './current-user.decorator';
@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { GoogleLoginDto } from './dto/google-login.dto';
+import { ShippingAddressDto } from './dto/shipping-address.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -30,5 +31,17 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   me(@CurrentUser() user: CurrentUserPayload) {
     return this.authService.getMe(user.uid);
+  }
+
+  @Get('shipping-address')
+  @UseGuards(JwtAuthGuard)
+  getShippingAddress(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.getShippingAddress(user.uid);
+  }
+
+  @Put('shipping-address')
+  @UseGuards(JwtAuthGuard)
+  updateShippingAddress(@CurrentUser() user: CurrentUserPayload, @Body() dto: ShippingAddressDto) {
+    return this.authService.updateShippingAddress(user.uid, dto);
   }
 }

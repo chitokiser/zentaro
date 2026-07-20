@@ -1,7 +1,10 @@
 import Link from "next/link"
+import { OrdersNavBadge } from "@/components/admin/orders-nav-badge"
 
 const ADMIN_SECTIONS = [
   { label: "상품 관리", href: "/admin/products" },
+  { label: "주문 관리", href: "/admin/orders", badge: true },
+  { label: "매출 장부", href: "/admin/sales-report" },
   { label: "회원 관리", href: "/admin/members" },
   { label: "Ticket 발급", href: "/admin/tickets" },
   { label: "현물출자 심사", href: "/admin/contributions" },
@@ -24,9 +27,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <Link
               key={section.href}
               href={section.href}
-              className="rounded-md px-3 py-2 text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
+              className="flex items-center rounded-md px-3 py-2 text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
             >
               {section.label}
+              {section.badge ? <OrdersNavBadge /> : null}
             </Link>
           ))}
         </nav>
