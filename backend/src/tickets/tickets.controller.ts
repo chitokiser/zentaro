@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { RequireAdminLevel } from '../auth/admin-level.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { TicketsService } from './tickets.service';
@@ -41,6 +42,7 @@ export class TicketsController {
 
   @Post('issue')
   @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
   issue(@Body() dto: IssueTicketsDto) {
     return this.ticketsService.issue(dto.source ?? 'admin', dto.count);
   }

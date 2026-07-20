@@ -80,6 +80,7 @@ export interface Me {
   uid: string;
   email: string | null;
   isAdmin: boolean;
+  adminLevel: 1 | 2 | 3 | null;
 }
 
 export async function fetchMe(): Promise<Me> {
@@ -528,6 +529,91 @@ export async function rejectContribution(id: string, reason?: string) {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ reason }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface VendorInquiry {
+  id: string;
+  productName: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  website?: string;
+  supplyPrice: string;
+  minOrderQty: string;
+  sampleAvailable: boolean;
+  status: "pending" | "reviewed" | "contacted" | "rejected";
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function submitVendorInquiry(input: {
+  productName: string;
+  companyName: string;
+  contactName: string;
+  email: string;
+  phone: string;
+  website?: string;
+  supplyPrice: string;
+  minOrderQty: string;
+  sampleAvailable: boolean;
+}) {
+  const res = await fetch(`${API_URL}/vendor-inquiries`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchVendorInquiries(status?: string): Promise<VendorInquiry[]> {
+  const params = status ? `?status=${encodeURIComponent(status)}` : "";
+  const res = await fetch(`${API_URL}/vendor-inquiries${params}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateVendorInquiryStatus(id: string, status: VendorInquiry["status"]) {
+  const res = await fetch(`${API_URL}/vendor-inquiries/${id}/status`, {
+    method: "PATCH",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface AdminUserSummary {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  adminLevel: 1 | 2 | 3 | null;
+}
+
+export async function fetchAdminUsers(): Promise<AdminUserSummary[]> {
+  const res = await fetch(`${API_URL}/auth/admin-users`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function promoteAdminUser(email: string, adminLevel: 1 | 2 | 3) {
+  const res = await fetch(`${API_URL}/auth/admin-users`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ email, adminLevel }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setAdminUserLevel(uid: string, adminLevel: 1 | 2 | 3 | null) {
+  const res = await fetch(`${API_URL}/auth/admin-users/${uid}/level`, {
+    method: "PATCH",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ adminLevel }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

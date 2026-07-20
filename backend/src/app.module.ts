@@ -14,6 +14,7 @@ import { PostsModule } from './posts/posts.module';
 import { AiWriterModule } from './ai-writer/ai-writer.module';
 import { OrdersModule } from './orders/orders.module';
 import { MailModule } from './mail/mail.module';
+import { VendorInquiriesModule } from './vendor-inquiries/vendor-inquiries.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { MailModule } from './mail/mail.module';
     AiWriterModule,
     MailModule,
     OrdersModule,
+    VendorInquiriesModule,
   ],
   controllers: [AppController],
   providers: [AppService],

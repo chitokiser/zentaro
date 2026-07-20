@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { RequireAdminLevel } from '../auth/admin-level.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { PostsService } from './posts.service';
@@ -28,6 +29,7 @@ export class PostsController {
 
   @Get('admin/all')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
   listAllAdmin() {
     return this.postsService.listAllAdmin();
   }
@@ -39,18 +41,21 @@ export class PostsController {
 
   @Post()
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
   create(@Body() dto: CreatePostDto, @CurrentUser() user: CurrentUserPayload) {
     return this.postsService.create(dto, 'admin', user.email);
   }
 
   @Put(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
   update(@Param('id') id: string, @Body() dto: UpdatePostDto) {
     return this.postsService.update(id, dto);
   }
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
   remove(@Param('id') id: string) {
     return this.postsService.remove(id);
   }

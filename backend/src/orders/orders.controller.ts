@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { RequireAdminLevel } from '../auth/admin-level.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { OrdersService } from './orders.service';
@@ -31,6 +32,7 @@ export class OrdersController {
 
   @Get('report')
   @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(1)
   getSalesReport(@Query('startDate') startDate?: string, @Query('endDate') endDate?: string) {
     return this.ordersService.getSalesReport(startDate, endDate);
   }

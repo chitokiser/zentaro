@@ -127,23 +127,75 @@ export class AuthService {
   }
 
   private async issueToken(uid: string, email: string) {
+    // ADMIN_EMAILS always gets (or keeps) top-tier access; it never
+    // downgrades an existing higher-privilege assignment on repeat login.
     if (this.isAdminEmail(email)) {
-      await this.usersCol().doc(uid).set({ isAdmin: true }, { merge: true });
+      await this.usersCol().doc(uid).set({ adminLevel: 1, isAdmin: true }, { merge: true });
     }
     const snap = await this.usersCol().doc(uid).get();
-    const isAdmin = snap.data()?.isAdmin === true;
+    const adminLevel: number | null = snap.data()?.adminLevel ?? null;
     const accessToken = this.jwt.sign({ sub: uid, email });
-    return { accessToken, uid, isAdmin };
+    return { accessToken, uid, isAdmin: adminLevel !== null, adminLevel };
   }
 
   async getMe(uid: string) {
     const snap = await this.usersCol().doc(uid).get();
     const data = snap.data() ?? {};
+    const adminLevel: number | null = data.adminLevel ?? null;
     return {
       uid,
       email: data.email ?? null,
-      isAdmin: data.isAdmin === true,
+      isAdmin: adminLevel !== null,
+      adminLevel,
     };
+  }
+
+  /**
+   * 최고관리자(level 1) only: list users who hold any admin tier, so the
+   * member-management screen has something to edit without dumping the
+   * entire (potentially huge) regular-user table.
+   */
+  async listAdminUsers() {
+    const snap = await this.usersCol().where('adminLevel', 'in', [1, 2, 3]).get();
+    return snap.docs.map((doc) => ({
+      uid: doc.id,
+      email: doc.data().email ?? null,
+      displayName: doc.data().displayName ?? null,
+      adminLevel: doc.data().adminLevel ?? null,
+    }));
+  }
+
+  async setAdminLevel(targetUid: string, adminLevel: number | null, requestingEmail: string) {
+    const targetSnap = await this.usersCol().doc(targetUid).get();
+    if (!targetSnap.exists) {
+      throw new ConflictException('User not found');
+    }
+    this.assertNotProtectedAdminEmail(targetSnap.data()?.email, requestingEmail);
+    await this.usersCol().doc(targetUid).set(
+      { adminLevel, isAdmin: adminLevel !== null },
+      { merge: true },
+    );
+    return { uid: targetUid, adminLevel };
+  }
+
+  /** Promotes a not-yet-admin user to an admin tier by email. */
+  async promoteByEmail(email: string, adminLevel: 1 | 2 | 3, requestingEmail: string) {
+    const snap = await this.usersCol().where('email', '==', email).limit(1).get();
+    if (snap.empty) {
+      throw new ConflictException('해당 이메일의 회원을 찾을 수 없습니다.');
+    }
+    const doc = snap.docs[0];
+    this.assertNotProtectedAdminEmail(doc.data().email, requestingEmail);
+    await doc.ref.set({ adminLevel, isAdmin: true }, { merge: true });
+    return { uid: doc.id, email: doc.data().email, adminLevel };
+  }
+
+  private assertNotProtectedAdminEmail(targetEmail: string | undefined, requestingEmail: string) {
+    // ADMIN_EMAILS members are re-promoted to level 1 on every login, so
+    // changing their tier here would silently revert; refuse instead of lying.
+    if (targetEmail && this.isAdminEmail(targetEmail) && targetEmail.toLowerCase() !== requestingEmail.toLowerCase()) {
+      throw new ConflictException('ADMIN_EMAILS로 지정된 계정은 등급을 변경할 수 없습니다.');
+    }
   }
 
   async getShippingAddress(uid: string) {

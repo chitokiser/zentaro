@@ -5,6 +5,7 @@ const FOOTER_LINKS = [
   { label: "About", href: "/about/company" },
   { label: "Contact", href: "/contact" },
   { label: "인증/허가", href: "/about/certifications" },
+  { label: "입점 문의", href: "/vendor-inquiry" },
   { label: "Terms", href: "/terms" },
   { label: "Privacy", href: "/privacy" },
   { label: "Official Community", href: "/community" },

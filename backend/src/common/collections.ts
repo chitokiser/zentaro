@@ -14,4 +14,5 @@ export const COLLECTIONS = {
   ZENTARO_NFTS: 'zentaro_nfts',
   ZENTARO_CONTRIBUTIONS: 'zentaro_contributions',
   ZENTARO_POSTS: 'zentaro_posts',
+  ZENTARO_VENDOR_INQUIRIES: 'zentaro_vendor_inquiries',
 } as const;

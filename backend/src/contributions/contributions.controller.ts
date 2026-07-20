@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
+import { RequireAdminLevel } from '../auth/admin-level.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { ContributionsService } from './contributions.service';
@@ -30,18 +31,21 @@ export class ContributionsController {
 
   @Get()
   @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
   listAll() {
     return this.contributionsService.listAll();
   }
 
   @Post(':id/approve')
   @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
   approve(@Param('id') id: string, @Body() dto: ApproveContributionDto) {
     return this.contributionsService.approve(id, dto.apAmount);
   }
 
   @Post(':id/reject')
   @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
   reject(@Param('id') id: string, @Body() dto: RejectContributionDto) {
     return this.contributionsService.reject(id, dto.reason);
   }
