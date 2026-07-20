@@ -15,6 +15,7 @@ const IMAGE_QUERY_BY_TAG: Record<string, string> = {
   '🍖 미식(치즈·햄·훈제·BBQ)': 'charcuterie cheese smoked bbq',
   '💪 기능성음료&칵테일': 'craft cocktail bar',
   '👑 ZenTaro Story': 'luxury whiskey lifestyle',
+  '🧘 젠(禪)&불교철학': 'zen garden meditation temple',
 };
 
 // ZENTARO's own video/CF content is posted manually by admins, not AI-generated.
