@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet"
 import {
   searchCjProducts,
   importCjProduct,
@@ -10,7 +11,9 @@ import {
   updateProductAdmin,
   fetchAllProductsAdmin,
   deleteProductAdmin,
+  fetchCjProductDetail,
   type CjSearchResultItem,
+  type CjProductDetail,
   type AdminProduct,
 } from "@/lib/auth-client"
 import { MALL_MAIN_CATEGORIES, getSubcategories } from "@/lib/mall-categories"
@@ -44,6 +47,11 @@ export default function AdminProductsPage() {
   const [searching, setSearching] = useState(false)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [importResults, setImportResults] = useState<Record<string, { ok: boolean; text: string }>>({})
+
+  const [detailOpen, setDetailOpen] = useState(false)
+  const [detailItem, setDetailItem] = useState<CjProductDetail | null>(null)
+  const [detailLoading, setDetailLoading] = useState<string | null>(null)
+  const [detailError, setDetailError] = useState<string | null>(null)
 
   const [directName, setDirectName] = useState("")
   const [directMainCategory, setDirectMainCategory] = useState("")
@@ -132,6 +140,20 @@ export default function AdminProductsPage() {
       setError(err instanceof Error ? err.message : "검색에 실패했습니다.")
     } finally {
       setSearching(false)
+    }
+  }
+
+  async function handleViewDetail(cjProductId: string) {
+    setDetailLoading(cjProductId)
+    setDetailError(null)
+    try {
+      const detail = await fetchCjProductDetail(cjProductId)
+      setDetailItem(detail)
+      setDetailOpen(true)
+    } catch (err) {
+      setDetailError(err instanceof Error ? err.message : "상세 정보를 불러오지 못했습니다.")
+    } finally {
+      setDetailLoading(null)
     }
   }
 
@@ -327,6 +349,11 @@ export default function AdminProductsPage() {
           {error}
         </p>
       ) : null}
+      {detailError ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+          {detailError}
+        </p>
+      ) : null}
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <input
@@ -389,6 +416,15 @@ export default function AdminProductsPage() {
               </Badge>
               <span className="text-sm font-medium">{item.name}</span>
               <span className="text-xs text-muted-foreground">CJ 판매가: {item.sellPrice}</span>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={detailLoading === item.cjProductId}
+                onClick={() => handleViewDetail(item.cjProductId)}
+              >
+                {detailLoading === item.cjProductId ? "불러오는 중..." : "상세보기"}
+              </Button>
               <div className="flex gap-2">
                 <select
                   className="flex-1 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
@@ -674,6 +710,69 @@ export default function AdminProductsPage() {
           })}
         </div>
       </div>
+
+      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+        <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+          <SheetHeader>
+            <SheetTitle>{detailItem?.name || "상품 상세"}</SheetTitle>
+          </SheetHeader>
+          {detailItem ? (
+            <div className="flex flex-col gap-4 px-4 pb-6">
+              <div className="flex flex-wrap items-center gap-2">
+                {detailItem.category ? (
+                  <Badge variant="outline" className="text-[10px]">{detailItem.category}</Badge>
+                ) : null}
+                <span className="text-xs text-muted-foreground">CJ 판매가: {detailItem.sellPrice}</span>
+              </div>
+
+              {detailItem.images.length > 0 ? (
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                  {detailItem.images.map((src, i) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={`${src}-${i}`}
+                      src={src}
+                      alt={`${detailItem.name} ${i + 1}`}
+                      className="aspect-square w-full rounded-md border border-border/40 object-cover"
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">이미지가 없습니다.</p>
+              )}
+
+              {detailItem.variants.length > 0 ? (
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">옵션 ({detailItem.variants.length})</h4>
+                  <div className="flex flex-col gap-1">
+                    {detailItem.variants.map((v) => (
+                      <div
+                        key={v.vid || v.sku}
+                        className="flex items-center justify-between gap-2 rounded-md border border-border/40 px-3 py-2 text-xs"
+                      >
+                        <span>{v.name || v.sku}</span>
+                        <span className="text-muted-foreground">{v.sellPrice}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+
+              {detailItem.descriptionHtml ? (
+                <div>
+                  <h4 className="mb-2 text-sm font-medium">상세 설명</h4>
+                  <iframe
+                    title="CJ product description"
+                    srcDoc={detailItem.descriptionHtml}
+                    sandbox=""
+                    className="h-96 w-full rounded-md border border-border/40 bg-white"
+                  />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

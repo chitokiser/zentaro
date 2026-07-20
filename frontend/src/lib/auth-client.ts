@@ -183,6 +183,30 @@ export async function searchCjProducts(keyword: string, pageNum = 1) {
   return res.json() as Promise<{ total: number; items: CjSearchResultItem[] }>;
 }
 
+export interface CjProductVariant {
+  vid: string;
+  sku: string;
+  name: string;
+  imageUrl: string | null;
+  sellPrice: string;
+}
+
+export interface CjProductDetail {
+  cjProductId: string;
+  name: string;
+  category: string;
+  sellPrice: string;
+  descriptionHtml: string;
+  images: string[];
+  variants: CjProductVariant[];
+}
+
+export async function fetchCjProductDetail(pid: string) {
+  const res = await fetch(`${API_URL}/cj/${pid}`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json() as Promise<CjProductDetail>;
+}
+
 export async function importCjProduct(input: {
   cjProductId: string;
   name: string;

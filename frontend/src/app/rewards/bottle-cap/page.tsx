@@ -180,8 +180,8 @@ export default function BottleCapRewardsPage() {
             >
               <h3 className="font-display text-base font-medium">병뚜껑 실물 발송 신청</h3>
               <p className="text-xs text-muted-foreground">
-                병뚜껑을 젠타로 본사로 발송하시면 실물 확인 후 쇼핑머니(AP)가 지급됩니다.
-                ZENTARO 자체 증류주 병뚜껑은 개당 EXP 10,000이 추가로 충전됩니다.
+                병뚜껑을 젠타로 본사로 발송하시면 실물 확인 후 쇼핑머니(EXP)가 지급됩니다.
+                ZENTARO_ORIGIN 증류식 병뚜껑은 개당 EXP 10,000 충전됩니다.
               </p>
 
               {claimMessage ? (
@@ -203,7 +203,7 @@ export default function BottleCapRewardsPage() {
                     value={isZentaro ? "zentaro" : "other"}
                     onChange={(e) => setIsZentaro(e.target.value === "zentaro")}
                   >
-                    <option value="zentaro">ZENTARO 자체 증류주</option>
+                    <option value="zentaro">ZENTARO_ORIGIN 증류식</option>
                     <option value="other">기타 브랜드</option>
                   </select>
                 </label>
@@ -214,7 +214,7 @@ export default function BottleCapRewardsPage() {
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     required
-                    placeholder={isZentaro ? "예: ZENTARO Dry Gin" : "예: Ballantine's"}
+                    placeholder={isZentaro ? "예: ZENTARO Distilled Soju" : "예: Ballantine's"}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground sm:w-28">

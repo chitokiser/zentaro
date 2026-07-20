@@ -68,6 +68,18 @@ const ko = {
       "Every Bottle Tells a Story. 프리미엄 크래프트 증류소 ZENTARO가 빚어내는 진, 위스키, 리큐르와 보태니컬의 이야기.",
     rights: "All rights reserved.",
   },
+  webzine: {
+    eyebrow: "서비스",
+    title: "ZENTARO 웹진",
+    description: "증류주, 허브, 미식에 관한 이야기",
+    all: "전체",
+    empty: "등록된 글이 없습니다.",
+    writtenByPrefix: "",
+    writtenBySuffix: " 작성",
+    relatedVideo: "관련 영상 보러가기 →",
+    ctaTitle: "ZENTARO 바로가기",
+    ctaDescription: "프리미엄 크래프트 증류소 ZENTARO에서 더 많은 이야기를 만나보세요",
+  },
 };
 
 type Dict = typeof ko;
@@ -134,6 +146,18 @@ const en: Dict = {
       "Every Bottle Tells a Story. The tale of gin, whisky, liqueur, and botanicals crafted by premium craft distillery ZENTARO.",
     rights: "All rights reserved.",
   },
+  webzine: {
+    eyebrow: "Services",
+    title: "ZENTARO Webzine",
+    description: "Stories about spirits, herbs, and food",
+    all: "All",
+    empty: "No posts yet.",
+    writtenByPrefix: "Written by ",
+    writtenBySuffix: "",
+    relatedVideo: "Watch the related video →",
+    ctaTitle: "Visit ZENTARO",
+    ctaDescription: "Discover more stories from premium craft distillery ZENTARO",
+  },
 };
 
 const vi: Dict = {
@@ -197,6 +221,18 @@ const vi: Dict = {
     tagline:
       "Every Bottle Tells a Story. Câu chuyện về gin, whisky, rượu mùi và thảo mộc được chưng cất bởi ZENTARO.",
     rights: "Đã đăng ký bản quyền.",
+  },
+  webzine: {
+    eyebrow: "Dịch vụ",
+    title: "Tạp chí ZENTARO",
+    description: "Câu chuyện về rượu, thảo mộc và ẩm thực",
+    all: "Tất cả",
+    empty: "Chưa có bài viết nào.",
+    writtenByPrefix: "Viết bởi ",
+    writtenBySuffix: "",
+    relatedVideo: "Xem video liên quan →",
+    ctaTitle: "Đến trang ZENTARO",
+    ctaDescription: "Khám phá thêm câu chuyện từ nhà chưng cất thủ công cao cấp ZENTARO",
   },
 };
 

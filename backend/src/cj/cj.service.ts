@@ -26,6 +26,24 @@ export interface CjSearchResultItem {
   sku: string;
 }
 
+export interface CjProductVariant {
+  vid: string;
+  sku: string;
+  name: string;
+  imageUrl: string | null;
+  sellPrice: string;
+}
+
+export interface CjProductDetail {
+  cjProductId: string;
+  name: string;
+  category: string;
+  sellPrice: string;
+  descriptionHtml: string;
+  images: string[];
+  variants: CjProductVariant[];
+}
+
 @Injectable()
 export class CjService {
   private readonly logger = new Logger(CjService.name);
@@ -109,5 +127,46 @@ export class CjService {
     );
 
     return { total: body.data?.total ?? items.length, items };
+  }
+
+  async getProductDetail(pid: string): Promise<CjProductDetail> {
+    const token = await this.getAccessToken();
+    const params = new URLSearchParams({ pid });
+
+    const res = await fetch(`${CJ_API_BASE}/v1/product/query?${params}`, {
+      headers: { 'CJ-Access-Token': token },
+    });
+    const body = await res.json();
+
+    if (!res.ok || !body.result) {
+      this.logger.error(`CJ product detail lookup failed: ${JSON.stringify(body)}`);
+      throw new BadGatewayException(
+        body.message ?? 'CJ Dropshipping product detail lookup failed',
+      );
+    }
+
+    const data = (body.data ?? {}) as Record<string, unknown>;
+    const variants = Array.isArray(data.variants) ? data.variants : [];
+    const images = Array.isArray(data.productImageSet)
+      ? (data.productImageSet as string[])
+      : data.productImage
+        ? [data.productImage as string]
+        : [];
+
+    return {
+      cjProductId: (data.pid as string) ?? pid,
+      name: (data.productNameEn as string) ?? (data.productSku as string) ?? '',
+      category: (data.categoryName as string) ?? '',
+      sellPrice: (data.sellPrice as string) ?? '',
+      descriptionHtml: (data.description as string) ?? '',
+      images,
+      variants: variants.map((v: Record<string, unknown>) => ({
+        vid: (v.vid as string) ?? '',
+        sku: (v.variantSku as string) ?? '',
+        name: (v.variantNameEn as string) ?? '',
+        imageUrl: (v.variantImage as string) ?? null,
+        sellPrice: (v.variantSellPrice as string) ?? '',
+      })),
+    };
   }
 }
