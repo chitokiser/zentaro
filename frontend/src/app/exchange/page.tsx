@@ -86,8 +86,8 @@ export default function ExchangePage() {
     <div>
       <PageHeader
         eyebrow="서비스"
-        title="토큰거래소"
-        description="USDT로 ZTRO를 매수·매도하고, 스테이킹으로 배당을 받으세요."
+        title="ZTRO 토큰 혜택"
+        description="ZTRO를 스테이킹하고 젠타로 생태계의 다양한 혜택을 누리세요."
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
@@ -122,7 +122,7 @@ export default function ExchangePage() {
               <h3 className="font-display text-base font-medium">내 수탁지갑 (입금 주소)</h3>
               <p className="mt-1 font-mono text-xs break-all text-foreground">{dashboard.address}</p>
               <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                반드시 opBNB 네트워크의 USDT만 이 주소로 보내세요. 다른 네트워크의 USDT를
+                반드시 opBNB 네트워크의 ZTRO만 이 주소로 보내세요. 다른 네트워크의 자산을
                 보내면 복구할 수 없습니다.
               </p>
               <Button type="button" variant="outline" size="sm" className="mt-3" onClick={copyAddress}>
@@ -131,36 +131,14 @@ export default function ExchangePage() {
             </div>
 
             {/* 잔액/포지션 */}
-            <div className="grid grid-cols-2 gap-3 rounded-lg border border-border/60 bg-card p-4 text-sm sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-card p-4 text-sm sm:grid-cols-3">
               <div>
                 <p className="text-xs text-muted-foreground">보유 ZTRO</p>
                 <p className="font-semibold">{dashboard.ztroBalance.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">보유 USDT</p>
-                <p className="font-semibold">{dashboard.usdtBalance.toLocaleString(undefined, { maximumFractionDigits: 4 })}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">현재가</p>
-                <p className="font-semibold text-primary">{dashboard.priceUsdt.toFixed(4)} USDT</p>
-              </div>
-              <div>
                 <p className="text-xs text-muted-foreground">스테이킹 수량</p>
                 <p className="font-semibold">{dashboard.staked.toLocaleString()}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">평균 매수가</p>
-                <p className="font-semibold">{dashboard.avgBuyPriceUsdt.toFixed(4)} USDT</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">수익률</p>
-                <p className={`font-semibold ${dashboard.roiBps >= 0 ? "text-primary" : "text-destructive"}`}>
-                  {(dashboard.roiBps / 100).toFixed(2)}%
-                </p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">미수령 배당</p>
-                <p className="font-semibold">{dashboard.pendingDividendUsdt.toFixed(4)} USDT</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">언스테이킹까지</p>
@@ -170,92 +148,11 @@ export default function ExchangePage() {
                     : "-"}
                 </p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">배당 청구까지</p>
-                <p className="font-semibold">
-                  {dashboard.staked > 0
-                    ? remainingLabel(dashboard.lastClaim + dashboard.divIntervalSeconds)
-                    : "-"}
-                </p>
-              </div>
-            </div>
-
-            {/* 매수/매도 */}
-            <div className="rounded-lg border border-border/60 bg-card p-5">
-              <div className="flex gap-2">
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={tab === "buy" ? "default" : "outline"}
-                  onClick={() => setTab("buy")}
-                >
-                  매수
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant={tab === "sell" ? "default" : "outline"}
-                  onClick={() => setTab("sell")}
-                >
-                  매도
-                </Button>
-              </div>
-
-              {tab === "buy" ? (
-                <div className="mt-4 flex flex-col gap-2">
-                  <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    구매 수량 (ZTRO)
-                    <input
-                      type="number"
-                      min={1}
-                      value={buyAmount}
-                      onChange={(e) => setBuyAmount(Number(e.target.value))}
-                      className="w-40 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
-                    />
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    예상 결제: {(buyAmount * dashboard.priceUsdt).toFixed(4)} USDT
-                  </p>
-                  <Button
-                    type="button"
-                    disabled={busy === "buy"}
-                    onClick={handleBuy}
-                    className="self-start bg-primary text-primary-foreground hover:bg-primary/90"
-                  >
-                    {busy === "buy" ? "처리 중..." : "매수"}
-                  </Button>
-                </div>
-              ) : (
-                <div className="mt-4 flex flex-col gap-2">
-                  <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                    매도 수량 (ZTRO)
-                    <input
-                      type="number"
-                      min={1}
-                      value={sellAmount}
-                      onChange={(e) => setSellAmount(Number(e.target.value))}
-                      className="w-40 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
-                    />
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    수수료 {dashboard.sellFeePercent}% 차감 후 지급
-                  </p>
-                  <Button
-                    type="button"
-                    disabled={busy === "sell"}
-                    onClick={handleSell}
-                    variant="outline"
-                    className="self-start"
-                  >
-                    {busy === "sell" ? "처리 중..." : "매도"}
-                  </Button>
-                </div>
-              )}
             </div>
 
             {/* 스테이킹 */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">스테이킹</h3>
+              <h3 className="font-display text-base font-medium">ZTRO 스테이킹</h3>
               <div className="mt-3 flex flex-wrap items-end gap-2">
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                   수량 (ZTRO)
@@ -286,23 +183,6 @@ export default function ExchangePage() {
                   {busy === "unstake" ? "처리 중..." : "언스테이킹"}
                 </Button>
               </div>
-            </div>
-
-            {/* 배당 */}
-            <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">이자배당</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                미수령 배당: {dashboard.pendingDividendUsdt.toFixed(4)} USDT
-              </p>
-              <Button
-                type="button"
-                size="sm"
-                disabled={busy === "claim" || dashboard.pendingDividendUsdt <= 0}
-                onClick={handleClaim}
-                className="mt-3 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                {busy === "claim" ? "처리 중..." : "배당 청구"}
-              </Button>
             </div>
           </div>
         )}
