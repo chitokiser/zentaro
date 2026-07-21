@@ -26,7 +26,7 @@ export default function AdminSalesReportPage() {
 
   function downloadCsv() {
     if (!report) return
-    const header = ["날짜", "유형", "주문수", "매출", "원가", "마진", "AP", "EXP"]
+    const header = ["날짜", "유형", "주문수", "매출", "원가", "마진", "ZP", "EXP"]
     const rows = report.byDateType.map((r) => [
       r.date,
       r.fulfillmentType,
@@ -97,7 +97,7 @@ export default function AdminSalesReportPage() {
               <p className="font-semibold text-primary">{report.totals.totalMargin.toLocaleString()}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground">AP 결제</p>
+              <p className="text-xs text-muted-foreground">ZP 결제</p>
               <p className="font-semibold">{report.totals.totalApPaid.toLocaleString()}</p>
             </div>
             <div>
@@ -116,7 +116,7 @@ export default function AdminSalesReportPage() {
                   <th className="px-3 py-2">매출</th>
                   <th className="px-3 py-2">원가</th>
                   <th className="px-3 py-2">마진</th>
-                  <th className="px-3 py-2">AP</th>
+                  <th className="px-3 py-2">ZP</th>
                   <th className="px-3 py-2">EXP</th>
                 </tr>
               </thead>

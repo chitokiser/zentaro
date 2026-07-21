@@ -78,11 +78,11 @@ export function ProductCard({ product }: { product: Product }) {
         <Link href={`/mall/${product.id}`} className="text-sm font-medium text-foreground hover:text-primary">
           {product.name}
         </Link>
-        <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} AP</span>
+        <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
         {maxExp > 0 ? (
           <span className="text-[11px] text-primary">최대 {maxExp.toLocaleString()} EXP로 결제 가능</span>
         ) : (
-          <span className="text-[11px] text-muted-foreground">AP 100% 결제 상품</span>
+          <span className="text-[11px] text-muted-foreground">ZP 100% 결제 상품</span>
         )}
 
         <div className="mt-1 flex gap-2">

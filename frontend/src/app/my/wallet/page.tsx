@@ -15,7 +15,7 @@ interface WalletData {
 }
 
 const TILES: { key: keyof WalletData; label: string }[] = [
-  { key: "ap", label: "AP (Reward Point)" },
+  { key: "ap", label: "ZP (Reward Point)" },
   { key: "exp", label: "EXP (Mall 마진 결제)" },
   { key: "timeToken", label: "Time Token" },
   { key: "jumpToken", label: "Jump Token" },

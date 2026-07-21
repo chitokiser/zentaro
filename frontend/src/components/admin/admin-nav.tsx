@@ -21,6 +21,7 @@ const ADMIN_SECTIONS: AdminSection[] = [
   { label: "Ticket 발급", href: "/admin/tickets", requiredLevel: 2 },
   { label: "현물출자 심사", href: "/admin/contributions", requiredLevel: 2 },
   { label: "병뚜껑 리워드 심사", href: "/admin/bottle-cap-claims", requiredLevel: 2 },
+  { label: "ZTRO 리워드 QR", href: "/admin/ztro-rewards", requiredLevel: 2 },
   { label: "웹진 관리", href: "/admin/webzine", requiredLevel: 2 },
   { label: "NFT 관리", href: "/admin/nft", requiredLevel: 2 },
   { label: "공지사항", href: "/admin/notices", requiredLevel: 2 },

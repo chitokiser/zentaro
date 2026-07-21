@@ -16,6 +16,8 @@ import { OrdersModule } from './orders/orders.module';
 import { MailModule } from './mail/mail.module';
 import { VendorInquiriesModule } from './vendor-inquiries/vendor-inquiries.module';
 import { BottleCapsModule } from './bottle-caps/bottle-caps.module';
+import { BlockchainModule } from './blockchain/blockchain.module';
+import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { BottleCapsModule } from './bottle-caps/bottle-caps.module';
     OrdersModule,
     VendorInquiriesModule,
     BottleCapsModule,
+    BlockchainModule,
+    ZtroRewardsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

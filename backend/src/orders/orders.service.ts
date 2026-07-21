@@ -96,7 +96,7 @@ export class OrdersService {
 
       const apToPay = totalPriceAp - expToUse;
       if (currentPoints < apToPay) {
-        throw new BadRequestException('Insufficient AP balance');
+        throw new BadRequestException('Insufficient ZP balance');
       }
 
       tx.update(userRef, { points: FieldValue.increment(-apToPay) });

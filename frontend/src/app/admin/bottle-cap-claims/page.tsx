@@ -60,9 +60,8 @@ export default function AdminBottleCapClaimsPage() {
     <div className="flex flex-col gap-6">
       <h2 className="font-display text-xl font-semibold">병뚜껑 리워드 심사</h2>
       <p className="text-sm text-muted-foreground">
-        회원이 발송한 병뚜껑 실물을 확인하고 쇼핑머니(AP)를 지급합니다. ZENTARO 자체 증류주는
-        승인 시 개당 EXP 10,000이 자동으로 함께 지급됩니다. 병뚜껑에 인지세 봉인스티커 일부가
-        남아있는지 반드시 확인 후 승인하세요.
+        회원이 발송한 병뚜껑 실물을 확인하고 쇼핑머니(ZP)를 지급합니다. ZENTARO 자체 증류주는
+        승인 시 개당 ZP와 EXP가 동시에 지급됩니다.
       </p>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -101,7 +100,7 @@ export default function AdminBottleCapClaimsPage() {
                 <input
                   type="number"
                   min={0}
-                  placeholder="지급 AP"
+                  placeholder="지급 ZP"
                   className="w-32 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                   value={apInputs[item.id] ?? ""}
                   onChange={(e) =>
@@ -146,7 +145,7 @@ export default function AdminBottleCapClaimsPage() {
               </span>
               <Badge variant={item.status === "approved" ? "default" : "secondary"} className="text-[10px]">
                 {item.status === "approved"
-                  ? `승인 +${item.apAmount} AP${item.expAmount ? ` · +${item.expAmount} EXP` : ""}`
+                  ? `승인 +${item.apAmount} ZP${item.expAmount ? ` · +${item.expAmount} EXP` : ""}`
                   : "반려"}
               </Badge>
             </div>

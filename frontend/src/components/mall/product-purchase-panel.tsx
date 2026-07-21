@@ -56,10 +56,10 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       {maxExp > 0 ? (
         <p className="text-xs text-primary">최대 {maxExp.toLocaleString()} EXP로 결제 가능 (결제 시 적용)</p>
       ) : (
-        <p className="text-xs text-muted-foreground">AP 100% 결제 상품 (직배송/자체재고)</p>
+        <p className="text-xs text-muted-foreground">ZP 100% 결제 상품 (직배송/자체재고)</p>
       )}
       <p className="text-sm text-foreground">
-        가격: <span className="font-medium">AP {product.priceAp.toLocaleString()}</span>
+        가격: <span className="font-medium">ZP {product.priceAp.toLocaleString()}</span>
       </p>
       <div className="flex gap-2">
         <Button

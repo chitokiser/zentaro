@@ -147,6 +147,65 @@ export async function useTicket(code: string) {
   return res.json();
 }
 
+export interface ZtroRewardResult {
+  amount: number;
+  txHash: string;
+  walletAddress: string;
+}
+
+export async function redeemZtroQr(code: string): Promise<ZtroRewardResult> {
+  const res = await fetch(`${API_URL}/ztro-rewards/redeem`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface ZtroRewardCodeItem {
+  code: string;
+  qrDataUrl: string;
+}
+
+export async function issueZtroRewardCodes(
+  count: number,
+  baseValue: number,
+): Promise<{ issued: number; items: ZtroRewardCodeItem[] }> {
+  const res = await fetch(`${API_URL}/ztro-rewards/issue`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ count, baseValue }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface ZtroRewardCode {
+  code: string;
+  baseValue: number;
+  status: "unused" | "pending" | "used" | "failed";
+  claimedBy: string | null;
+  amount: number | null;
+  txHash: string | null;
+}
+
+export async function fetchZtroPoolBalance(): Promise<{ balance: number }> {
+  const res = await fetch(`${API_URL}/ztro-rewards/admin/pool-balance`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function listZtroRewardCodes(): Promise<ZtroRewardCode[]> {
+  const res = await fetch(`${API_URL}/ztro-rewards/admin/list`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface CjSearchResultItem {
   cjProductId: string;
   name: string;

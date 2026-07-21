@@ -17,7 +17,7 @@ export async function ShoppingMall() {
             프리미엄 쇼핑몰
           </h2>
           <p className="max-w-lg text-sm text-muted-foreground">
-            관리자가 지정한 대표 상품을 AP(Reward Point)로 만나보세요.
+            관리자가 지정한 대표 상품을 ZP(Reward Point)로 만나보세요.
           </p>
         </div>
 
@@ -52,7 +52,7 @@ export async function ShoppingMall() {
                   {product.name}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  {product.priceAp.toLocaleString()} AP
+                  {product.priceAp.toLocaleString()} ZP
                 </span>
               </div>
             </Link>

@@ -16,4 +16,5 @@ export const COLLECTIONS = {
   ZENTARO_POSTS: 'zentaro_posts',
   ZENTARO_VENDOR_INQUIRIES: 'zentaro_vendor_inquiries',
   ZENTARO_BOTTLE_CAP_CLAIMS: 'zentaro_bottle_cap_claims',
+  ZENTARO_ZTRO_REWARD_CODES: 'zentaro_ztro_reward_codes',
 } as const;

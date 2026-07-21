@@ -123,7 +123,7 @@ export function SiteHeader() {
                 {t.header.point} <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
               </span>
               <span className="text-muted-foreground">
-                AP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
+                ZP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
               </span>
               <span className="text-muted-foreground">
                 EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
@@ -182,7 +182,7 @@ export function SiteHeader() {
                       {t.header.point} <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
                     </span>
                     <span className="text-muted-foreground">
-                      AP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
+                      ZP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
                     </span>
                     <span className="text-muted-foreground">
                       EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>

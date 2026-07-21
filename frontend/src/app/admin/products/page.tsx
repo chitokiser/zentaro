@@ -179,11 +179,11 @@ export default function AdminProductsPage() {
       return
     }
     if (!priceAp || priceAp <= 0) {
-      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "AP 가격을 입력해주세요." } }))
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "ZP 가격을 입력해주세요." } }))
       return
     }
     if (!costAp || costAp < 0 || costAp > priceAp) {
-      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "원가(AP)를 판매가 이하로 입력해주세요." } }))
+      setImportResults((prev) => ({ ...prev, [item.cjProductId]: { ok: false, text: "원가(ZP)를 판매가 이하로 입력해주세요." } }))
       return
     }
     setBusyId(item.cjProductId)
@@ -226,11 +226,11 @@ export default function AdminProductsPage() {
       return
     }
     if (!priceAp || priceAp <= 0) {
-      setError("AP 가격을 입력해주세요.")
+      setError("ZP 가격을 입력해주세요.")
       return
     }
     if (!costAp || costAp < 0 || costAp > priceAp) {
-      setError("원가(AP)를 판매가 이하로 입력해주세요.")
+      setError("원가(ZP)를 판매가 이하로 입력해주세요.")
       return
     }
     setDirectBusy(true)
@@ -335,7 +335,7 @@ export default function AdminProductsPage() {
           CJ Dropshipping에서 상품을 검색해 ZENTARO Mall에 추가하거나, 등록된 상품을 삭제합니다.
         </p>
         <p className="mt-1 text-xs text-muted-foreground">
-          원가는 CJ 판매가(USD) 기준 10,000 AP = $1로 자동 계산되고, 판매가는 원가의 2배로 자동 설정됩니다. 필요하면 직접 수정할 수 있습니다. (EXP 결제는 마진의 최대 80%까지 자동 적용됩니다.)
+          원가는 CJ 판매가(USD) 기준 10,000 ZP = $1로 자동 계산되고, 판매가는 원가의 2배로 자동 설정됩니다. 필요하면 직접 수정할 수 있습니다. (EXP 결제는 마진의 최대 80%까지 자동 적용됩니다.)
         </p>
       </div>
 
@@ -459,7 +459,7 @@ export default function AdminProductsPage() {
                 <input
                   type="number"
                   min={1}
-                  placeholder="AP 판매가"
+                  placeholder="ZP 판매가"
                   className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
                   value={priceInputs[item.cjProductId] ?? ""}
                   onChange={(e) =>
@@ -469,7 +469,7 @@ export default function AdminProductsPage() {
                 <input
                   type="number"
                   min={0}
-                  placeholder="원가(AP)"
+                  placeholder="원가(ZP)"
                   className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-xs"
                   value={costInputs[item.cjProductId] ?? ""}
                   onChange={(e) =>
@@ -562,7 +562,7 @@ export default function AdminProductsPage() {
             type="number"
             min={1}
             className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-            placeholder="AP 판매가"
+            placeholder="ZP 판매가"
             value={directPriceAp}
             onChange={(e) => setDirectPriceAp(e.target.value)}
             required
@@ -571,7 +571,7 @@ export default function AdminProductsPage() {
             type="number"
             min={0}
             className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-            placeholder="원가(AP)"
+            placeholder="원가(ZP)"
             value={directCostAp}
             onChange={(e) => setDirectCostAp(e.target.value)}
             required
@@ -673,7 +673,7 @@ export default function AdminProductsPage() {
                     ) : null}
                     <Badge variant="outline" className="text-[10px]">{product.category}</Badge>
                     <span className="text-xs text-muted-foreground">
-                      {product.priceAp.toLocaleString()} AP
+                      {product.priceAp.toLocaleString()} ZP
                       {typeof product.costAp === "number" ? ` (원가 ${product.costAp.toLocaleString()})` : ""}
                     </span>
                     <Badge variant="secondary" className="text-[10px]">

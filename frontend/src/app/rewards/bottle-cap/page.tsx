@@ -5,15 +5,14 @@ import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { QrRewardScanner } from "@/components/rewards/qr-reward-scanner"
+import { RewardRoulette } from "@/components/rewards/reward-roulette"
 import {
-  fetchMyTickets,
-  registerTicket,
-  transferTicket,
-  useTicket,
-  type Ticket,
   fetchMyBottleCapClaims,
   submitBottleCapClaim,
   type BottleCapClaim,
+  redeemZtroQr,
+  type ZtroRewardResult,
 } from "@/lib/auth-client"
 
 const CLAIM_STATUS_LABEL: Record<BottleCapClaim["status"], string> = {
@@ -23,14 +22,8 @@ const CLAIM_STATUS_LABEL: Record<BottleCapClaim["status"], string> = {
 }
 
 export default function BottleCapRewardsPage() {
-  const [tickets, setTickets] = useState<Ticket[] | null>(null)
+  // Gates the whole page behind a login prompt — set from loadClaims()'s auth failure.
   const [error, setError] = useState<string | null>(null)
-  const [message, setMessage] = useState<string | null>(null)
-
-  const [registerCode, setRegisterCode] = useState("")
-  const [transferCode, setTransferCode] = useState("")
-  const [transferEmail, setTransferEmail] = useState("")
-  const [busy, setBusy] = useState(false)
 
   const [claims, setClaims] = useState<BottleCapClaim[] | null>(null)
   const [claimError, setClaimError] = useState<string | null>(null)
@@ -44,22 +37,24 @@ export default function BottleCapRewardsPage() {
   const [trackingNumber, setTrackingNumber] = useState("")
   const [note, setNote] = useState("")
 
-  const load = useCallback(() => {
-    fetchMyTickets()
-      .then(setTickets)
-      .catch((err) => setError(err instanceof Error ? err.message : "오류가 발생했습니다."))
-  }, [])
+  const [scanning, setScanning] = useState(false)
+  const [redeeming, setRedeeming] = useState(false)
+  const [rewardResult, setRewardResult] = useState<ZtroRewardResult | null>(null)
+  const [rewardError, setRewardError] = useState<string | null>(null)
 
   const loadClaims = useCallback(() => {
     fetchMyBottleCapClaims()
       .then(setClaims)
-      .catch((err) => setClaimError(err instanceof Error ? err.message : "오류가 발생했습니다."))
+      .catch((err) => {
+        const msg = err instanceof Error ? err.message : "오류가 발생했습니다."
+        setClaimError(msg)
+        setError(msg)
+      })
   }, [])
 
   useEffect(() => {
-    load()
     loadClaims()
-  }, [load, loadClaims])
+  }, [loadClaims])
 
   async function handleClaimSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -80,7 +75,7 @@ export default function BottleCapRewardsPage() {
         trackingNumber: trackingNumber || undefined,
         note: note || undefined,
       })
-      setClaimMessage("신청이 접수되었습니다. 실물 확인 후 쇼핑머니(AP)가 지급됩니다.")
+      setClaimMessage("신청이 접수되었습니다. 실물 확인 후 쇼핑머니(ZP)가 지급됩니다.")
       setBrand("")
       setQuantity(1)
       setSealConfirmed(false)
@@ -95,53 +90,17 @@ export default function BottleCapRewardsPage() {
     }
   }
 
-  async function handleRegister(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setMessage(null)
-    setError(null)
+  async function handleScan(code: string) {
+    setScanning(false)
+    setRedeeming(true)
+    setRewardError(null)
     try {
-      await registerTicket(registerCode)
-      setMessage(`Ticket ${registerCode.toUpperCase()} 등록 완료`)
-      setRegisterCode("")
-      load()
+      const result = await redeemZtroQr(code)
+      setRewardResult(result)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "등록에 실패했습니다.")
+      setRewardError(err instanceof Error ? err.message : "리워드 지급에 실패했습니다.")
     } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleTransfer(e: React.FormEvent) {
-    e.preventDefault()
-    setBusy(true)
-    setMessage(null)
-    setError(null)
-    try {
-      await transferTicket(transferCode, transferEmail)
-      setMessage(`Ticket ${transferCode.toUpperCase()}을(를) ${transferEmail}에게 전송 완료`)
-      setTransferCode("")
-      setTransferEmail("")
-      load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "전송에 실패했습니다.")
-    } finally {
-      setBusy(false)
-    }
-  }
-
-  async function handleUse(code: string) {
-    setBusy(true)
-    setMessage(null)
-    setError(null)
-    try {
-      await useTicket(code)
-      setMessage(`Ticket ${code} 사용 처리 완료`)
-      load()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "사용 처리에 실패했습니다.")
-    } finally {
-      setBusy(false)
+      setRedeeming(false)
     }
   }
 
@@ -150,7 +109,7 @@ export default function BottleCapRewardsPage() {
       <PageHeader
         eyebrow="서비스"
         title="Bottle Cap Rewards"
-        description="병뚜껑 리워드 — 실물 발송 신청, Ticket 등록·보관·P2P 전송, 사용내역"
+        description="병뚜껑 리워드 — 실물 발송 신청, QR 스캔으로 ZTRO 즉시 지급"
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
@@ -163,17 +122,6 @@ export default function BottleCapRewardsPage() {
           </div>
         ) : (
           <div className="flex flex-col gap-8">
-            {message ? (
-              <p className="rounded-md border border-primary/30 bg-secondary/40 px-4 py-2 text-sm text-primary">
-                {message}
-              </p>
-            ) : null}
-            {error && error !== "로그인이 필요합니다." ? (
-              <p className="rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
-                {error}
-              </p>
-            ) : null}
-
             <form
               onSubmit={handleClaimSubmit}
               className="flex flex-col gap-4 rounded-lg border border-border/60 bg-card p-5"
@@ -309,7 +257,7 @@ export default function BottleCapRewardsPage() {
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {claim.status === "approved"
-                        ? `+${claim.apAmount} AP${claim.expAmount ? ` · +${claim.expAmount} EXP` : ""}`
+                        ? `+${claim.apAmount} ZP${claim.expAmount ? ` · +${claim.expAmount} EXP` : ""}`
                         : claim.status === "rejected"
                           ? claim.rejectReason ?? "반려 사유 없음"
                           : "확인 대기중"}
@@ -319,86 +267,64 @@ export default function BottleCapRewardsPage() {
               </div>
             </div>
 
-            <form
-              onSubmit={handleRegister}
-              className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-5"
-            >
-              <h3 className="font-display text-base font-medium">Ticket 등록</h3>
-              <p className="text-xs text-muted-foreground">
-                병뚜껑에 적힌 코드를 입력해 Ticket을 등록하세요.
-              </p>
-              <div className="flex gap-2">
-                <input
-                  className="flex-1 rounded-md border border-border/60 bg-background px-3 py-2 text-sm uppercase"
-                  placeholder="예: A1B2C3D4E5"
-                  value={registerCode}
-                  onChange={(e) => setRegisterCode(e.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                  등록
-                </Button>
-              </div>
-            </form>
-
-            <form
-              onSubmit={handleTransfer}
-              className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-5"
-            >
-              <h3 className="font-display text-base font-medium">Ticket P2P 전송</h3>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <input
-                  className="flex-1 rounded-md border border-border/60 bg-background px-3 py-2 text-sm uppercase"
-                  placeholder="Ticket 코드"
-                  value={transferCode}
-                  onChange={(e) => setTransferCode(e.target.value)}
-                  required
-                />
-                <input
-                  className="flex-1 rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-                  type="email"
-                  placeholder="받는 사람 이메일"
-                  value={transferEmail}
-                  onChange={(e) => setTransferEmail(e.target.value)}
-                  required
-                />
-                <Button type="submit" disabled={busy} variant="outline">
-                  전송
-                </Button>
-              </div>
-            </form>
-
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">보유 Ticket / 사용내역</h3>
-              <div className="mt-4 flex flex-col gap-2">
-                {tickets && tickets.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">보유한 Ticket이 없습니다.</p>
-                ) : null}
-                {tickets?.map((ticket) => (
-                  <div
-                    key={ticket.code}
-                    className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2"
+              <h3 className="font-display text-base font-medium">QR 스캔으로 ZTRO 받기</h3>
+              <p className="mt-1 text-xs text-muted-foreground">
+                관리자가 발급한 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시
+                지급됩니다. QR 코드는 1회만 사용할 수 있습니다.
+              </p>
+
+              {rewardResult ? (
+                <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-primary/30 bg-secondary/40 px-4 py-3 text-sm">
+                  <p className="text-primary">🎉 {rewardResult.amount} ZTRO 획득!</p>
+                  <p className="text-xs text-muted-foreground">
+                    지갑 주소: {rewardResult.walletAddress}
+                  </p>
+                  <a
+                    href={`https://opbnbscan.com/tx/${rewardResult.txHash}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-xs text-primary underline underline-offset-4"
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-sm">{ticket.code}</span>
-                      <Badge variant={ticket.status === "used" ? "secondary" : "outline"} className="text-[10px]">
-                        {ticket.status === "used" ? "사용됨" : "미사용"}
-                      </Badge>
-                      <span className="text-xs text-muted-foreground">{ticket.source}</span>
-                    </div>
-                    {ticket.status === "unused" ? (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        disabled={busy}
-                        onClick={() => handleUse(ticket.code)}
-                      >
-                        사용하기
-                      </Button>
-                    ) : null}
-                  </div>
-                ))}
-              </div>
+                    트랜잭션 확인하기
+                  </a>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setRewardResult(null)
+                      setScanning(true)
+                    }}
+                  >
+                    다시 스캔하기
+                  </Button>
+                </div>
+              ) : redeeming ? (
+                <RewardRoulette />
+              ) : scanning ? (
+                <div className="mt-4">
+                  <QrRewardScanner onScan={handleScan} onClose={() => setScanning(false)} />
+                </div>
+              ) : (
+                <div className="mt-4 flex flex-col items-start gap-2">
+                  {rewardError ? (
+                    <p className="w-full rounded-md border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm text-destructive">
+                      {rewardError}
+                    </p>
+                  ) : null}
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setRewardError(null)
+                      setScanning(true)
+                    }}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    QR 스캔하기
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         )}

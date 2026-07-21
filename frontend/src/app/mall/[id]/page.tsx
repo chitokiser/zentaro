@@ -58,7 +58,7 @@ export default async function ProductDetailPage({
               ))}
             </div>
             <p className="font-display text-2xl font-semibold text-primary">
-              {product.priceAp.toLocaleString()} AP
+              {product.priceAp.toLocaleString()} ZP
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
 

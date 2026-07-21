@@ -53,7 +53,7 @@ export class MailService {
     const itemsHtml = payload.items
       .map(
         (i) =>
-          `<li>${i.productName} x${i.quantity} (${i.fulfillmentType}) — ${i.priceAp.toLocaleString()} AP</li>`,
+          `<li>${i.productName} x${i.quantity} (${i.fulfillmentType}) — ${i.priceAp.toLocaleString()} ZP</li>`,
       )
       .join('');
     const addr = payload.shippingAddress;
@@ -68,7 +68,7 @@ export class MailService {
           <p>주문번호: ${payload.orderId}</p>
           <p>구매자: ${payload.buyerEmail ?? '알 수 없음'}</p>
           <ul>${itemsHtml}</ul>
-          <p>결제: AP ${payload.totalApPaid.toLocaleString()} + EXP ${payload.totalExpPaid.toLocaleString()}</p>
+          <p>결제: ZP ${payload.totalApPaid.toLocaleString()} + EXP ${payload.totalExpPaid.toLocaleString()}</p>
           <p>배송지: ${addr.recipientName} / ${addr.phone} / (${addr.postalCode}) ${addr.addressLine1} ${addr.addressLine2 ?? ''}</p>
           ${addr.deliveryMemo ? `<p>배송 메모: ${addr.deliveryMemo}</p>` : ''}
         `,

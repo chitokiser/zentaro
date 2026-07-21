@@ -30,7 +30,7 @@ export default function AdminContributionsPage() {
   async function handleApprove(id: string) {
     const apAmount = apInputs[id]
     if (!apAmount || apAmount < 1) {
-      setError("지급할 AP 금액을 입력하세요.")
+      setError("지급할 ZP 금액을 입력하세요.")
       return
     }
     setBusy(id)
@@ -65,7 +65,7 @@ export default function AdminContributionsPage() {
     <div className="flex flex-col gap-6">
       <h2 className="font-display text-xl font-semibold">현물출자 심사</h2>
       <p className="text-sm text-muted-foreground">
-        회원이 신청한 오크통·브랜디·위스키·진·럼 실물출자를 검수하고 AP(쇼핑머니)를 지급합니다.
+        회원이 신청한 오크통·브랜디·위스키·진·럼 실물출자를 검수하고 ZP(쇼핑머니)를 지급합니다.
       </p>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -98,7 +98,7 @@ export default function AdminContributionsPage() {
                 <input
                   type="number"
                   min={1}
-                  placeholder="지급 AP"
+                  placeholder="지급 ZP"
                   className="w-32 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                   value={apInputs[item.id] ?? ""}
                   onChange={(e) =>
@@ -143,7 +143,7 @@ export default function AdminContributionsPage() {
                 {item.email}
               </span>
               <Badge variant={item.status === "approved" ? "default" : "secondary"} className="text-[10px]">
-                {item.status === "approved" ? `승인 +${item.apAmount} AP` : "반려"}
+                {item.status === "approved" ? `승인 +${item.apAmount} ZP` : "반려"}
               </Badge>
             </div>
           ))}

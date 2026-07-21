@@ -88,12 +88,12 @@ export default function AdminOrdersPage() {
             <ul className="text-xs text-muted-foreground">
               {order.items.map((item) => (
                 <li key={item.productId}>
-                  {item.productName} x{item.quantity} ({item.fulfillmentType}) — {item.priceAp.toLocaleString()} AP
+                  {item.productName} x{item.quantity} ({item.fulfillmentType}) — {item.priceAp.toLocaleString()} ZP
                 </li>
               ))}
             </ul>
             <p className="text-xs">
-              결제: AP {order.totalApPaid.toLocaleString()} + EXP {order.totalExpPaid.toLocaleString()}
+              결제: ZP {order.totalApPaid.toLocaleString()} + EXP {order.totalExpPaid.toLocaleString()}
             </p>
             <p className="text-xs text-muted-foreground">
               배송지: {order.shippingAddress?.recipientName} / {order.shippingAddress?.phone} / (

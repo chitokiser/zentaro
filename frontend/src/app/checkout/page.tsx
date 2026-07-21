@@ -86,7 +86,7 @@ export default function CheckoutPage() {
         <h1 className="font-display text-2xl font-semibold text-primary">주문이 완료되었습니다</h1>
         <p className="mt-2 text-sm text-muted-foreground">주문번호: {result.orderId}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          결제: AP {result.totalApPaid.toLocaleString()} + EXP {result.totalExpPaid.toLocaleString()}
+          결제: ZP {result.totalApPaid.toLocaleString()} + EXP {result.totalExpPaid.toLocaleString()}
         </p>
         <Button asChild className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
           <Link href="/mall">쇼핑 계속하기</Link>
@@ -134,7 +134,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex flex-1 flex-col gap-1">
                 <span className="text-sm font-medium">{item.name}</span>
-                <span className="text-xs text-muted-foreground">{item.priceAp.toLocaleString()} AP</span>
+                <span className="text-xs text-muted-foreground">{item.priceAp.toLocaleString()} ZP</span>
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     type="button"
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
                     />
                   </label>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground">AP 100% 결제 상품</span>
+                  <span className="text-[11px] text-muted-foreground">ZP 100% 결제 상품</span>
                 )}
               </div>
             </div>
@@ -231,15 +231,15 @@ export default function CheckoutPage() {
       <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
         <div className="flex justify-between">
           <span className="text-muted-foreground">상품 합계</span>
-          <span>{totalPriceAp.toLocaleString()} AP</span>
+          <span>{totalPriceAp.toLocaleString()} ZP</span>
         </div>
         <div className="flex justify-between">
           <span className="text-muted-foreground">EXP 사용 (보유 {expBalance.toLocaleString()})</span>
           <span>-{totalExpToUse.toLocaleString()} EXP</span>
         </div>
         <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
-          <span>최종 결제 (AP)</span>
-          <span>{totalApToPay.toLocaleString()} AP</span>
+          <span>최종 결제 (ZP)</span>
+          <span>{totalApToPay.toLocaleString()} ZP</span>
         </div>
       </section>
 

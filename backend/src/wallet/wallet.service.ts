@@ -3,6 +3,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
+import { BlockchainService } from '../blockchain/blockchain.service';
 
 export interface WalletView {
   ap: number;
@@ -25,7 +26,10 @@ const DEFAULT_WALLET = {
 
 @Injectable()
 export class WalletService {
-  constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
+  constructor(
+    @Inject(FIRESTORE) private readonly db: Firestore,
+    private readonly blockchain: BlockchainService,
+  ) {}
 
   async getWallet(uid: string): Promise<WalletView> {
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
@@ -59,5 +63,38 @@ export class WalletService {
       tickets: wallet.tickets ?? [],
       nfts: wallet.nfts ?? [],
     };
+  }
+
+  /**
+   * Returns the user's custodial on-chain wallet address, generating one lazily on
+   * first call. The private key is encrypted at rest and never returned here.
+   */
+  async getOrCreateChainWallet(uid: string): Promise<{ address: string }> {
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+
+    // Generate the candidate keypair outside the transaction (pure/offline), then use
+    // a Firestore transaction as a compare-and-swap so two concurrent calls for the
+    // same uid can't each create and persist a different wallet.
+    const candidate = this.blockchain.createCustodialWallet();
+    const encPrivateKey = this.blockchain.encryptPrivateKey(candidate.privateKey);
+
+    return this.db.runTransaction(async (tx) => {
+      const snap = await tx.get(walletRef);
+      const existing = snap.data()?.chainAddress as string | undefined;
+      if (existing) {
+        return { address: existing };
+      }
+
+      tx.set(
+        walletRef,
+        {
+          chainAddress: candidate.address,
+          encPrivateKey,
+          chainWalletCreatedAt: FieldValue.serverTimestamp(),
+        },
+        { merge: true },
+      );
+      return { address: candidate.address };
+    });
   }
 }
