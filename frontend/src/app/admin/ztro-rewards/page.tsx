@@ -18,6 +18,12 @@ const STATUS_LABEL: Record<ZtroRewardCode["status"], string> = {
   failed: "실패",
 }
 
+function formatDate(item: ZtroRewardCode) {
+  const seconds = item.createdAt?._seconds
+  if (!seconds) return "-"
+  return new Date(seconds * 1000).toLocaleString("ko-KR")
+}
+
 export default function AdminZtroRewardsPage() {
   const [items, setItems] = useState<ZtroRewardCode[] | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -158,7 +164,10 @@ export default function AdminZtroRewardsPage() {
               key={item.code}
               className="flex items-center justify-between rounded-md border border-border/40 px-4 py-2 text-sm"
             >
-              <span className="font-mono">{item.code}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono">{item.code}</span>
+                <span className="text-[10px] text-muted-foreground">생성: {formatDate(item)}</span>
+              </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">기본값 {item.baseValue}</span>
                 <Badge variant="outline" className="text-[10px]">
@@ -181,7 +190,10 @@ export default function AdminZtroRewardsPage() {
               key={item.code}
               className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 px-4 py-2 text-sm"
             >
-              <span className="font-mono">{item.code}</span>
+              <div className="flex flex-col gap-0.5">
+                <span className="font-mono">{item.code}</span>
+                <span className="text-[10px] text-muted-foreground">생성: {formatDate(item)}</span>
+              </div>
               <div className="flex items-center gap-2">
                 {item.amount != null ? (
                   <span className="text-xs text-muted-foreground">{item.amount} ZTRO</span>

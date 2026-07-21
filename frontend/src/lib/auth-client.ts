@@ -188,6 +188,7 @@ export interface ZtroRewardCode {
   claimedBy: string | null;
   amount: number | null;
   txHash: string | null;
+  createdAt?: { _seconds: number } | null;
 }
 
 export async function fetchZtroPoolBalance(): Promise<{ balance: number }> {
