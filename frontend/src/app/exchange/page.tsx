@@ -119,15 +119,14 @@ export default function ExchangePage() {
 
             {/* 입금 안내 */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">내 수탁지갑 (입금 주소)</h3>
+              <h3 className="font-display text-base font-medium">Ztro 보관지갑</h3>
               <p className="mt-1 font-mono text-xs break-all text-foreground">{dashboard.address}</p>
-              <p className="mt-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                반드시 opBNB 네트워크의 ZTRO만 이 주소로 보내세요. 다른 네트워크의 자산을
-                보내면 복구할 수 없습니다.
-              </p>
-              <Button type="button" variant="outline" size="sm" className="mt-3" onClick={copyAddress}>
+              <Button type="button" variant="outline" size="sm" className="mt-3 block" onClick={copyAddress}>
                 주소 복사
               </Button>
+              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+                가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 ZP를 지급받습니다. 그 외 다양한 혜택을 받을 수 있고, 차후 인증된 거래소 상장 시 ZTRO 토큰을 매도할 수 있습니다.
+              </p>
             </div>
 
             {/* 잔액/포지션 */}
