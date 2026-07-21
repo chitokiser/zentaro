@@ -55,7 +55,7 @@ export class BlockchainService {
   private _relayer?: ethers.Wallet;
   private _contract?: ethers.Contract;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   private get provider(): ethers.JsonRpcProvider {
     if (!this._provider) {
@@ -222,13 +222,19 @@ export class BlockchainService {
   }
 
   private encryptionKey(): Buffer {
-    const hex = this.config.get<string>('WALLET_ENCRYPTION_KEY');
-    if (!hex || hex.length !== 64) {
+    const rawKey = this.config.get<string>('WALLET_ENCRYPTION_KEY');
+    if (!rawKey) {
       throw new InternalServerErrorException(
-        'WALLET_ENCRYPTION_KEY must be set to a 32-byte hex string',
+        'WALLET_ENCRYPTION_KEY not configured',
       );
     }
-    return Buffer.from(hex, 'hex');
+
+    if (/^[0-9a-fA-F]{64}$/.test(rawKey)) {
+      return Buffer.from(rawKey, 'hex');
+    }
+
+    const { createHash } = require('node:crypto');
+    return createHash('sha256').update(rawKey).digest();
   }
 
   /** AES-256-GCM, random IV per call. Output: "iv.tag.ciphertext" (all base64). */
