@@ -222,11 +222,15 @@ export class BlockchainService {
   }
 
   private encryptionKey(): Buffer {
-    const rawKey = this.config.get<string>('WALLET_ENCRYPTION_KEY');
+    let rawKey = this.config.get<string>('WALLET_ENCRYPTION_KEY');
     if (!rawKey) {
       throw new InternalServerErrorException(
         'WALLET_ENCRYPTION_KEY not configured',
       );
+    }
+
+    if (rawKey.startsWith('0x')) {
+      rawKey = rawKey.slice(2);
     }
 
     if (/^[0-9a-fA-F]{64}$/.test(rawKey)) {
