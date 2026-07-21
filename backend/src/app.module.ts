@@ -18,6 +18,7 @@ import { VendorInquiriesModule } from './vendor-inquiries/vendor-inquiries.modul
 import { BottleCapsModule } from './bottle-caps/bottle-caps.module';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
+import { TokenExchangeModule } from './token-exchange/token-exchange.module';
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
     BottleCapsModule,
     BlockchainModule,
     ZtroRewardsModule,
+    TokenExchangeModule,
   ],
   controllers: [AppController],
   providers: [AppService],

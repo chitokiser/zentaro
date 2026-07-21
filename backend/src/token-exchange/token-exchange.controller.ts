@@ -1,0 +1,43 @@
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { CurrentUserPayload } from '../auth/current-user.decorator';
+import { TokenExchangeService } from './token-exchange.service';
+import { BuyZtroDto } from './dto/buy-ztro.dto';
+import { AmountDto } from './dto/amount.dto';
+
+@Controller('token-exchange')
+@UseGuards(JwtAuthGuard)
+export class TokenExchangeController {
+  constructor(private readonly tokenExchangeService: TokenExchangeService) {}
+
+  @Get('dashboard')
+  dashboard(@CurrentUser() user: CurrentUserPayload) {
+    return this.tokenExchangeService.dashboard(user.uid);
+  }
+
+  @Post('buy')
+  buy(@CurrentUser() user: CurrentUserPayload, @Body() dto: BuyZtroDto) {
+    return this.tokenExchangeService.buy(user.uid, dto.amount, dto.maxPayUsdt);
+  }
+
+  @Post('sell')
+  sell(@CurrentUser() user: CurrentUserPayload, @Body() dto: AmountDto) {
+    return this.tokenExchangeService.sell(user.uid, dto.amount);
+  }
+
+  @Post('stake')
+  stake(@CurrentUser() user: CurrentUserPayload, @Body() dto: AmountDto) {
+    return this.tokenExchangeService.stake(user.uid, dto.amount);
+  }
+
+  @Post('unstake')
+  unstake(@CurrentUser() user: CurrentUserPayload) {
+    return this.tokenExchangeService.unstake(user.uid);
+  }
+
+  @Post('claim-dividend')
+  claimDividend(@CurrentUser() user: CurrentUserPayload) {
+    return this.tokenExchangeService.claimDividend(user.uid);
+  }
+}

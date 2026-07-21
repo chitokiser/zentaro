@@ -16,6 +16,33 @@ const REWARD_DISPENSER_ABI = [
   'function poolBalance() external view returns (uint256)',
 ];
 
+const ERC20_ABI = [
+  'function balanceOf(address account) view returns (uint256)',
+  'function allowance(address owner, address spender) view returns (uint256)',
+  'function approve(address spender, uint256 amount) returns (bool)',
+];
+
+const ZTROBANK_ABI = [
+  'function buy(uint256 amount, uint256 maxPay) external returns (bool)',
+  'function sell(uint256 amount) external returns (bool)',
+  'function stake(uint256 amount) external returns (bool)',
+  'function withdraw() external returns (bool)',
+  'function claimDividend() external returns (bool)',
+  'function pendingDividend(address who) public view returns (uint256)',
+  'function price() view returns (uint256)',
+  'function effectiveStaked() public view returns (uint256)',
+  'function act() view returns (uint8)',
+  'function rate() view returns (uint8)',
+  'function STAKE_LOCK() view returns (uint256)',
+  'function DIV_INTERVAL() view returns (uint256)',
+  'function user(address who) external view returns (uint256 totalAllow, uint256 totalBuy, uint256 depo, uint256 stakingTime, uint256 lastClaim)',
+  'function userStatsBase(address who) external view returns (uint256 netQty, uint256 avgBuyPriceWei, uint256 totalPayUsdtWei, uint256 totalSellUsdtWei)',
+  'function myDashboard(address who) external view returns (uint256 myActualQty, uint256 currentPriceWei, uint256 myMarketCapWei, uint256 myAvgBuyPriceWei, int256 myPnlWei, int256 myRoiBps_)',
+  'event Bought(address indexed who, uint256 amount, uint256 payUsdtWei, uint256 autoStaked, uint256 received)',
+  'event Sold(address indexed who, uint256 amount, uint256 recvUsdtWei, uint256 feeUsdtWei)',
+  'event DividendClaimed(address indexed who, uint256 payUsdtWei)',
+];
+
 /**
  * Talks to opBNB: holds the single relayer wallet that pays gas for every on-chain
  * call, and generates/encrypts custodial wallets for users. The relayer wallet must
@@ -39,6 +66,11 @@ export class BlockchainService {
       this._provider = new ethers.JsonRpcProvider(url);
     }
     return this._provider;
+  }
+
+  /** Read-only runner for view calls that don't need a signer. */
+  getProvider(): ethers.JsonRpcProvider {
+    return this.provider;
   }
 
   private get relayer(): ethers.Wallet {
@@ -91,6 +123,65 @@ export class BlockchainService {
   createCustodialWallet(): { address: string; privateKey: string } {
     const wallet = ethers.Wallet.createRandom();
     return { address: wallet.address, privateKey: wallet.privateKey };
+  }
+
+  /**
+   * Wraps a decrypted private key in a signer. Caller must not persist or log the key
+   * or this signer — it's scoped to a single request's on-chain calls.
+   */
+  getUserSigner(privateKey: string): ethers.Wallet {
+    return new ethers.Wallet(privateKey, this.provider);
+  }
+
+  private requireEnv(name: string): string {
+    const value = this.config.get<string>(name);
+    if (!value) {
+      throw new InternalServerErrorException(`${name} not configured`);
+    }
+    return value;
+  }
+
+  getBankContract(runner: ethers.ContractRunner): ethers.Contract {
+    return new ethers.Contract(
+      this.requireEnv('ZTROBANK_CONTRACT_ADDRESS'),
+      ZTROBANK_ABI,
+      runner,
+    );
+  }
+
+  getUsdtContract(runner: ethers.ContractRunner): ethers.Contract {
+    return new ethers.Contract(
+      this.requireEnv('USDT_TOKEN_ADDRESS'),
+      ERC20_ABI,
+      runner,
+    );
+  }
+
+  getZtroContract(runner: ethers.ContractRunner): ethers.Contract {
+    return new ethers.Contract(
+      this.requireEnv('ZTRO_TOKEN_ADDRESS'),
+      ERC20_ABI,
+      runner,
+    );
+  }
+
+  /**
+   * Custodial wallets start with 0 native BNB. Tops one up from the relayer wallet
+   * before a user transaction needs to pay its own gas — "invisible gas" for the user.
+   */
+  async ensureGas(address: string): Promise<void> {
+    const thresholdBnb = this.config.get<string>('GAS_TOPUP_THRESHOLD_BNB') ?? '0.0004';
+    const topupBnb = this.config.get<string>('GAS_TOPUP_BNB') ?? '0.0008';
+
+    const balance = await this.provider.getBalance(address);
+    const threshold = ethers.parseEther(thresholdBnb);
+    if (balance >= threshold) return;
+
+    const tx = await this.relayer.sendTransaction({
+      to: address,
+      value: ethers.parseEther(topupBnb),
+    });
+    await tx.wait();
   }
 
   /**

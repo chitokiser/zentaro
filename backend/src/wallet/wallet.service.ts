@@ -97,4 +97,22 @@ export class WalletService {
       return { address: candidate.address };
     });
   }
+
+  /**
+   * Decrypts the user's custodial private key for signing an on-chain transaction on
+   * their behalf. Callers must use the returned key ephemerally (single request) and
+   * never log, persist, or return it over the API.
+   */
+  async getDecryptedPrivateKey(
+    uid: string,
+  ): Promise<{ address: string; privateKey: string }> {
+    const { address } = await this.getOrCreateChainWallet(uid);
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_WALLETS)
+      .doc(uid)
+      .get();
+    const encPrivateKey = snap.data()!.encPrivateKey as string;
+    const privateKey = this.blockchain.decryptPrivateKey(encPrivateKey);
+    return { address, privateKey };
+  }
 }

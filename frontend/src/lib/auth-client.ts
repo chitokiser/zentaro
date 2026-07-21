@@ -206,6 +206,82 @@ export async function listZtroRewardCodes(): Promise<ZtroRewardCode[]> {
   return res.json();
 }
 
+export interface ExchangeDashboard {
+  address: string;
+  ztroBalance: number;
+  usdtBalance: number;
+  priceUsdt: number;
+  staked: number;
+  stakingTime: number;
+  lastClaim: number;
+  avgBuyPriceUsdt: number;
+  pnlUsdt: number;
+  roiBps: number;
+  pendingDividendUsdt: number;
+  effectiveStaked: number;
+  act: number;
+  sellFeePercent: number;
+  stakeLockSeconds: number;
+  divIntervalSeconds: number;
+  usdtTokenAddress: string;
+}
+
+export async function fetchExchangeDashboard(): Promise<ExchangeDashboard> {
+  const res = await fetch(`${API_URL}/token-exchange/dashboard`, {
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function buyZtro(amount: number, maxPayUsdt?: number) {
+  const res = await fetch(`${API_URL}/token-exchange/buy`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, maxPayUsdt }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function sellZtro(amount: number) {
+  const res = await fetch(`${API_URL}/token-exchange/sell`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function stakeZtro(amount: number) {
+  const res = await fetch(`${API_URL}/token-exchange/stake`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function unstakeZtro() {
+  const res = await fetch(`${API_URL}/token-exchange/unstake`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function claimZtroDividend() {
+  const res = await fetch(`${API_URL}/token-exchange/claim-dividend`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface CjSearchResultItem {
   cjProductId: string;
   name: string;

@@ -270,7 +270,7 @@ export default function BottleCapRewardsPage() {
             <div className="rounded-lg border border-border/60 bg-card p-5">
               <h3 className="font-display text-base font-medium">QR 스캔으로 ZTRO 받기</h3>
               <p className="mt-1 text-xs text-muted-foreground">
-                관리자가 발급한 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시
+                병뚜껑 안에 있는 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시
                 지급됩니다. QR 코드는 1회만 사용할 수 있습니다.
               </p>
 

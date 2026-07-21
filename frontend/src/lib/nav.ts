@@ -44,7 +44,7 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
         },
         {
           label: t.nav.serviceItems.nft,
-          href: "/rewards/nft",
+          href: "/exchange",
           description: t.nav.serviceItems.nftDesc,
         },
         {
