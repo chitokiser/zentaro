@@ -29,6 +29,7 @@ export default function WalletPage() {
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false)
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([])
   const [recentResult, setRecentResult] = useState<{ refCode: string; zpAmount: number; currency: 'VND' | 'KRW'; estimatedAmount: number } | null>(null)
+  const [addressCopied, setAddressCopied] = useState(false)
 
   useEffect(() => {
     loadWalletData()
@@ -59,6 +60,13 @@ export default function WalletPage() {
         console.error("Exchange rate fetch error, using fallbacks:", e)
         setRatesLoading(false)
       })
+  }
+
+  const copyAddress = async () => {
+    if (!dashboard) return
+    await navigator.clipboard.writeText(dashboard.address)
+    setAddressCopied(true)
+    setTimeout(() => setAddressCopied(false), 2000)
   }
 
   const loadDepositHistory = () => {
@@ -154,20 +162,26 @@ export default function WalletPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="rounded-lg border border-border/60 bg-card p-4">
-          <h3 className="font-display text-sm font-medium text-foreground">Ticket</h3>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {wallet.tickets.length > 0 ? `${wallet.tickets.length}개 보유` : "보유한 Ticket이 없습니다."}
-          </p>
-        </div>
-        <div className="rounded-lg border border-border/60 bg-card p-4">
-          <h3 className="font-display text-sm font-medium text-foreground">NFT</h3>
-          <p className="mt-2 text-xs text-muted-foreground">
-            {wallet.nfts.length > 0 ? `${wallet.nfts.length}개 보유` : "보유한 NFT가 없습니다."}
-          </p>
-        </div>
+      {/* 수탁지갑 주소 */}
+      <div className="rounded-lg border border-border/60 bg-card p-4">
+        <span className="text-xs text-muted-foreground">Ztro 수탁지갑 주소 (Custodial Wallet)</span>
+        {dashboard ? (
+          <div className="mt-1 flex flex-wrap items-center gap-3">
+            <p className="font-mono text-xs break-all text-foreground">{dashboard.address}</p>
+            <button
+              type="button"
+              onClick={copyAddress}
+              className="shrink-0 text-xs bg-secondary border border-border hover:bg-secondary/80 font-medium rounded-md px-2.5 py-1 text-muted-foreground transition"
+            >
+              {addressCopied ? "복사됨!" : "주소 복사"}
+            </button>
+          </div>
+        ) : (
+          <p className="mt-1 text-xs text-muted-foreground">불러오는 중...</p>
+        )}
       </div>
+
+      {/* Ticket 및 NFT 섹션 삭제됨 */}
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ZP 충전 신청 카드 */}
