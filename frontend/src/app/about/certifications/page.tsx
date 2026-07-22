@@ -1,7 +1,7 @@
-import Image from "next/image"
 import { readdirSync } from "fs"
 import path from "path"
 import { PageHeader } from "@/components/page-header"
+import { CertificationsGallery } from "@/components/certifications-gallery"
 
 function getCertificationImages(): string[] {
   const dir = path.join(process.cwd(), "public", "images", "certification")
@@ -31,24 +31,7 @@ export default function CertificationsPage() {
             등록된 인증 서류가 없습니다.
           </p>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-            {images.map((src) => (
-              <div
-                key={src}
-                className="overflow-hidden rounded-lg border border-border/60 bg-card"
-              >
-                <div className="relative aspect-[3/4] w-full">
-                  <Image
-                    src={src}
-                    alt="ZENTARO 인증 서류"
-                    fill
-                    className="object-contain"
-                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
+          <CertificationsGallery images={images} />
         )}
       </div>
     </div>
