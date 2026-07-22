@@ -4,6 +4,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { WalletService } from './wallet.service';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
+import { AdjustExpDto } from './dto/adjust-exp.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -52,5 +53,23 @@ export class WalletController {
     @Body('reason') reason?: string,
   ) {
     return this.walletService.rejectDeposit(id, reason);
+  }
+
+  @Get('admin/members')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(1)
+  listAllMembers() {
+    return this.walletService.listAllMembersAdmin();
+  }
+
+  @Post('admin/members/:uid/exp')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(1)
+  adjustExp(
+    @Param('uid') uid: string,
+    @Body() dto: AdjustExpDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.walletService.adjustExp(uid, dto.amount, user.email, dto.reason);
   }
 }

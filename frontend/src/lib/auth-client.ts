@@ -848,6 +848,33 @@ export async function setAdminUserLevel(uid: string, adminLevel: 1 | 2 | 3 | nul
   return res.json();
 }
 
+export interface MemberSummary {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  points: number;
+  exp: number;
+  adminLevel: 1 | 2 | 3 | null;
+  chainAddress: string | null;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function fetchAllMembersAdmin(): Promise<MemberSummary[]> {
+  const res = await fetch(`${API_URL}/wallet/admin/members`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function adjustMemberExp(uid: string, amount: number, reason?: string) {
+  const res = await fetch(`${API_URL}/wallet/admin/members/${uid}/exp`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount, reason }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface DepositRequest {
   id: string;
   userId: string;

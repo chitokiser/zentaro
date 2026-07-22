@@ -217,4 +217,67 @@ export class WalletService {
       return { id, status: 'rejected' };
     });
   }
+
+  /**
+   * ZENTARO_WALLETS is the source of truth for "is this a Zentaro member" —
+   * USERS is shared across every aim119 app, so listing that directly would
+   * pull in unrelated accounts from sibling apps.
+   */
+  async listAllMembersAdmin() {
+    const walletsSnap = await this.db.collection(COLLECTIONS.ZENTARO_WALLETS).get();
+    const members = await Promise.all(
+      walletsSnap.docs.map(async (walletDoc) => {
+        const uid = walletDoc.id;
+        const walletData = walletDoc.data();
+        const userSnap = await this.db.collection(COLLECTIONS.USERS).doc(uid).get();
+        const userData = userSnap.data();
+        return {
+          uid,
+          email: userData?.email ?? null,
+          displayName: userData?.displayName ?? null,
+          points: userData?.points ?? 0,
+          exp: walletData.exp ?? 0,
+          adminLevel: userData?.adminLevel ?? null,
+          chainAddress: walletData.chainAddress ?? null,
+          createdAt: userData?.createdAt ?? null,
+        };
+      }),
+    );
+    return members
+      .filter((m) => m.email)
+      .sort((a, b) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+  }
+
+  async adjustExp(uid: string, amount: number, adminEmail: string, reason?: string) {
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+
+    return this.db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new NotFoundException('User not found');
+      }
+      const walletSnap = await tx.get(walletRef);
+      const currentExp = walletSnap.exists ? (walletSnap.data()!.exp ?? 0) : 0;
+      const nextExp = currentExp + amount;
+      if (nextExp < 0) {
+        throw new BadRequestException('차감 후 EXP가 0보다 작을 수 없습니다.');
+      }
+
+      tx.set(walletRef, { exp: FieldValue.increment(amount) }, { merge: true });
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount,
+        type: 'admin_exp_adjustment',
+        description: reason
+          ? `관리자 EXP 조정 (${adminEmail}): ${reason}`
+          : `관리자 EXP 조정 (${adminEmail})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { uid, exp: nextExp };
+    });
+  }
 }
