@@ -1,28 +1,32 @@
+"use client"
+
 import { PageHeader, Section } from "@/components/page-header"
 import { BrandPhilosophy } from "@/components/brand-philosophy"
 import { CeoMessage } from "@/components/ceo-message"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 export default function CompanyPage() {
+  const { t } = useI18n()
+  const c = t.company
+
   return (
     <div>
       <PageHeader
-        eyebrow="ZENTARO 소개"
-        title="Company"
-        description="브랜드 스토리, CEO 인사말, Vision & Mission"
+        eyebrow={c.eyebrow}
+        title={c.title}
+        description={c.description}
       />
-      <Section id="brand-story" title="브랜드 스토리" className="max-w-5xl">
+      <Section id="brand-story" title={c.sections.brandStory} className="max-w-5xl">
         <BrandPhilosophy />
       </Section>
-      <Section id="ceo-message" title="CEO 인사말" className="border-t border-border/60">
+      <Section id="ceo-message" title={c.sections.ceoMessage} className="border-t border-border/60">
         <CeoMessage />
       </Section>
-      <Section id="vision-mission" title="Vision & Mission" className="border-t border-border/60">
+      <Section id="vision-mission" title={c.sections.visionMission} className="border-t border-border/60">
         <ul className="list-disc space-y-2 pl-5">
-          <li>ZenTaro 시그니처 증류주 브랜드 개발</li>
-          <li>지역 특산물을 활용한 프리미엄 보태니컬 제품 개발</li>
-          <li>OEM/ODM 공동 개발 및 생산</li>
-          <li>체험형 관광 프로그램 운영</li>
-          <li>보태니컬 데이터베이스와 레시피 자산 구축</li>
+          {c.visionMissionList.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
         </ul>
       </Section>
     </div>
