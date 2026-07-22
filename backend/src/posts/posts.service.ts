@@ -8,12 +8,61 @@ import { UpdatePostDto } from './dto/update-post.dto';
 
 export type PostSource = 'ai' | 'admin';
 
+const WEBZINE_BASE_URL = 'https://zentaro.netlify.app/webzine';
+
+function stripHtml(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function extractThumbnail(html: string): string | null {
+  const match = html.match(/<img[^>]+src="([^"]+)"/);
+  return match ? match[1] : null;
+}
+
+function toIso(ts: { _seconds: number } | undefined | null): string | null {
+  return ts ? new Date(ts._seconds * 1000).toISOString() : null;
+}
+
 @Injectable()
 export class PostsService {
   constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
   private col() {
     return this.db.collection(COLLECTIONS.ZENTARO_POSTS);
+  }
+
+  /** Normalized, crawler-friendly shape for external consumption (ISO dates, extracted thumbnail, plain-text excerpt). */
+  toFeedItem(post: any) {
+    const contentText = stripHtml(post.contentHtml ?? '');
+    return {
+      id: post.id,
+      url: `${WEBZINE_BASE_URL}/${post.id}`,
+      title: post.title,
+      excerpt: contentText.length > 200 ? `${contentText.slice(0, 200)}…` : contentText,
+      contentHtml: post.contentHtml,
+      contentText,
+      thumbnailUrl: extractThumbnail(post.contentHtml ?? ''),
+      videoUrl: post.videoUrl ?? null,
+      tags: post.tags ?? [],
+      author: post.authorName,
+      source: post.source,
+      publishedAt: toIso(post.createdAt),
+      updatedAt: toIso(post.updatedAt),
+    };
+  }
+
+  async listFeed(tag?: string) {
+    const posts = await this.list(tag);
+    return posts.map((post) => this.toFeedItem(post));
+  }
+
+  async getFeedItem(id: string) {
+    const post = await this.getOne(id);
+    return this.toFeedItem(post);
   }
 
   async list(tag?: string) {
