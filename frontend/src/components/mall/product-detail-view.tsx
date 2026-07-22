@@ -6,12 +6,8 @@ import { Badge } from "@/components/ui/badge"
 import { ProductPurchasePanel } from "@/components/mall/product-purchase-panel"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText } from "@/lib/i18n/content"
+import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import type { Product } from "@/lib/api"
-
-const FULFILLMENT_LABEL: Record<string, string> = {
-  dropshipping: "드랍쉬핑",
-  direct: "직배송(자체재고)",
-}
 
 export function ProductDetailView({ product }: { product: Product }) {
   const { locale } = useI18n()
@@ -34,7 +30,7 @@ export function ProductDetailView({ product }: { product: Product }) {
               />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                {product.category}
+                {localizedCategory(locale, product.category)}
               </div>
             )}
           </div>
@@ -42,10 +38,10 @@ export function ProductDetailView({ product }: { product: Product }) {
           <div className="flex flex-col gap-4">
             <div className="flex flex-wrap gap-1.5">
               <Badge variant="outline" className="border-primary/40 text-primary">
-                {product.category}
+                {localizedCategory(locale, product.category)}
               </Badge>
               <Badge variant="secondary">
-                {FULFILLMENT_LABEL[product.fulfillmentType ?? "dropshipping"]}
+                {localizedFulfillment(locale, product.fulfillmentType)}
               </Badge>
               {product.badges?.map((b) => (
                 <Badge key={b} variant="outline" className="border-gold/40">

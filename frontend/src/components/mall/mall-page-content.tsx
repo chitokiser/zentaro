@@ -10,6 +10,7 @@ import { MallAdminForm } from "@/components/mall/mall-admin-form"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { fetchMe, fetchAllProductsAdmin, deleteProductAdmin, type AdminProduct } from "@/lib/auth-client"
 import { MALL_MAIN_CATEGORIES } from "@/lib/mall-categories"
+import { localizedCategory } from "@/lib/i18n/mall-categories-i18n"
 import type { Product } from "@/lib/api"
 
 function toProduct(p: AdminProduct): Product {
@@ -23,7 +24,7 @@ export function MallPageContent({
   initialProducts: Product[]
   category?: string
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const [isAdmin, setIsAdmin] = useState(false)
   const [adminProducts, setAdminProducts] = useState<AdminProduct[] | null>(null)
   const [showAddForm, setShowAddForm] = useState(false)
@@ -108,7 +109,7 @@ export function MallPageContent({
             {MALL_MAIN_CATEGORIES.map((c) => (
               <Link key={c} href={`/mall?category=${encodeURIComponent(c)}`}>
                 <Badge variant={category === c ? "default" : "outline"} className="cursor-pointer">
-                  {c}
+                  {localizedCategory(locale, c)}
                 </Badge>
               </Link>
             ))}

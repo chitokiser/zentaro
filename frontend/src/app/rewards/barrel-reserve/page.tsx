@@ -113,6 +113,7 @@ const BARREL_SPECS: BarrelSpec[] = [
 ]
 
 const BARREL_STORAGE_FEE_RATE = 0.15
+const P2P_TRADE_FEE_RATE = 0.15
 // Fallback purchase path for members lacking the ZTRO stake + EXP requirement:
 // pay 115% of the EXP cost directly in ZP instead.
 const ZP_FALLBACK_RATE = 1.15
@@ -252,8 +253,12 @@ export default function BarrelReservePage() {
         }
     }
 
-    const handleBarrelAction = async (barrelId: string, action: string) => {
-        if (!confirm("해당 부가 서비스를 신청하시겠습니까?")) return
+    const handleBarrelAction = async (barrelId: string, action: string, deliveryFee?: number) => {
+        const confirmMessage =
+            action === "deliver"
+                ? `자택 직접 배송을 신청하시겠습니까? 배럴룸 보관료 ${(deliveryFee ?? 0).toLocaleString()} ZP(현재 시세의 ${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}%)가 즉시 차감되며, 실제 택배/운송 배송비는 착불(수령 시 직접 결제)입니다.`
+                : "해당 부가 서비스를 신청하시겠습니까?"
+        if (!confirm(confirmMessage)) return
 
         setActionBusy(true)
         setActionError(null)
@@ -271,7 +276,7 @@ export default function BarrelReservePage() {
     }
 
     const handleListForSale = async (barrelId: string, currentValueZp: number) => {
-        if (!confirm(`현재 시세 ${currentValueZp.toLocaleString()} ZP로 이 배럴을 판매 등록하시겠습니까? 가격은 용량과 숙성 시간에 따라 자동 산정되며 오너가 임의로 정할 수 없습니다. 거래 성사 시 판매 대금의 3%가 수수료로 차감됩니다. 등록 중에는 배송/병입 신청이 제한됩니다.`)) return
+        if (!confirm(`현재 시세 ${currentValueZp.toLocaleString()} ZP로 이 배럴을 판매 등록하시겠습니까? 가격은 용량과 숙성 시간에 따라 자동 산정되며 오너가 임의로 정할 수 없습니다. 거래 성사 시 판매 대금의 ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}%가 수수료로 차감됩니다. 등록 중에는 배송/병입 신청이 제한됩니다.`)) return
 
         setActionBusy(true)
         setActionError(null)
@@ -656,7 +661,7 @@ export default function BarrelReservePage() {
                                                             variant="secondary"
                                                             size="sm"
                                                             className="text-[11px] h-8 font-semibold"
-                                                            onClick={() => handleBarrelAction(barrel.id, "deliver")}
+                                                            onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
                                                         >
                                                             직접 배송 신청 (보관료 {deliveryFee.toLocaleString()} ZP)
                                                         </Button>
@@ -688,7 +693,7 @@ export default function BarrelReservePage() {
                                                             variant="secondary"
                                                             size="sm"
                                                             className="text-[11px] h-8 font-semibold"
-                                                            onClick={() => handleBarrelAction(barrel.id, "deliver")}
+                                                            onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
                                                         >
                                                             직접 배송 신청 (보관료 {deliveryFee.toLocaleString()} ZP)
                                                         </Button>
@@ -1000,7 +1005,7 @@ export default function BarrelReservePage() {
                             </div>
                         </div>
 
-                        <div className="p-5 rounded-xl border border-border/60 bg-card space-y-3 flex flex-col justify-between h-48">
+                        <div className="p-5 rounded-xl border border-border/60 bg-card space-y-3 flex flex-col justify-between min-h-48">
                             <div>
                                 <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center mb-3">
                                     <Truck className="w-4 h-4 text-amber-500" />
@@ -1010,6 +1015,7 @@ export default function BarrelReservePage() {
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                     원하시는 시점에 소유자의 자택/매장으로 배럴 전체를 밀봉 그대로 직송해 드려 오리지널리티를 보증합니다.
+                                    배럴룸 보관료(현재 시세의 {(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}%)는 신청 시 ZP로 차감되며, 실제 택배·운송 배송비는 착불로 별도 결제됩니다.
                                 </p>
                             </div>
                         </div>

@@ -562,7 +562,7 @@ export class TokenExchangeService {
         }
         nextStatus = DELIVERED_STATUS;
         nextSealStatus = 'DELIVERED (봉인 유지 인도)';
-        historyMessage = `자택 직접 배송 요청 접수 및 봉인 인도 (배럴룸 보관료 ${fee.toLocaleString()} ZP 차감)`;
+        historyMessage = `자택 직접 배송 요청 접수 및 봉인 인도 (배럴룸 보관료 ${fee.toLocaleString()} ZP 차감, 실제 배송비는 착불)`;
         endsAging = true;
       } else if (action === 'bottle') {
         nextStatus = BOTTLED_STATUS;

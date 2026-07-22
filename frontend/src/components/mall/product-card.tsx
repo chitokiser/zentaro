@@ -9,12 +9,8 @@ import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText } from "@/lib/i18n/content"
+import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import type { Product } from "@/lib/api"
-
-const FULFILLMENT_LABEL: Record<string, string> = {
-  dropshipping: "드랍쉬핑",
-  direct: "직배송(자체재고)",
-}
 
 interface ProductCardProps {
   product: Product
@@ -89,16 +85,16 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: 
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
         ) : (
-          product.category
+          localizedCategory(locale, product.category)
         )}
       </Link>
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <div className="flex flex-wrap gap-1">
           <Badge variant="outline" className="w-fit border-primary/40 text-[10px] text-primary">
-            {product.category}
+            {localizedCategory(locale, product.category)}
           </Badge>
           <Badge variant="secondary" className="w-fit text-[10px]">
-            {FULFILLMENT_LABEL[product.fulfillmentType ?? "dropshipping"]}
+            {localizedFulfillment(locale, product.fulfillmentType)}
           </Badge>
           {product.badges?.map((b) => (
             <Badge key={b} variant="outline" className="w-fit border-gold/40 text-[10px]">
