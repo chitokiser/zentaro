@@ -1,9 +1,18 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState, useCallback } from "react"
+import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+    fetchWallet,
+    fetchExchangeDashboard,
+    submitBarrelOrder,
+    fetchMyBarrels,
+    triggerBarrelAction,
+    type BarrelDocument
+} from "@/lib/auth-client"
 import {
     Wine,
     Flame,
@@ -15,7 +24,12 @@ import {
     Layers,
     History,
     FileText,
-    Locate
+    HelpCircle,
+    QrCode,
+    Calendar,
+    AlertTriangle,
+    PenTool,
+    CheckCircle2
 } from "lucide-react"
 
 interface BarrelSpec {
@@ -25,6 +39,8 @@ interface BarrelSpec {
     agingPeriod: string
     recommendedSpirit: string
     expRequirement: string
+    ztroRequirementValue: number
+    expRequirementValue: number
     dimensions: string
     woodType: string
     description: string
@@ -37,7 +53,9 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "5 Liters (약 7병 분량)",
         agingPeriod: "6개월 ~ 12개월 권장",
         recommendedSpirit: "ZENTARO Craft Botanical Gin Base",
-        expRequirement: "누적 10,000 EXP 이상 보유 회원 신청 가능",
+        expRequirement: "50,000 ZTRO 스테이킹 + 500,000 EXP 차감",
+        ztroRequirementValue: 50000,
+        expRequirementValue: 500000,
         dimensions: "26cm x 18cm x 18cm",
         woodType: "American White Oak (Medium Toasting)",
         description: "홈 바(Home Bar) 및 소가족형 멤버를 위한 실속형 배럴입니다. 오크 풍미가 빠르게 배어나와 비교적 단기간에 고유한 아로마 숙성 과정을 관찰하고 완성할 수 있습니다."
@@ -48,7 +66,9 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "10 Liters (약 14병 분량)",
         agingPeriod: "12개월 ~ 18개월 권장",
         recommendedSpirit: "ZENTARO Distilled Single Malt New Make",
-        expRequirement: "누적 30,000 EXP 이상 보유 회원 신청 가능",
+        expRequirement: "100,000 ZTRO 스테이킹 + 1,000,000 EXP 차감",
+        ztroRequirementValue: 100000,
+        expRequirementValue: 1000000,
         dimensions: "34cm x 24cm x 24cm",
         woodType: "Alligator Charred Honey Oak",
         description: "가장 인기 있는 스탠다드 오크 사양입니다. 천연 오크 타닌과 바닐린이 조화롭게 작용하여 향과 맛의 밸런스가 뛰어나며, 프라이빗 룸이나 소형 콜렉션 전시용으로 매우 적합합니다."
@@ -59,7 +79,9 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "20 Liters (약 28병 분량)",
         agingPeriod: "18개월 ~ 24개월 권장",
         recommendedSpirit: "Premium French Brandy Base",
-        expRequirement: "누적 70,000 EXP 이상 보유 회원 신청 가능",
+        expRequirement: "200,000 ZTRO 스테이킹 + 2,000,000 EXP 차감",
+        ztroRequirementValue: 200000,
+        expRequirementValue: 2000000,
         dimensions: "42cm x 30cm x 30cm",
         woodType: "European Limousin Oak (Heavy Toasting)",
         description: "진정한 위스키/브랜디 애호가를 위한 본격적인 숙성용 배럴입니다. 적당한 표면적 대비 부피 비율 덕분에 급격한 증발 손실 없이 장기간 숙성하며 풍미를 다채롭게 발달시킬 수 있습니다."
@@ -70,7 +92,9 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "40 Liters (약 56병 분량)",
         agingPeriod: "24개월 ~ 36개월 이상 권장",
         recommendedSpirit: "ZENTARO Single Grain Bourbon Style Base",
-        expRequirement: "누적 150,000 EXP 이상 보유 회원 신청 가능",
+        expRequirement: "400,000 ZTRO 스테이킹 + 4,000,000 EXP 차감",
+        ztroRequirementValue: 400000,
+        expRequirementValue: 4000000,
         dimensions: "52cm x 38cm x 38cm",
         woodType: "Ex-Bourbon White Oak Barrel",
         description: "최고의 마스터피스를 추구하는 VVIP 리저브 용량입니다. 최고의 밸런스를 유도하기 위한 중-장기 숙성에 최적화되어 있으며, 젠타로 배럴룸의 가장 안정적인 구역에서 철저하게 관리됩니다."
@@ -90,8 +114,99 @@ const FLAVORS = [
 ]
 
 export default function BarrelReservePage() {
+    const [errorProfile, setErrorProfile] = useState<string | null>(null)
+
+    // User Info & Balances
+    const [expBalance, setExpBalance] = useState<number>(0)
+    const [stakedZtro, setStakedZtro] = useState<number>(0)
+    const [walletAddress, setWalletAddress] = useState<string>("")
+
+    // Interactive Barrel Selection
     const [selectedSize, setSelectedSize] = useState<string>("10L")
     const currentSpec = BARREL_SPECS.find(spec => spec.size === selectedSize) || BARREL_SPECS[1]
+
+    // My Barrels List
+    const [barrels, setBarrels] = useState<BarrelDocument[]>([])
+    const [actionBusy, setActionBusy] = useState<boolean>(false)
+    const [actionError, setActionError] = useState<string | null>(null)
+    const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+
+    // Modals for Cert & QR Viewers
+    const [activeCertBarrel, setActiveCertBarrel] = useState<BarrelDocument | null>(null)
+    const [activeQrBarrel, setActiveQrBarrel] = useState<BarrelDocument | null>(null)
+
+    const loadData = useCallback(async () => {
+        try {
+            const wallet = await fetchWallet()
+            setExpBalance(wallet.exp)
+
+            const dashboard = await fetchExchangeDashboard()
+            setStakedZtro(dashboard.staked)
+            setWalletAddress(dashboard.address)
+
+            const myBarrelsList = await fetchMyBarrels()
+            setBarrels(myBarrelsList)
+        } catch (err) {
+            console.error("Failed to load user and barrel data:", err)
+            const msg = err instanceof Error ? err.message : "회원 정보를 불러오지 못했습니다."
+            setErrorProfile(msg)
+        }
+    }, [])
+
+    useEffect(() => {
+        loadData()
+    }, [loadData])
+
+    const handleOrderSubmit = async () => {
+        const cost = currentSpec.expRequirementValue
+        const ztroNeed = currentSpec.ztroRequirementValue
+
+        if (stakedZtro < ztroNeed) {
+            alert(`주문 자격 요건이 부족합니다. 최소 ${ztroNeed.toLocaleString()} ZTRO를 스테이킹해야 합니다. (보보유: ${stakedZtro.toLocaleString()} ZTRO)`)
+            return
+        }
+
+        if (expBalance < cost) {
+            alert(`EXP 잔액이 부족합니다. 최소 ${cost.toLocaleString()} EXP가 차감 가능해야 합니다. (보유: ${expBalance.toLocaleString()} EXP)`)
+            return
+        }
+
+        if (!confirm(`${currentSpec.label} 배럴 예약을 요청하시겠습니까? 신청 시 ${cost.toLocaleString()} EXP가 즉시 차감됩니다.`)) {
+            return
+        }
+
+        setActionBusy(true)
+        setActionError(null)
+        setActionSuccess(null)
+
+        try {
+            const result = await submitBarrelOrder(selectedSize)
+            setActionSuccess(`주문 완료! 고유 배럴 ID: ${result.barrelId} 예약 및 소유권 카드 생성이 자동으로 완료되었습니다.`)
+            await loadData()
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "배럴 주문 처리에 실패했습니다.")
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    const handleBarrelAction = async (barrelId: string, action: string) => {
+        if (!confirm("해당 부가 서비스를 신청하시겠습니까?")) return
+
+        setActionBusy(true)
+        setActionError(null)
+        setActionSuccess(null)
+
+        try {
+            const result = await triggerBarrelAction(barrelId, action)
+            setActionSuccess(`신청 성공! 상태: ${result.nextStatus} (${result.nextSealStatus}) 로 변경되었습니다.`)
+            await loadData()
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "처리에 실패했습니다.")
+        } finally {
+            setActionBusy(false)
+        }
+    }
 
     return (
         <div className="min-h-screen bg-background">
@@ -103,10 +218,39 @@ export default function BarrelReservePage() {
 
             <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8 space-y-16">
 
+                {/* User Gating or Balance Summary Bar */}
+                {errorProfile === "로그인이 필요합니다." ? (
+                    <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-6 text-sm text-yellow-600/90 text-center">
+                        해당 등급 전용 서비스 정보 확인 및 신청을 위해 먼저 로그인이 필요합니다.{" "}
+                        <Link href="/my/profile" className="text-amber-500 underline underline-offset-4 font-bold ml-2">
+                            로그인 하러가기
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
+                        <div>
+                            <span className="text-xs text-muted-foreground block">On-chain 지갑 주소</span>
+                            <span className="font-mono text-xs text-foreground select-all break-all">{walletAddress || "확인 불가"}</span>
+                        </div>
+                        <div>
+                            <span className="text-xs text-muted-foreground block">총 ZTRO 스테이킹 수량</span>
+                            <span className="text-base font-bold text-foreground mt-1 block">
+                                {stakedZtro.toLocaleString()} ZTRO
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-xs text-muted-foreground block">사용 가능한 EXP 보유고</span>
+                            <span className="text-base font-bold text-amber-500 mt-1 block">
+                                {expBalance.toLocaleString()} EXP
+                            </span>
+                        </div>
+                    </div>
+                )}
+
                 {/* Intro Section */}
                 <section className="text-center max-w-3xl mx-auto space-y-4">
-                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 px-3 py-1 bg-amber-500/5">
-                        EXP EXCLUSIVE MEMBERSHIP
+                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 px-3 py-1 bg-amber-500/5 font-mono">
+                        STAKE. AGE. OWN.
                     </Badge>
                     <h2 className="font-display text-2xl font-bold sm:text-3xl text-foreground">
                         시간이 빚어내는 궁극의 오리지널 풍미
@@ -114,19 +258,33 @@ export default function BarrelReservePage() {
                     <p className="text-muted-foreground leading-relaxed text-sm sm:text-base">
                         ZenTaro Barrel Reserve는 단순히 술을 구매하는 프로그램이 아닙니다.
                         회원은 ZenTaro 주류원(Distillery)이 직접 증류한 최상급 중성주와 원주를 엄선된 프리미엄 오크 배럴에 담아,
-                        프라이빗 숙성 환경 속에서 시간이 더해가는 무한한 가치를 직접 설계하고 공유하게 됩니다.
+                        프라이빗 숙성 환경 속에서 시간이 더해가는 무한한 가치를 직접 설계하고 소유 공유하게 됩니다.
                     </p>
                 </section>
+
+                {/* Action Status Output */}
+                {actionSuccess && (
+                    <div className="p-4 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-500 text-sm flex items-center gap-2">
+                        <CheckCircle2 className="w-5 h-5 flex-shrink-0" />
+                        <span>{actionSuccess}</span>
+                    </div>
+                )}
+                {actionError && (
+                    <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-sm flex items-center gap-2">
+                        <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+                        <span>{actionError}</span>
+                    </div>
+                )}
 
                 {/* Premium Oak Barrel Selection Area */}
                 <section className="space-y-6">
                     <div className="border-b border-border/60 pb-3">
-                        <h3 className="font-display text-xl font-semibold flex items-center gap-2">
+                        <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
                             <Wine className="w-5 h-5 text-amber-500" />
                             Premium Oak Barrel 프리미엄 배럴 선택
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                            EXP 등급에 비례하여 크기를 선택할 수 있으며, 배럴마다 고유 디지털 인증 키카 발급되어 개별 위탁 관리됩니다.
+                            요건에 따른 최적의 용량 배럴을 분양받으시고, 나만의 프리미엄 스피릿 에이징 포트폴리오를 만들어보세요.
                         </p>
                     </div>
 
@@ -143,7 +301,7 @@ export default function BarrelReservePage() {
                             >
                                 <div>
                                     <div className="flex justify-between items-start">
-                                        <Badge variant="secondary" className="font-mono text-xs font-bold">
+                                        <Badge variant="secondary" className="font-mono text-xs font-bold bg-zinc-800 text-zinc-300">
                                             {spec.size}
                                         </Badge>
                                         {selectedSize === spec.size && (
@@ -158,7 +316,7 @@ export default function BarrelReservePage() {
                                     {spec.capacity}
                                 </span>
 
-                                {/* Visual wood fiber decoration */}
+                                {/* Visual wood decoration */}
                                 <div className="absolute right-0 bottom-0 opacity-[0.03] group-hover:opacity-[0.08] transition-opacity duration-300 pointer-events-none">
                                     <Wine className="w-20 h-20 transform translate-x-4 translate-y-4" />
                                 </div>
@@ -166,17 +324,17 @@ export default function BarrelReservePage() {
                         ))}
                     </div>
 
-                    {/* Interactive Specification View */}
+                    {/* Interactive Specification View & Checkout */}
                     <div className="rounded-xl border border-border/60 bg-card p-6 shadow-md transition-all duration-300 relative overflow-hidden">
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                             <div className="md:col-span-2 space-y-4">
                                 <div className="flex items-center gap-2">
-                                    <Badge variant="outline" className="text-amber-500 border-amber-500/30">
-                                        Active Specification Selection
+                                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono">
+                                        ZT-REV-{currentSpec.size}-SPECS
                                     </Badge>
-                                    <span className="text-xs text-muted-foreground font-mono">
-                                        ID Prefix: ZT-REV-{currentSpec.size}-REV
+                                    <span className="text-xs text-muted-foreground">
+                                        오크 재질 정보 포함
                                     </span>
                                 </div>
 
@@ -210,20 +368,29 @@ export default function BarrelReservePage() {
 
                             <div className="bg-background/80 rounded-lg p-5 border border-border/40 flex flex-col justify-between space-y-4">
                                 <div>
-                                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                                        EXP Membership Limit
+                                    <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider font-mono">
+                                        Order Requirements
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                                        본 배럴은 정밀한 제작 및 수작업 한정 수량 공정 특성상 아래의 등급 자격 요건을 충족하는 회원에 한하여 지급 신청이 가능합니다.
+                                        주문 시 토큰 스테이킹 조건을 충족해야 하며, 명시된 회원 전용 EXP가 즉시 차감 소모됩니다.
                                     </p>
                                 </div>
-                                <div className="bg-card p-3 rounded border border-amber-500/10 text-xs">
-                                    <span className="text-amber-500 font-medium font-mono block">
-                                        {currentSpec.expRequirement}
+                                <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
+                                    <span className="text-muted-foreground block">필요 스테이킹:</span>
+                                    <span className="text-foreground font-semibold block">
+                                        {currentSpec.ztroRequirementValue.toLocaleString()} ZTRO 이상
+                                    </span>
+                                    <span className="text-muted-foreground block mt-1">소요 비용:</span>
+                                    <span className="text-amber-500 font-bold block">
+                                        {currentSpec.expRequirementValue.toLocaleString()} EXP 즉시 차감
                                     </span>
                                 </div>
-                                <Button className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs py-2 shadow">
-                                    배럴 상담 신청하기
+                                <Button
+                                    onClick={handleOrderSubmit}
+                                    disabled={actionBusy || errorProfile === "로그인이 필요합니다."}
+                                    className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs py-2 shadow"
+                                >
+                                    {actionBusy ? "신청 처리 중..." : `${currentSpec.size} 배럴 분양 신청하기`}
                                 </Button>
                             </div>
 
@@ -231,10 +398,184 @@ export default function BarrelReservePage() {
                     </div>
                 </section>
 
-                {/* Toasting & Charring Technology Section */}
+                {/* My Barrel Collection Section */}
+                {errorProfile !== "로그인이 필요합니다." && (
+                    <section className="space-y-6">
+                        <div className="border-b border-border/60 pb-3">
+                            <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                                <Award className="w-5 h-5 text-amber-500" />
+                                내 배럴 컬렉션 (My Barrel Collection)
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                회원님께서 보유하신 프라이빗 오크통 리저브 목록입니다. 인증서 조회 및 입출고 케어를 바로 실행해보세요.
+                            </p>
+                        </div>
+
+                        {barrels.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                                보유 중인 배럴이 없습니다. 위 보증 조건에 맞추어 첫 번째 배럴 주문에 참여해 보세요!
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {barrels.map((barrel) => {
+                                    const spec = BARREL_SPECS.find(s => s.size === barrel.capacity)
+                                    return (
+                                        <div
+                                            key={barrel.id}
+                                            className="rounded-xl border border-border/60 bg-card p-5 space-y-4 hover:border-amber-500/30 transition-all duration-300"
+                                        >
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
+                                                        {barrel.id}
+                                                    </Badge>
+                                                    <h4 className="font-display font-bold text-base text-foreground mt-1">
+                                                        {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
+                                                    </h4>
+                                                </div>
+                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold">
+                                                    {barrel.status === "ordered" ? "보관 대기 (Ordered)" : barrel.status}
+                                                </Badge>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-border/40 py-3 my-2">
+                                                <div>
+                                                    <span className="text-muted-foreground block">봉인 현황</span>
+                                                    <span className="font-semibold text-emerald-500">{barrel.sealStatus}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground block">누적 숙성 기간</span>
+                                                    <span className="font-mono font-semibold text-foreground">{barrel.agingPeriod}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground block">디지털 증명서 번호</span>
+                                                    <span className="font-mono text-foreground">{barrel.certNumber}</span>
+                                                </div>
+                                                <div>
+                                                    <span className="text-muted-foreground block">시작일</span>
+                                                    <span className="font-mono text-foreground">
+                                                        {barrel.createdAt ? new Date((barrel.createdAt as any).seconds * 1000).toLocaleDateString() : "-"}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex flex-wrap gap-2 pt-2">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
+                                                    onClick={() => setActiveCertBarrel(barrel)}
+                                                >
+                                                    <FileText className="w-3.5 h-3.5 text-amber-500" />
+                                                    디지털 인증서
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
+                                                    onClick={() => setActiveQrBarrel(barrel)}
+                                                >
+                                                    <QrCode className="w-3.5 h-3.5 text-amber-500" />
+                                                    QR 실시간 정보
+                                                </Button>
+
+                                                {barrel.status === "ordered" && (
+                                                    <>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 font-semibold"
+                                                            onClick={() => handleBarrelAction(barrel.id, "room_aging")}
+                                                        >
+                                                            위탁 숙성 시작
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 font-semibold"
+                                                            onClick={() => handleBarrelAction(barrel.id, "deliver")}
+                                                        >
+                                                            직접 배송 신청
+                                                        </Button>
+                                                    </>
+                                                )}
+
+                                                {barrel.status.includes("숙성 중") && (
+                                                    <>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 font-semibold"
+                                                            onClick={() => handleBarrelAction(barrel.id, "bottle")}
+                                                        >
+                                                            병입 서비스 신청
+                                                        </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 border-border/60 text-zinc-300"
+                                                            onClick={() => handleBarrelAction(barrel.id, "extend_aging")}
+                                                        >
+                                                            에이징 연장
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* Order Process Section */}
+                <section className="space-y-6">
+                    <div className="border-b border-border/60 pb-3">
+                        <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                            <Layers className="w-5 h-5 text-amber-500" />
+                            배럴 주문 프로세스 (Order Process)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            에이징 단계부터 보증서 보관까지 이어지는 체계적인 스피릿 메이킹 단계를 확인해 보세요.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                        <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
+                            <div className="text-amber-500 font-mono font-bold text-xs">STEP 1 & 2</div>
+                            <h4 className="font-semibold text-sm text-foreground">배럴 스펙 선택 및 소유 요건 검토</h4>
+                            <p className="text-xs text-muted-foreground leading-normal">
+                                회원이 원하는 배럴 용량을 정하면, 시스템이 지갑 속 ZTRO 스테이킹 누적치 및 EXP 보유액을 실시간 조회 후 검증합니다.
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
+                            <div className="text-amber-500 font-mono font-bold text-xs">STEP 3 & 4</div>
+                            <h4 className="font-semibold text-sm text-foreground">주문 승인 및 마스터 원주 충전</h4>
+                            <p className="text-xs text-muted-foreground leading-normal">
+                                자격 검증이 통과되면 오프체인 EXP가 자동 차감되며, 젠타로 주류원에서 수작업 오크통에 원주 주입 과정을 셋업합니다.
+                            </p>
+                        </div>
+                        <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
+                            <div className="text-amber-500 font-mono font-bold text-xs">STEP 5 & 6</div>
+                            <h4 className="font-semibold text-sm text-foreground">공식 봉인 및 디지털 보증서 발급</h4>
+                            <p className="text-xs text-muted-foreground leading-normal">
+                                안심 타임스탬프 밴드 봉인을 부착하고 고유 QR 코드를 매핑하여, 회원의 소유 등기 증명서 발급 및 라이프사이클 관리를 시작합니다.
+                            </p>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Oak barrel Toasting & Charring Technology Section */}
                 <section className="space-y-6">
                     <div className="text-center max-w-2xl mx-auto space-y-2">
-                        <h3 className="font-display text-xl font-bold flex items-center justify-center gap-2">
+                        <h3 className="font-display text-xl font-bold flex items-center justify-center gap-2 text-foreground">
                             <Flame className="w-5 h-5 text-red-500" />
                             ZenTaro Signature Oak Barrel Technology
                         </h3>
@@ -267,11 +608,10 @@ export default function BarrelReservePage() {
                     </div>
                 </section>
 
-                {/* Timestamp Seal Details & Certificate Mockup */}
+                {/* Timestamp Seal Section */}
                 <section className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
-
                     <div className="space-y-5">
-                        <h3 className="font-display text-xl font-bold flex items-center gap-2">
+                        <h3 className="font-display text-xl font-bold flex items-center gap-2 text-foreground">
                             <ShieldCheck className="w-5 h-5 text-emerald-500" />
                             Timestamp Seal & 위조방지 봉인
                         </h3>
@@ -299,7 +639,7 @@ export default function BarrelReservePage() {
                         </div>
 
                         <div className="bg-card border border-border/60 p-4 rounded-xl space-y-3">
-                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wider font-mono">
                                 ZenTaro Barrel Room 관리 환경
                             </h4>
                             <p className="text-xs text-muted-foreground leading-relaxed">
@@ -309,77 +649,32 @@ export default function BarrelReservePage() {
                         </div>
                     </div>
 
-                    {/* Certificate design card */}
-                    <div className="bg-gradient-to-br from-zinc-950 to-zinc-900 border border-amber-500/30 rounded-2xl p-6 shadow-xl relative overflow-hidden font-mono max-w-sm mx-auto w-full">
-                        {/* Holographic badge element */}
-                        <div className="absolute top-4 right-4 w-12 h-12 rounded-full bg-gradient-to-tr from-amber-500 to-yellow-300 opacity-20 blur-sm pointer-events-none" />
-                        <div className="absolute top-4 right-4 w-12 h-12 rounded-full border border-amber-500/40 flex items-center justify-center pointer-events-none">
-                            <Award className="w-6 h-6 text-amber-500/80" />
+                    {/* Timestamp Seal graphic mockup */}
+                    <div className="border border-border/60 bg-card rounded-2xl p-6 relative overflow-hidden flex flex-col items-center text-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/30">
+                            <ShieldCheck className="w-8 h-8 text-emerald-500" />
                         </div>
-
-                        <div className="border-b border-amber-500/20 pb-4 mb-4">
-                            <span className="text-[10px] text-amber-500 uppercase tracking-widest block font-sans">
-                                Digital Ownership
-                            </span>
-                            <h4 className="text-sm font-bold text-foreground mt-1 font-sans">
-                                BARREL RESERVED CERTIFICATE
-                            </h4>
-                        </div>
-
-                        <div className="space-y-2 text-[10px] text-zinc-300">
-                            <div className="flex justify-between">
-                                <span>BARREL ID</span>
-                                <span className="text-white font-bold">ZT-REV-10L-00892</span>
+                        <h4 className="font-display font-semibold text-base text-foreground">공식 타임스탬프 봉인 보호 구조</h4>
+                        <p className="text-xs text-muted-foreground max-w-xs leading-normal">
+                            배럴 주문이 완료되면 디지털 봉인 증서가 블록 매핑 데이터베이스에 자동 등재되며, QR 판독을 통해 오프라인 오크 배럴에 수작업 인쇄된 엠블럼 실물의 무결성을 실시간 검증합니다.
+                        </p>
+                        <div className="w-full bg-background border border-border/60 p-3 rounded-lg flex items-center justify-between text-left text-[10px]">
+                            <div>
+                                <span className="text-muted-foreground block">무결성 상태 :</span>
+                                <span className="text-emerald-500 font-bold">SECURED (안전)</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>OWNER NAME</span>
-                                <span className="text-white">ZIPUP_MEMBERSHIP_01</span>
+                            <div>
+                                <span className="text-muted-foreground block text-right">보증 등기 체인 :</span>
+                                <span className="text-foreground font-mono block text-right">ACTIVE ON-CHAIN COUPLING</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span>CAPACITY</span>
-                                <span className="text-white">10.0 Liters</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>PRODUCTION DATE</span>
-                                <span className="text-white">2026-07-22</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>AGING STATE</span>
-                                <span className="text-emerald-500 font-bold block animate-pulse">Aging [ACTIVE]</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span>SEAL INTEGRITY</span>
-                                <span className="text-emerald-500">SECURED (GOOD)</span>
-                            </div>
-                            <div className="flex justify-between border-t border-zinc-800 pt-2 mt-2">
-                                <span>CERTIFICATE KEY</span>
-                                <span className="text-amber-500 text-[9px]">40cf8-f8a1-d82b-0aa1</span>
-                            </div>
-                        </div>
-
-                        <div className="border-t border-amber-500/20 pt-4 mt-4 flex items-center justify-between">
-                            <div className="w-12 h-12 bg-white flex items-center justify-center p-1 rounded">
-                                {/* Simulating QR code graphic */}
-                                <div className="w-full h-full bg-zinc-950 flex flex-wrap justify-between p-0.5">
-                                    <div className="w-4 h-4 bg-white" />
-                                    <div className="w-4 h-4 bg-white" />
-                                    <div className="w-4 h-4 bg-white" />
-                                    <div className="w-2 h-2 bg-white" />
-                                    <div className="w-2 h-2 bg-white" />
-                                </div>
-                            </div>
-                            <span className="text-[8px] text-zinc-400 text-right font-sans leading-normal">
-                                QR 스캔 시 실시간 위탁 숙성 이력 검증 시스템 연계
-                            </span>
                         </div>
                     </div>
-
                 </section>
 
                 {/* Member Services Map (Timeline / Process View) */}
                 <section className="space-y-6">
                     <div className="text-center max-w-md mx-auto space-y-2">
-                        <h3 className="font-display text-xl font-bold flex items-center justify-center gap-2">
+                        <h3 className="font-display text-xl font-bold flex items-center justify-center gap-2 text-foreground">
                             <Layers className="w-5 h-5 text-amber-500" />
                             Premium Member Services
                         </h3>
@@ -456,27 +751,175 @@ export default function BarrelReservePage() {
                             ZenTaro Philosophy
                         </span>
                         <blockquote className="font-display text-lg sm:text-xl font-medium text-foreground tracking-wide italic leading-relaxed">
-                            &ldquo; One Barrel. One Owner. One Story. &rdquo;
+                            &ldquo; One Barrel. One Owner. One Legacy. &rdquo;
                         </blockquote>
                     </div>
 
                     <div className="flex flex-col sm:flex-row justify-center items-center gap-3 sm:gap-6 text-xs text-zinc-400 font-mono">
-                        <span>Fire Shapes the Barrel.</span>
+                        <span>Stake. Age. Own.</span>
                         <span className="hidden sm:inline text-amber-500/30">|</span>
-                        <span>Time Creates the Spirit.</span>
-                        <span className="hidden sm:inline text-amber-500/30">|</span>
-                        <span>ZenTaro Creates the Legacy.</span>
+                        <span>One Barrel. One Owner. One Legacy.</span>
                     </div>
 
                     <div className="pt-4 max-w-sm mx-auto">
                         <p className="text-[11px] text-muted-foreground leading-relaxed">
                             숙성은 긴 여정입니다. 하나의 에이징 배럴 속에는 단순히 정밀 증류된 알코올이 남아있는 것이 아닙니다.
-                            세월이 빚어낸 오크 향조와 우리들의 이야기가 함께 고스란히 담깁니다.
+                            세월이 빚어낸 오크 향조와 우리들의 이야지가 함께 고스란히 담깁니다.
                         </p>
                     </div>
                 </section>
 
             </div>
+
+            {/* DIGITAL OWNERSHIP CERTIFICATE MODAL */}
+            {activeCertBarrel && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                    <div className="bg-gradient-to-br from-zinc-950 to-zinc-900 border border-amber-500/30 rounded-2xl p-6 shadow-2xl relative overflow-hidden font-mono max-w-md w-full scrollbar-none max-h-[90vh] overflow-y-auto">
+                        <button
+                            type="button"
+                            className="absolute top-4 right-4 text-zinc-400 hover:text-white text-sm"
+                            onClick={() => setActiveCertBarrel(null)}
+                        >
+                            닫기 [✕]
+                        </button>
+                        <div className="absolute top-4 right-14 w-10 h-10 rounded-full border border-amber-500/30 flex items-center justify-center pointer-events-none">
+                            <Award className="w-5 h-5 text-amber-500" />
+                        </div>
+
+                        <div className="border-b border-amber-500/20 pb-4 mb-4 mt-2">
+                            <span className="text-[10px] text-amber-500 uppercase tracking-widest block font-sans">
+                                Digital Ownership
+                            </span>
+                            <h4 className="text-base font-bold text-foreground mt-1 font-sans">
+                                DIGITAL BARREL CERTIFICATE
+                            </h4>
+                        </div>
+
+                        <div className="space-y-2.5 text-xs text-zinc-300">
+                            <div className="flex justify-between">
+                                <span>BARREL ID</span>
+                                <span className="text-white font-bold">{activeCertBarrel.id}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>OWNER UID</span>
+                                <span className="text-white select-all">{activeCertBarrel.userId}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>CAPACITY</span>
+                                <span className="text-white">{activeCertBarrel.capacity} (리저브 배럴)</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>PRODUCTION DATE</span>
+                                <span className="text-white">
+                                    {activeCertBarrel.productionDate ? new Date((activeCertBarrel.productionDate as any).seconds * 1000).toLocaleDateString() : "-"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>AGING STATE</span>
+                                <span className="text-emerald-500 font-bold block animate-pulse">{activeCertBarrel.status}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>SEAL STATUS</span>
+                                <span className="text-emerald-500">{activeCertBarrel.sealStatus}</span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>CERTIFICATE NUMBER</span>
+                                <span className="text-amber-500 font-bold">{activeCertBarrel.certNumber}</span>
+                            </div>
+                        </div>
+
+                        <div className="border-t border-amber-500/20 pt-4 mt-4 space-y-2">
+                            <span className="text-[10px] text-muted-foreground uppercase block font-sans">
+                                Ownership History 로그
+                            </span>
+                            <div className="space-y-2 max-h-36 overflow-y-auto pr-1 text-[10px] text-zinc-400">
+                                {activeCertBarrel.ownershipHistory?.map((entry, idx) => (
+                                    <div key={idx} className="border-l border-amber-500/30 pl-2 py-0.5 space-y-0.5">
+                                        <div className="flex justify-between">
+                                            <span className="font-bold text-zinc-300">{entry.action.toUpperCase()}</span>
+                                            <span>{new Date(entry.date).toLocaleString()}</span>
+                                        </div>
+                                        {entry.message && <p className="text-[9px] text-muted-foreground">{entry.message}</p>}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-amber-500/20 pt-4 mt-4 flex items-center justify-between">
+                            <div className="w-12 h-12 bg-white flex items-center justify-center p-1 rounded">
+                                <QrCode className="w-full h-full text-black" />
+                            </div>
+                            <span className="text-[9px] text-zinc-400 text-right font-sans leading-normal max-w-xs">
+                                QR 인증 코드 발급 완료: {activeCertBarrel.qrKey}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* QR SIL TIME SIMULATOR MODAL */}
+            {activeQrBarrel && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-2xl max-w-sm w-full space-y-4">
+                        <div className="flex justify-between items-center border-b border-border/40 pb-3">
+                            <h3 className="font-display font-semibold text-base text-foreground flex items-center gap-1.5">
+                                <QrCode className="w-5 h-5 text-amber-500" />
+                                QR 실시간 스캔 정보
+                            </h3>
+                            <button
+                                type="button"
+                                className="text-muted-foreground hover:text-foreground text-xs"
+                                onClick={() => setActiveQrBarrel(null)}
+                            >
+                                닫기 ✕
+                            </button>
+                        </div>
+
+                        <div className="space-y-3 text-xs text-muted-foreground">
+                            <p className="text-center font-mono text-[10px] bg-background p-2 rounded border border-border/40 text-foreground">
+                                https://zentaro.netlify.app/verify/barrel?key={activeQrBarrel.qrKey}
+                            </p>
+
+                            <div className="space-y-2 divide-y divide-border/20 pt-1">
+                                <div className="flex justify-between py-1.5">
+                                    <span>배럴 ID :</span>
+                                    <span className="text-foreground font-mono font-semibold">{activeQrBarrel.id}</span>
+                                </div>
+                                <div className="flex justify-between py-1.5">
+                                    <span>현재 소유자 UID :</span>
+                                    <span className="text-foreground font-mono truncate max-w-40">{activeQrBarrel.userId}</span>
+                                </div>
+                                <div className="flex justify-between py-1.5">
+                                    <span>누적 숙성 등급 :</span>
+                                    <span className="text-foreground font-semibold">{activeQrBarrel.capacity} ({activeQrBarrel.agingPeriod})</span>
+                                </div>
+                                <div className="flex justify-between py-1.5">
+                                    <span>현재 배럴 상태 :</span>
+                                    <Badge variant="outline" className="text-amber-500 border-amber-500/30 text-[10px]">
+                                        {activeQrBarrel.status}
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between py-1.5">
+                                    <span>Timestamp Seal :</span>
+                                    <Badge className="bg-emerald-500 text-black border-none text-[10px] font-bold">
+                                        {activeQrBarrel.sealStatus}
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between py-1.5">
+                                    <span>배송 완료 여부 :</span>
+                                    <span className="text-foreground">
+                                        {activeQrBarrel.status.includes("배송") ? "배송 완료" : "Barrel Room 위탁 보관 중"}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-amber-500/5 p-3 rounded-lg border border-amber-500/10 text-[10px] text-amber-500 leading-normal">
+                            💡 실물 배럴에 부착된 홀로그램 QR 코드를 스마트폰 카메라로 스캔하면 이와 동일한 무결성 정보 검증 웹화면으로 자동 연동 조회됩니다.
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

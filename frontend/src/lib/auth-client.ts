@@ -879,3 +879,52 @@ export async function fetchMyDeposits(): Promise<DepositRequest[]> {
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface BarrelHistoryEntry {
+  date: string;
+  ownerId: string;
+  ownerAddress?: string;
+  action: string;
+  message?: string;
+}
+
+export interface BarrelDocument {
+  id: string;
+  userId: string;
+  capacity: string;
+  status: string;
+  createdAt?: { _seconds: number } | null;
+  productionDate?: { _seconds: number } | null;
+  fillingDate?: { _seconds: number } | null;
+  agingPeriod: string;
+  sealStatus: string;
+  certNumber: string;
+  qrKey: string;
+  ownershipHistory: BarrelHistoryEntry[];
+}
+
+export async function submitBarrelOrder(size: string): Promise<{ success: boolean; barrelId: string; certNumber: string }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/order`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ size }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchMyBarrels(): Promise<BarrelDocument[]> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/my`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function triggerBarrelAction(barrelId: string, action: string): Promise<{ success: boolean; nextStatus: string; nextSealStatus: string }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/action`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ barrelId, action }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

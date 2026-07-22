@@ -49,4 +49,19 @@ export class TokenExchangeController {
   distributeRewards() {
     return this.tokenExchangeService.distributeWeeklyStakingRewards();
   }
+
+  @Post('barrel/order')
+  createBarrelOrder(@CurrentUser() user: CurrentUserPayload, @Body() dto: { size: string }) {
+    return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size);
+  }
+
+  @Get('barrel/my')
+  listMyBarrels(@CurrentUser() user: CurrentUserPayload) {
+    return this.tokenExchangeService.listMyBarrels(user.uid);
+  }
+
+  @Post('barrel/action')
+  triggerBarrelAction(@CurrentUser() user: CurrentUserPayload, @Body() dto: { barrelId: string; action: string }) {
+    return this.tokenExchangeService.triggerBarrelAction(user.uid, dto.barrelId, dto.action);
+  }
 }

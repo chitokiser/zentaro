@@ -18,4 +18,5 @@ export const COLLECTIONS = {
   ZENTARO_BOTTLE_CAP_CLAIMS: 'zentaro_bottle_cap_claims',
   ZENTARO_ZTRO_REWARD_CODES: 'zentaro_ztro_reward_codes',
   ZENTARO_DEPOSITS: 'zentaro_deposits',
+  ZENTARO_BARRELS: 'zentaro_barrels',
 } as const;
