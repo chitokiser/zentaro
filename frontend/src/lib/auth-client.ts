@@ -724,6 +724,7 @@ export interface BottleCapClaim {
   userId: string;
   email: string;
   isZentaro: boolean;
+  zentaroProduct: "origin" | "blue" | null;
   brand: string;
   quantity: number;
   sealConfirmed: boolean;
@@ -739,6 +740,7 @@ export interface BottleCapClaim {
 
 export async function submitBottleCapClaim(input: {
   isZentaro: boolean;
+  zentaroProduct?: "origin" | "blue";
   brand: string;
   quantity: number;
   sealConfirmed: boolean;
@@ -1018,6 +1020,7 @@ export interface PublicBarrel {
   agingEndedAt?: { _seconds: number } | null;
   forSale: boolean;
   currentValueZp: number;
+  customAnnualGrowthRate: number | null;
   ownerLabel: string;
   ownerId: string;
 }
@@ -1109,6 +1112,19 @@ export async function updateBarrelPricingConfigAdmin(
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(patch),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateBarrelGrowthRateAdmin(
+  barrelId: string,
+  annualGrowthRate: number | null,
+): Promise<{ success: boolean; barrelId: string; customAnnualGrowthRate: number | null; currentValueZp: number }> {
+  const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}/growth-rate`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ annualGrowthRate }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

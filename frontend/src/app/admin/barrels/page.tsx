@@ -8,6 +8,7 @@ import {
   deleteBarrelAdmin,
   fetchBarrelPricingConfig,
   updateBarrelPricingConfigAdmin,
+  updateBarrelGrowthRateAdmin,
   type PublicBarrel,
   type BarrelPricingConfig,
 } from "@/lib/auth-client"
@@ -23,6 +24,9 @@ export default function AdminBarrelsPage() {
   const [pricingForm, setPricingForm] = useState({ baseUsdPerLiter: "", usdToZpRate: "", annualGrowthRate: "" })
   const [pricingBusy, setPricingBusy] = useState(false)
   const [pricingMessage, setPricingMessage] = useState<string | null>(null)
+
+  const [growthRateInputs, setGrowthRateInputs] = useState<Record<string, string>>({})
+  const [growthRateBusy, setGrowthRateBusy] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchPublicBarrels()
@@ -72,6 +76,43 @@ export default function AdminBarrelsPage() {
       setError(err instanceof Error ? err.message : "가격 정책 저장에 실패했습니다.")
     } finally {
       setPricingBusy(false)
+    }
+  }
+
+  async function handleSaveGrowthRate(id: string) {
+    const raw = growthRateInputs[id]
+    const rate = raw === undefined || raw.trim() === "" ? null : Number(raw) / 100
+    if (rate !== null && (!Number.isFinite(rate) || rate < 0)) {
+      alert("연간 성장률은 0 이상의 숫자여야 합니다.")
+      return
+    }
+    setGrowthRateBusy(id)
+    setError(null)
+    try {
+      await updateBarrelGrowthRateAdmin(id, rate)
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "성장률 저장에 실패했습니다.")
+    } finally {
+      setGrowthRateBusy(null)
+    }
+  }
+
+  async function handleResetGrowthRate(id: string) {
+    setGrowthRateBusy(id)
+    setError(null)
+    try {
+      await updateBarrelGrowthRateAdmin(id, null)
+      setGrowthRateInputs((prev) => {
+        const next = { ...prev }
+        delete next[id]
+        return next
+      })
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "기본값 재설정에 실패했습니다.")
+    } finally {
+      setGrowthRateBusy(null)
     }
   }
 
@@ -183,25 +224,68 @@ export default function AdminBarrelsPage() {
           ) : inProgress.length === 0 ? (
             <p className="text-xs text-muted-foreground">해당하는 배럴이 없습니다.</p>
           ) : null}
-          {inProgress.map((item) => (
-            <div
-              key={item.id}
-              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 px-4 py-2 text-sm"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-xs text-muted-foreground">{item.id}</span>
-                <span>{item.capacity} · {item.ownerLabel}</span>
-                {item.forSale ? (
-                  <Badge className="bg-emerald-500 text-black border-none text-[10px]">
-                    판매중 {item.currentValueZp.toLocaleString()} ZP
+          {inProgress.map((item) => {
+            const defaultPercent = pricing ? Math.round(pricing.annualGrowthRate * 100) : null
+            const hasCustom = item.customAnnualGrowthRate !== null
+            const currentPercent = hasCustom ? Math.round((item.customAnnualGrowthRate as number) * 100) : defaultPercent
+            return (
+              <div
+                key={item.id}
+                className="flex flex-col gap-2 rounded-md border border-border/40 px-4 py-2 text-sm"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs text-muted-foreground">{item.id}</span>
+                    <span>{item.capacity} · {item.ownerLabel}</span>
+                    {item.forSale ? (
+                      <Badge className="bg-emerald-500 text-black border-none text-[10px]">
+                        판매중 {item.currentValueZp.toLocaleString()} ZP
+                      </Badge>
+                    ) : null}
+                  </div>
+                  <Badge variant="secondary" className="text-[10px]">
+                    {item.status === "ordered" ? "보관 대기" : item.status}
                   </Badge>
-                ) : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span>
+                    연 성장률: {hasCustom ? (
+                      <span className="font-semibold text-amber-500">커스텀 {currentPercent}%</span>
+                    ) : (
+                      <span>기본값 {currentPercent}%</span>
+                    )}
+                  </span>
+                  <input
+                    type="number"
+                    min={0}
+                    placeholder={`기본값 ${defaultPercent ?? "-"}`}
+                    value={growthRateInputs[item.id] ?? ""}
+                    onChange={(e) => setGrowthRateInputs((prev) => ({ ...prev, [item.id]: e.target.value }))}
+                    className="w-24 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
+                  />
+                  <span>%</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={growthRateBusy === item.id}
+                    onClick={() => handleSaveGrowthRate(item.id)}
+                  >
+                    저장
+                  </Button>
+                  {hasCustom ? (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={growthRateBusy === item.id}
+                      onClick={() => handleResetGrowthRate(item.id)}
+                    >
+                      기본값으로 재설정
+                    </Button>
+                  ) : null}
+                </div>
               </div>
-              <Badge variant="secondary" className="text-[10px]">
-                {item.status === "ordered" ? "보관 대기" : item.status}
-              </Badge>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
     </div>

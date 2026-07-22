@@ -6,6 +6,7 @@ import { TokenExchangeService } from './token-exchange.service';
 import { BuyZtroDto } from './dto/buy-ztro.dto';
 import { AmountDto } from './dto/amount.dto';
 import { UpdateBarrelPricingDto } from './dto/update-barrel-pricing.dto';
+import { UpdateBarrelGrowthRateDto } from './dto/update-barrel-growth-rate.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -103,5 +104,12 @@ export class TokenExchangeController {
   @RequireAdminLevel(1)
   updateBarrelPricingConfig(@Body() dto: UpdateBarrelPricingDto) {
     return this.tokenExchangeService.updateBarrelPricingConfig(dto);
+  }
+
+  @Post('admin/barrel/:id/growth-rate')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
+  updateBarrelGrowthRateAdmin(@Param('id') id: string, @Body() dto: UpdateBarrelGrowthRateDto) {
+    return this.tokenExchangeService.updateBarrelGrowthRateAdmin(id, dto.annualGrowthRate);
   }
 }

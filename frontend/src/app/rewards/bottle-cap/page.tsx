@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { QrRewardScanner } from "@/components/rewards/qr-reward-scanner"
 import { RewardRoulette } from "@/components/rewards/reward-roulette"
+import { useI18n } from "@/lib/i18n/i18n-context"
 import {
   fetchMyBottleCapClaims,
   submitBottleCapClaim,
@@ -15,13 +16,11 @@ import {
   type ZtroRewardResult,
 } from "@/lib/auth-client"
 
-const CLAIM_STATUS_LABEL: Record<BottleCapClaim["status"], string> = {
-  pending: "심사중",
-  approved: "승인됨",
-  rejected: "반려됨",
-}
+type ProductChoice = "origin" | "blue" | "other"
 
 export default function BottleCapRewardsPage() {
+  const { t } = useI18n()
+
   // Gates the whole page behind a login prompt — set from loadClaims()'s auth failure.
   const [error, setError] = useState<string | null>(null)
 
@@ -29,7 +28,7 @@ export default function BottleCapRewardsPage() {
   const [claimError, setClaimError] = useState<string | null>(null)
   const [claimMessage, setClaimMessage] = useState<string | null>(null)
   const [claimBusy, setClaimBusy] = useState(false)
-  const [isZentaro, setIsZentaro] = useState(true)
+  const [productChoice, setProductChoice] = useState<ProductChoice>("origin")
   const [brand, setBrand] = useState("")
   const [quantity, setQuantity] = useState(1)
   const [sealConfirmed, setSealConfirmed] = useState(false)
@@ -41,6 +40,12 @@ export default function BottleCapRewardsPage() {
   const [redeeming, setRedeeming] = useState(false)
   const [rewardResult, setRewardResult] = useState<ZtroRewardResult | null>(null)
   const [rewardError, setRewardError] = useState<string | null>(null)
+
+  const CLAIM_STATUS_LABEL: Record<BottleCapClaim["status"], string> = {
+    pending: t.bottleCap.statusPending,
+    approved: t.bottleCap.statusApproved,
+    rejected: t.bottleCap.statusRejected,
+  }
 
   const loadClaims = useCallback(() => {
     fetchMyBottleCapClaims()
@@ -59,7 +64,7 @@ export default function BottleCapRewardsPage() {
   async function handleClaimSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!sealConfirmed) {
-      setClaimError("병뚜껑에 인지세 봉인스티커 일부가 남아있음을 확인해주세요.")
+      setClaimError(t.bottleCap.sealRequiredError)
       return
     }
     setClaimBusy(true)
@@ -67,7 +72,8 @@ export default function BottleCapRewardsPage() {
     setClaimError(null)
     try {
       await submitBottleCapClaim({
-        isZentaro,
+        isZentaro: productChoice !== "other",
+        zentaroProduct: productChoice === "blue" ? "blue" : "origin",
         brand,
         quantity,
         sealConfirmed,
@@ -75,7 +81,7 @@ export default function BottleCapRewardsPage() {
         trackingNumber: trackingNumber || undefined,
         note: note || undefined,
       })
-      setClaimMessage("신청이 접수되었습니다. 실물 확인 후 쇼핑머니(ZP)가 지급됩니다.")
+      setClaimMessage(t.bottleCap.claimSuccessMessage)
       setBrand("")
       setQuantity(1)
       setSealConfirmed(false)
@@ -84,7 +90,7 @@ export default function BottleCapRewardsPage() {
       setNote("")
       loadClaims()
     } catch (err) {
-      setClaimError(err instanceof Error ? err.message : "신청에 실패했습니다.")
+      setClaimError(err instanceof Error ? err.message : t.bottleCap.genericSubmitError)
     } finally {
       setClaimBusy(false)
     }
@@ -104,20 +110,27 @@ export default function BottleCapRewardsPage() {
     }
   }
 
+  const brandPlaceholder =
+    productChoice === "origin"
+      ? t.bottleCap.brandPlaceholderOrigin
+      : productChoice === "blue"
+        ? t.bottleCap.brandPlaceholderBlue
+        : t.bottleCap.brandPlaceholderOther
+
   return (
     <div>
       <PageHeader
-        eyebrow="서비스"
-        title="Bottle Cap Rewards"
-        description="병뚜껑 리워드 — 실물 발송 신청, QR 스캔으로 ZTRO 즉시 지급"
+        eyebrow={t.bottleCap.eyebrow}
+        title={t.bottleCap.title}
+        description={t.bottleCap.description}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
         {error === "로그인이 필요합니다." ? (
           <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-            로그인이 필요합니다.{" "}
+            {t.bottleCap.loginRequired}{" "}
             <Link href="/my/profile" className="text-primary underline underline-offset-4">
-              로그인 하러가기
+              {t.bottleCap.loginCta}
             </Link>
           </div>
         ) : (
@@ -126,10 +139,9 @@ export default function BottleCapRewardsPage() {
               onSubmit={handleClaimSubmit}
               className="flex flex-col gap-4 rounded-lg border border-border/60 bg-card p-5"
             >
-              <h3 className="font-display text-base font-medium">병뚜껑 실물 발송 신청</h3>
+              <h3 className="font-display text-base font-medium">{t.bottleCap.formTitle}</h3>
               <p className="text-xs text-muted-foreground">
-                병뚜껑을 젠타로 본사로 발송하시면 실물 확인 후 쇼핑머니(<span className="notranslate">EXP</span>)가 지급됩니다.
-                ZENTARO_ORIGIN 증류식 병뚜껑은 개당 <span className="notranslate">EXP</span> 10,000 충전됩니다.
+                {t.bottleCap.formDescriptionIntro} {t.bottleCap.rateOrigin} {t.bottleCap.rateBlue}
               </p>
 
               {claimMessage ? (
@@ -145,28 +157,29 @@ export default function BottleCapRewardsPage() {
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  구분
+                  {t.bottleCap.typeLabel}
                   <select
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
-                    value={isZentaro ? "zentaro" : "other"}
-                    onChange={(e) => setIsZentaro(e.target.value === "zentaro")}
+                    value={productChoice}
+                    onChange={(e) => setProductChoice(e.target.value as ProductChoice)}
                   >
-                    <option value="zentaro">ZENTARO_ORIGIN 증류식</option>
-                    <option value="other">기타 브랜드</option>
+                    <option value="origin">{t.bottleCap.typeOrigin}</option>
+                    <option value="blue">{t.bottleCap.typeBlue}</option>
+                    <option value="other">{t.bottleCap.typeOther}</option>
                   </select>
                 </label>
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  브랜드/제품명
+                  {t.bottleCap.brandLabel}
                   <input
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={brand}
                     onChange={(e) => setBrand(e.target.value)}
                     required
-                    placeholder={isZentaro ? "예: ZENTARO Distilled Soju" : "예: Ballantine's"}
+                    placeholder={brandPlaceholder}
                   />
                 </label>
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground sm:w-28">
-                  수량
+                  {t.bottleCap.quantityLabel}
                   <input
                     type="number"
                     min={1}
@@ -179,7 +192,7 @@ export default function BottleCapRewardsPage() {
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  연락처
+                  {t.bottleCap.contactLabel}
                   <input
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={contactPhone}
@@ -189,7 +202,7 @@ export default function BottleCapRewardsPage() {
                   />
                 </label>
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  택배 송장번호 (선택)
+                  {t.bottleCap.trackingLabel}
                   <input
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={trackingNumber}
@@ -199,7 +212,7 @@ export default function BottleCapRewardsPage() {
               </div>
 
               <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                특이사항 (선택)
+                {t.bottleCap.noteLabel}
                 <textarea
                   className="min-h-16 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                   value={note}
@@ -215,7 +228,7 @@ export default function BottleCapRewardsPage() {
                   onChange={(e) => setSealConfirmed(e.target.checked)}
                   required
                 />
-                병뚜껑에 인지세 봉인스티커 일부가 남아있음을 확인합니다.
+                {t.bottleCap.sealConfirmLabel}
               </label>
 
               <Button
@@ -223,15 +236,15 @@ export default function BottleCapRewardsPage() {
                 disabled={claimBusy}
                 className="self-start bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                신청하기
+                {t.bottleCap.submitButton}
               </Button>
             </form>
 
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="mb-3 font-display text-base font-medium">발송 신청 내역</h3>
+              <h3 className="mb-3 font-display text-base font-medium">{t.bottleCap.historyTitle}</h3>
               <div className="flex flex-col gap-2">
                 {claims && claims.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">신청 내역이 없습니다.</p>
+                  <p className="text-xs text-muted-foreground">{t.bottleCap.historyEmpty}</p>
                 ) : null}
                 {claims?.map((claim) => (
                   <div
@@ -259,8 +272,8 @@ export default function BottleCapRewardsPage() {
                       {claim.status === "approved"
                         ? `+${claim.apAmount} ZP${claim.expAmount ? ` · +${claim.expAmount} EXP` : ""}`
                         : claim.status === "rejected"
-                          ? claim.rejectReason ?? "반려 사유 없음"
-                          : "확인 대기중"}
+                          ? claim.rejectReason ?? t.bottleCap.rejectFallback
+                          : t.bottleCap.pendingNote}
                     </span>
                   </div>
                 ))}
@@ -268,17 +281,16 @@ export default function BottleCapRewardsPage() {
             </div>
 
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">QR 스캔으로 ZTRO 받기</h3>
-              <p className="mt-1 text-xs text-muted-foreground">
-                병뚜껑 안에 있는 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시
-                지급됩니다. QR 코드는 1회만 사용할 수 있습니다.
-              </p>
+              <h3 className="font-display text-base font-medium">{t.bottleCap.qrSectionTitle}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t.bottleCap.qrSectionDescription}</p>
 
               {rewardResult ? (
                 <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-primary/30 bg-secondary/40 px-4 py-3 text-sm">
-                  <p className="text-primary">🎉 {rewardResult.amount} ZTRO 획득!</p>
+                  <p className="text-primary">
+                    🎉 {rewardResult.amount} ZTRO {t.bottleCap.qrCongrats}
+                  </p>
                   <p className="text-xs text-muted-foreground">
-                    지갑 주소: {rewardResult.walletAddress}
+                    {t.bottleCap.walletAddressLabel} {rewardResult.walletAddress}
                   </p>
                   <a
                     href={`https://opbnbscan.com/tx/${rewardResult.txHash}`}
@@ -286,7 +298,7 @@ export default function BottleCapRewardsPage() {
                     rel="noreferrer"
                     className="text-xs text-primary underline underline-offset-4"
                   >
-                    트랜잭션 확인하기
+                    {t.bottleCap.viewTxLink}
                   </a>
                   <Button
                     type="button"
@@ -297,7 +309,7 @@ export default function BottleCapRewardsPage() {
                       setScanning(true)
                     }}
                   >
-                    다시 스캔하기
+                    {t.bottleCap.scanAgainButton}
                   </Button>
                 </div>
               ) : redeeming ? (
@@ -321,7 +333,7 @@ export default function BottleCapRewardsPage() {
                     }}
                     className="bg-primary text-primary-foreground hover:bg-primary/90"
                   >
-                    QR 스캔하기
+                    {t.bottleCap.scanButton}
                   </Button>
                 </div>
               )}

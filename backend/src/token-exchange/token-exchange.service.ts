@@ -73,6 +73,15 @@ function computeBarrelValueZp(capacity: string, agingSeconds: number, config: Ba
   return Math.round(baseZp * Math.pow(1 + config.annualGrowthRate, ageYears));
 }
 
+/** Admins can override a specific barrel's annual growth rate; falls back to the global config when unset. */
+function effectivePricingForBarrel(barrel: any, config: BarrelPricingConfig): BarrelPricingConfig {
+  const override = barrel?.customAnnualGrowthRate;
+  if (typeof override === 'number' && Number.isFinite(override)) {
+    return { ...config, annualGrowthRate: override };
+  }
+  return config;
+}
+
 @Injectable()
 export class TokenExchangeService {
   constructor(
@@ -457,6 +466,28 @@ export class TokenExchangeService {
     return this.getBarrelPricingConfig();
   }
 
+  /** Per-barrel override of the annual growth rate; pass null to revert to the global default. */
+  async updateBarrelGrowthRateAdmin(barrelId: string, annualGrowthRate: number | null) {
+    if (annualGrowthRate !== null && (!Number.isFinite(annualGrowthRate) || annualGrowthRate < 0)) {
+      throw new BadRequestException('연간 성장률은 0 이상의 숫자이거나 null(기본값 사용)이어야 합니다.');
+    }
+    const ref = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await ref.get();
+    if (!snap.exists) {
+      throw new BadRequestException('존재하지 않는 배럴입니다.');
+    }
+    await ref.update({ customAnnualGrowthRate: annualGrowthRate });
+
+    const pricing = await this.getBarrelPricingConfig();
+    const barrel = { ...(snap.data() as any), customAnnualGrowthRate: annualGrowthRate };
+    const currentValueZp = computeBarrelValueZp(
+      barrel.capacity,
+      agingSecondsFromDoc(barrel),
+      effectivePricingForBarrel(barrel, pricing),
+    );
+    return { success: true, barrelId, customAnnualGrowthRate: annualGrowthRate, currentValueZp };
+  }
+
   async listMyBarrels(uid: string) {
     const [snap, pricing] = await Promise.all([
       this.db.collection(COLLECTIONS.ZENTARO_BARRELS).where('userId', '==', uid).get(),
@@ -467,7 +498,11 @@ export class TokenExchangeService {
       const barrel = doc.data() as any;
       return {
         ...barrel,
-        currentValueZp: computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing),
+        currentValueZp: computeBarrelValueZp(
+          barrel.capacity,
+          agingSecondsFromDoc(barrel),
+          effectivePricingForBarrel(barrel, pricing),
+        ),
       };
     });
     return list.sort((a: any, b: any) => {
@@ -501,7 +536,12 @@ export class TokenExchangeService {
         productionDate: b.productionDate ?? null,
         agingEndedAt: b.agingEndedAt ?? null,
         forSale: b.forSale ?? false,
-        currentValueZp: computeBarrelValueZp(b.capacity, agingSecondsFromDoc(b), pricing),
+        currentValueZp: computeBarrelValueZp(
+          b.capacity,
+          agingSecondsFromDoc(b),
+          effectivePricingForBarrel(b, pricing),
+        ),
+        customAnnualGrowthRate: typeof b.customAnnualGrowthRate === 'number' ? b.customAnnualGrowthRate : null,
         ownerLabel: maskEmail(emailByUid.get(b.userId)),
         ownerId: b.userId,
       }))
@@ -539,7 +579,7 @@ export class TokenExchangeService {
         const currentValueZp = computeBarrelValueZp(
           barrelData.capacity,
           agingSecondsFromDoc(barrelData),
-          pricing,
+          effectivePricingForBarrel(barrelData, pricing),
         );
         const fee = Math.round(currentValueZp * BARREL_STORAGE_FEE_RATE);
         const userSnap = await tx.get(userRef);
@@ -613,7 +653,11 @@ export class TokenExchangeService {
     }
     await barrelRef.update({ forSale: true, salePriceZp: null });
     const pricing = await this.getBarrelPricingConfig();
-    const currentValueZp = computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing);
+    const currentValueZp = computeBarrelValueZp(
+      barrel.capacity,
+      agingSecondsFromDoc(barrel),
+      effectivePricingForBarrel(barrel, pricing),
+    );
     return { success: true, forSale: true, currentValueZp };
   }
 
@@ -650,7 +694,11 @@ export class TokenExchangeService {
 
       const sellerUid = barrel.userId;
       // Priced live at the moment of purchase — never a stale stored value.
-      const price = computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing);
+      const price = computeBarrelValueZp(
+        barrel.capacity,
+        agingSecondsFromDoc(barrel),
+        effectivePricingForBarrel(barrel, pricing),
+      );
       const fee = Math.round(price * P2P_TRADE_FEE_RATE);
       const sellerReceives = price - fee;
 

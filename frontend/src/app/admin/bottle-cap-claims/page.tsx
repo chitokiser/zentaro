@@ -82,7 +82,11 @@ export default function AdminBottleCapClaimsPage() {
                   {item.brand} x{item.quantity}
                 </span>
                 <Badge variant={item.isZentaro ? "default" : "outline"} className="text-[10px]">
-                  {item.isZentaro ? "ZENTARO (EXP 자동지급)" : "기타 브랜드"}
+                  {item.isZentaro
+                    ? item.zentaroProduct === "blue"
+                      ? "ZENTARO_Blue 드라이진 (EXP 30,000/개)"
+                      : "ZENTARO_ORIGIN 증류식 소주 (EXP 10,000/개)"
+                    : "기타 브랜드"}
                 </Badge>
                 <Badge variant="outline" className="text-[10px]">
                   {item.email}

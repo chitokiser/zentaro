@@ -10,7 +10,8 @@ import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { SubmitBottleCapClaimDto } from './dto/submit-bottle-cap-claim.dto';
 
-const EXP_PER_ZENTARO_CAP = 10000;
+const EXP_PER_ZENTARO_ORIGIN_CAP = 10000;
+const EXP_PER_ZENTARO_BLUE_CAP = 30000;
 
 @Injectable()
 export class BottleCapsService {
@@ -31,6 +32,7 @@ export class BottleCapsService {
       userId: uid,
       email,
       isZentaro: dto.isZentaro,
+      zentaroProduct: dto.isZentaro ? (dto.zentaroProduct ?? 'origin') : null,
       brand: dto.brand,
       quantity: dto.quantity,
       sealConfirmed: dto.sealConfirmed,
@@ -78,7 +80,12 @@ export class BottleCapsService {
         throw new NotFoundException('User not found');
       }
 
-      const expAmount = claim.isZentaro ? EXP_PER_ZENTARO_CAP * claim.quantity : 0;
+      const perCapExp = !claim.isZentaro
+        ? 0
+        : claim.zentaroProduct === 'blue'
+          ? EXP_PER_ZENTARO_BLUE_CAP
+          : EXP_PER_ZENTARO_ORIGIN_CAP;
+      const expAmount = perCapExp * claim.quantity;
 
       tx.update(claimRef, {
         status: 'approved',
