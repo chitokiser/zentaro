@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Playfair_Display, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
 import { SiteHeader } from "@/components/site-header";
@@ -26,6 +26,12 @@ export const metadata: Metadata = {
   title,
   description,
   metadataBase: new URL("https://zentaro.netlify.app"),
+  // The site already ships its own ko/en/vi translations (see i18n-context),
+  // so browser/Google auto-translate is redundant and mangles domain terms
+  // like "EXP" (mistranslated as an expiration-date abbreviation).
+  other: {
+    google: "notranslate",
+  },
   openGraph: {
     title,
     description,
@@ -39,6 +45,15 @@ export const metadata: Metadata = {
     title,
     description,
   },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "ZENTARO",
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0a1912",
 };
 
 export default function RootLayout({
@@ -49,7 +64,8 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased`}
+      translate="no"
+      className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased notranslate`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <I18nProvider>

@@ -52,6 +52,7 @@ export default function ExchangePage() {
   const [sellAmount, setSellAmount] = useState(1)
   const [stakeAmount, setStakeAmount] = useState(1)
   const [now, setNow] = useState(() => Date.now())
+  const [walletBusy, setWalletBusy] = useState(false)
 
   const load = useCallback(() => {
     fetchExchangeDashboard()
@@ -106,6 +107,21 @@ export default function ExchangePage() {
     setActionMessage("주소를 복사했습니다.")
   }
 
+  // 지갑 생성은 서버에서 대시보드 조회 시 자동/멱등으로 처리됨 — 이미 있으면 그대로 통과.
+  async function handleCreateWallet() {
+    setWalletBusy(true)
+    setActionError(null)
+    try {
+      const data = await fetchExchangeDashboard()
+      setDashboard(data)
+      setActionMessage("수탁지갑이 준비되었습니다.")
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : "지갑 생성에 실패했습니다.")
+    } finally {
+      setWalletBusy(false)
+    }
+  }
+
   return (
     <div>
       <PageHeader
@@ -146,6 +162,34 @@ export default function ExchangePage() {
               <p className="text-xs text-muted-foreground leading-relaxed">
                 가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 EXP를 지급받습니다. 스테이킹한 수량에 따라 그 외 다양한 혜택을 받을 수 있습니다.
               </p>
+            </div>
+
+            {/* 수탁지갑 발급 */}
+            <div className="rounded-lg border border-border/60 bg-card p-5">
+              <h3 className="font-display text-base font-medium">수탁지갑</h3>
+              {dashboard.address ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                  <span className="text-emerald-500">이미 발급된 수탁지갑이 있습니다.</span>
+                  <span className="font-mono text-xs text-muted-foreground break-all">
+                    {dashboard.address}
+                  </span>
+                  <Button type="button" size="sm" variant="outline" onClick={copyAddress}>
+                    주소 복사
+                  </Button>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <Button
+                    type="button"
+                    size="sm"
+                    disabled={walletBusy}
+                    onClick={handleCreateWallet}
+                    className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    {walletBusy ? "생성 중..." : "수탁지갑 생성하기"}
+                  </Button>
+                </div>
+              )}
             </div>
 
             {/* 잔액/포지션 */}
