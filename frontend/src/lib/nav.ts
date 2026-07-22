@@ -53,6 +53,11 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
           description: t.nav.serviceItems.contributionDesc,
         },
         {
+          label: t.nav.serviceItems.barrelReserve,
+          href: "/rewards/barrel-reserve",
+          description: t.nav.serviceItems.barrelReserveDesc,
+        },
+        {
           label: t.nav.serviceItems.webzine,
           href: "/webzine",
           description: t.nav.serviceItems.webzineDesc,
