@@ -33,6 +33,7 @@ export default function AdminZtroRewardsPage() {
   const [justIssued, setJustIssued] = useState<ZtroRewardCodeItem[] | null>(null)
   const [poolBalance, setPoolBalance] = useState<number | null>(null)
   const [poolError, setPoolError] = useState<string | null>(null)
+  const [viewingQrCode, setViewingQrCode] = useState<string | null>(null)
 
   const load = useCallback(() => {
     listZtroRewardCodes()
@@ -173,6 +174,14 @@ export default function AdminZtroRewardsPage() {
                 <Badge variant="outline" className="text-[10px]">
                   {STATUS_LABEL[item.status]}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 text-[10px]"
+                  onClick={() => setViewingQrCode(item.code)}
+                >
+                  QR 보기
+                </Button>
               </div>
             </div>
           ))}
@@ -203,7 +212,7 @@ export default function AdminZtroRewardsPage() {
                     href={`https://opbnbscan.com/tx/${item.txHash}`}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-primary underline underline-offset-4"
+                    className="text-xs text-primary underline underline-offset-4 mr-1"
                   >
                     tx 보기
                   </a>
@@ -214,11 +223,38 @@ export default function AdminZtroRewardsPage() {
                 >
                   {STATUS_LABEL[item.status]}
                 </Badge>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="h-7 px-2 text-[10px]"
+                  onClick={() => setViewingQrCode(item.code)}
+                >
+                  QR 보기
+                </Button>
               </div>
             </div>
           ))}
         </div>
       </div>
+
+      {viewingQrCode && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card w-full max-w-sm rounded-lg border border-border/60 p-6 flex flex-col items-center gap-4 text-center shadow-xl">
+            <h3 className="font-display text-sm font-semibold">QR 코드 리워드</h3>
+            <div className="rounded-md border border-border/40 p-3 bg-white">
+              <img
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(viewingQrCode)}`}
+                alt={viewingQrCode}
+                className="w-48 h-48"
+              />
+            </div>
+            <p className="font-mono text-xs text-muted-foreground">{viewingQrCode}</p>
+            <Button size="sm" onClick={() => setViewingQrCode(null)} className="w-full mt-2">
+              닫기
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
