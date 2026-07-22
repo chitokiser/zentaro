@@ -145,15 +145,27 @@ export class OrdersService {
       };
       tx.set(orderRef, orderData);
 
+      const productNames = items.map((i) => i.productName).join(', ');
       const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
       tx.set(txRef, {
         userId: uid,
         amount: -apToPay,
         type: 'zentaro_mall_purchase',
-        description: `ZENTARO Mall: ${items.map((i) => i.productName).join(', ')}`,
+        description: `ZENTARO Mall (ZP 결제): ${productNames}`,
         orderId: orderRef.id,
         createdAt: FieldValue.serverTimestamp(),
       });
+      if (expToUse > 0) {
+        const expTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+        tx.set(expTxRef, {
+          userId: uid,
+          amount: -expToUse,
+          type: 'zentaro_mall_purchase',
+          description: `ZENTARO Mall (EXP 결제): ${productNames}`,
+          orderId: orderRef.id,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       return {
         orderId: orderRef.id,

@@ -141,10 +141,20 @@ export class AuthService {
   async getMe(uid: string) {
     const snap = await this.usersCol().doc(uid).get();
     const data = snap.data() ?? {};
-    const adminLevel: number | null = data.adminLevel ?? null;
+    const email: string | null = data.email ?? null;
+    let adminLevel: number | null = data.adminLevel ?? null;
+
+    // Self-heal on every call, not just login: a protected ADMIN_EMAILS
+    // account must never be stuck below level 1 (e.g. after someone
+    // fat-fingers a level-2/3 button on their own row in the admin list).
+    if (email && this.isAdminEmail(email) && adminLevel !== 1) {
+      await this.usersCol().doc(uid).set({ adminLevel: 1, isAdmin: true }, { merge: true });
+      adminLevel = 1;
+    }
+
     return {
       uid,
-      email: data.email ?? null,
+      email,
       photoUrl: data.photoUrl ?? null,
       isAdmin: adminLevel !== null,
       adminLevel,

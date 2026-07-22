@@ -16,6 +16,19 @@ export interface WalletView {
   nfts: string[];
 }
 
+// TRANSACTIONS is shared across every aim119 app, so any read here must
+// filter to these Zentaro-specific types — otherwise this would leak
+// other apps' ledger data into the Zentaro admin dashboard.
+const ZENTARO_TRANSACTION_TYPES = [
+  'points_charge',
+  'admin_exp_adjustment',
+  'staking_exp_reward',
+  'barrel_order',
+  'zentaro_mall_purchase',
+  'zentaro_bottle_cap_reward',
+  'zentaro_contribution_reward',
+];
+
 const DEFAULT_WALLET = {
   exp: 0,
   timeToken: 0,
@@ -279,5 +292,26 @@ export class WalletService {
 
       return { uid, exp: nextExp };
     });
+  }
+
+  /** Full EXP/ZP ledger across every Zentaro earn/spend flow, newest first, for the admin monitor. */
+  async listTransactionsAdmin() {
+    const snap = await this.db
+      .collection(COLLECTIONS.TRANSACTIONS)
+      .where('type', 'in', ZENTARO_TRANSACTION_TYPES)
+      .get();
+
+    const rows = snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }) as any)
+      .sort((a, b) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0))
+      .slice(0, 500);
+
+    const uids = [...new Set(rows.map((r) => r.userId).filter(Boolean))];
+    const userSnaps = await Promise.all(
+      uids.map((uid) => this.db.collection(COLLECTIONS.USERS).doc(uid).get()),
+    );
+    const emailByUid = new Map(userSnaps.map((s) => [s.id, s.data()?.email ?? null]));
+
+    return rows.map((r) => ({ ...r, email: emailByUid.get(r.userId) ?? null }));
   }
 }

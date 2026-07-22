@@ -62,6 +62,13 @@ export class WalletController {
     return this.walletService.listAllMembersAdmin();
   }
 
+  @Get('admin/transactions')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(1)
+  listTransactions() {
+    return this.walletService.listTransactionsAdmin();
+  }
+
   @Post('admin/members/:uid/exp')
   @UseGuards(AdminGuard)
   @RequireAdminLevel(1)

@@ -875,6 +875,22 @@ export async function adjustMemberExp(uid: string, amount: number, reason?: stri
   return res.json();
 }
 
+export interface LedgerTransaction {
+  id: string;
+  userId: string;
+  email: string | null;
+  amount: number;
+  type: string;
+  description: string;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function fetchTransactionsAdmin(): Promise<LedgerTransaction[]> {
+  const res = await fetch(`${API_URL}/wallet/admin/transactions`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface DepositRequest {
   id: string;
   userId: string;
