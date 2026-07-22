@@ -332,6 +332,9 @@ export class TokenExchangeService {
       '20L': { stakedZtro: 200000, expCost: 2000000 },
       '40L': { stakedZtro: 400000, expCost: 4000000 },
     };
+    // Fallback payment path for members who lack the ZTRO stake and/or EXP balance:
+    // pay 115% of the EXP cost directly in ZP instead.
+    const ZP_FALLBACK_RATE = 1.15;
 
     const reqs = BARREL_REQUIREMENTS[size];
     if (!reqs) {
@@ -348,17 +351,27 @@ export class TokenExchangeService {
     const userInfo = await bank.user(address);
     const stakedZtro = Number(userInfo.depo);
 
-    if (stakedZtro < reqs.stakedZtro) {
-      throw new BadRequestException(`ZTRO 스테이킹 요건이 부족합니다. 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹이 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO)`);
-    }
-
     const userWalletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
     const userWalletSnap = await userWalletRef.get();
     const walletData = userWalletSnap.exists ? userWalletSnap.data() : null;
     const currentExp = Number(walletData?.exp || 0);
 
-    if (currentExp < reqs.expCost) {
-      throw new BadRequestException(`EXP 잔액이 부족합니다. 최소 ${reqs.expCost.toLocaleString()} EXP가 필요합니다. (현재: ${currentExp.toLocaleString()} EXP)`);
+    const meetsStakeAndExp = stakedZtro >= reqs.stakedZtro && currentExp >= reqs.expCost;
+    const zpFallbackCost = Math.ceil(reqs.expCost * ZP_FALLBACK_RATE);
+
+    let paymentMethod: 'exp' | 'zp';
+    if (meetsStakeAndExp) {
+      paymentMethod = 'exp';
+    } else {
+      const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+      const userSnap = await userRef.get();
+      const currentPoints = Number(userSnap.data()?.points || 0);
+      if (currentPoints < zpFallbackCost) {
+        throw new BadRequestException(
+          `주문 자격 요건이 부족합니다. 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹 + ${reqs.expCost.toLocaleString()} EXP가 필요하거나, 대체 결제로 ${zpFallbackCost.toLocaleString()} ZP가 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO, ${currentExp.toLocaleString()} EXP, ${currentPoints.toLocaleString()} ZP)`,
+        );
+      }
+      paymentMethod = 'zp';
     }
 
     const barrelId = `ZT-REV-${size}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
@@ -366,18 +379,28 @@ export class TokenExchangeService {
     const qrKey = Math.random().toString(36).substring(2, 12).toUpperCase();
 
     await this.db.runTransaction(async (tx) => {
-      // Deduct EXP
-      tx.set(userWalletRef, { exp: FieldValue.increment(-reqs.expCost) }, { merge: true });
-
-      // Log transaction
       const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
-      tx.set(txRef, {
-        userId: uid,
-        amount: -reqs.expCost,
-        type: 'barrel_order',
-        description: `ZenTaro Barrel Reserve ${size} 배럴 주문 및 EXP 차감`,
-        createdAt: FieldValue.serverTimestamp(),
-      });
+
+      if (paymentMethod === 'exp') {
+        tx.set(userWalletRef, { exp: FieldValue.increment(-reqs.expCost) }, { merge: true });
+        tx.set(txRef, {
+          userId: uid,
+          amount: -reqs.expCost,
+          type: 'barrel_order',
+          description: `ZenTaro Barrel Reserve ${size} 배럴 주문 및 EXP 차감`,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      } else {
+        const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+        tx.update(userRef, { points: FieldValue.increment(-zpFallbackCost) });
+        tx.set(txRef, {
+          userId: uid,
+          amount: -zpFallbackCost,
+          type: 'barrel_order',
+          description: `ZenTaro Barrel Reserve ${size} 배럴 주문 (ZTRO/EXP 요건 미충족으로 EXP가의 ${(ZP_FALLBACK_RATE * 100).toFixed(0)}%인 ZP 대체 결제)`,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       // Create new barrel document
       const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
@@ -401,13 +424,15 @@ export class TokenExchangeService {
             ownerId: uid,
             ownerAddress: address,
             action: 'initial_reservation',
-            message: '최초 배럴 예약 및 소유 증명서 발급 완료',
+            message: paymentMethod === 'exp'
+              ? '최초 배럴 예약 및 소유 증명서 발급 완료'
+              : `최초 배럴 예약 및 소유 증명서 발급 완료 (ZP 대체 결제 ${zpFallbackCost.toLocaleString()} ZP)`,
           }
         ]
       });
     });
 
-    return { success: true, barrelId, certNumber };
+    return { success: true, barrelId, certNumber, paymentMethod, paidAmount: paymentMethod === 'exp' ? reqs.expCost : zpFallbackCost };
   }
 
   async getBarrelPricingConfig(): Promise<BarrelPricingConfig> {

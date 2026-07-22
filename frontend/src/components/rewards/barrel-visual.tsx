@@ -2,25 +2,45 @@
 
 import { cn } from "@/lib/utils"
 
-const SIZE_STYLE: Record<string, { scale: number; label: string; image: string }> = {
-    "5L": { scale: 0.72, label: "Light Toast", image: "/images/products/oak/5.png" },
-    "10L": { scale: 0.84, label: "Honey Charred", image: "/images/products/oak/10.png" },
-    "20L": { scale: 0.96, label: "Heavy Toast", image: "/images/products/oak/20.png" },
-    "40L": { scale: 1.08, label: "Ex-Bourbon", image: "/images/products/oak/40.png" },
+const OAK_BARREL_IMAGE = "/images/products/oak/Oak%20barrel.png"
+
+const SIZE_STYLE: Record<string, { scale: number; label: string }> = {
+    "5L": { scale: 0.72, label: "Light Toast" },
+    "10L": { scale: 0.84, label: "Honey Charred" },
+    "20L": { scale: 0.96, label: "Heavy Toast" },
+    "40L": { scale: 1.08, label: "Ex-Bourbon" },
+}
+
+// New-make spirit is pale straw; fully aged spirit has drawn deep amber/mahogany
+// color out of the oak — particles shift along this gradient as progress climbs.
+const PARTICLE_START = { r: 250, g: 240, b: 210 }
+const PARTICLE_END = { r: 120, g: 55, b: 20 }
+const MIN_PARTICLES = 2
+const MAX_PARTICLES = 8
+
+function particleColor(progress: number): string {
+    const t = Math.min(1, Math.max(0, progress))
+    const r = Math.round(PARTICLE_START.r + (PARTICLE_END.r - PARTICLE_START.r) * t)
+    const g = Math.round(PARTICLE_START.g + (PARTICLE_END.g - PARTICLE_START.g) * t)
+    const b = Math.round(PARTICLE_START.b + (PARTICLE_END.b - PARTICLE_START.b) * t)
+    return `rgb(${r}, ${g}, ${b})`
 }
 
 interface BarrelVisualProps {
     capacity: string
-    progress: number // 0..1 aging progress, drives the progress bar fill
-    isAging: boolean // when true, plays the glow/shimmer/bubble animation
+    progress: number // 0..1 aging progress, drives the progress bar + particle color/count
+    isAging: boolean // when true, plays the glow/particle animation
     isDone: boolean // delivered/bottled — shown dimmed with an EMPTY tag
     className?: string
 }
 
 export function BarrelVisual({ capacity, progress, isAging, isDone, className }: BarrelVisualProps) {
     const style = SIZE_STYLE[capacity] ?? SIZE_STYLE["10L"]
-    const fillPct = isDone ? 0 : Math.min(100, Math.max(4, Math.round(progress * 100)))
+    const clampedProgress = Math.min(1, Math.max(0, progress))
+    const fillPct = isDone ? 0 : Math.min(100, Math.max(4, Math.round(clampedProgress * 100)))
     const size = { width: 96 * style.scale, height: 96 * style.scale }
+    const particleCount = Math.round(MIN_PARTICLES + (MAX_PARTICLES - MIN_PARTICLES) * clampedProgress)
+    const color = particleColor(clampedProgress)
 
     return (
         <div
@@ -36,7 +56,7 @@ export function BarrelVisual({ capacity, progress, isAging, isDone, className }:
             >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                    src={style.image}
+                    src={OAK_BARREL_IMAGE}
                     alt={`${capacity} Oak Barrel`}
                     className={cn(
                         "w-full h-full object-contain transition-all duration-700",
@@ -45,11 +65,17 @@ export function BarrelVisual({ capacity, progress, isAging, isDone, className }:
                 />
 
                 {isAging &&
-                    [0, 1, 2].map((i) => (
+                    Array.from({ length: particleCount }).map((_, i) => (
                         <span
                             key={i}
-                            className="barrel-bubble absolute bottom-2 w-1 h-1 rounded-full bg-amber-100/80"
-                            style={{ left: `${28 + i * 22}%`, animationDelay: `${i * 1.1}s` }}
+                            className="barrel-bubble absolute bottom-2 rounded-full transition-colors duration-1000"
+                            style={{
+                                left: `${12 + ((i * 76) / Math.max(1, particleCount - 1 || 1))}%`,
+                                width: 4 + (i % 2),
+                                height: 4 + (i % 2),
+                                backgroundColor: color,
+                                animationDelay: `${(i % 4) * 0.8}s`,
+                            }}
                         />
                     ))}
 

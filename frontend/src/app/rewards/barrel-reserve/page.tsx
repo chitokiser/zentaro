@@ -113,6 +113,9 @@ const BARREL_SPECS: BarrelSpec[] = [
 ]
 
 const BARREL_STORAGE_FEE_RATE = 0.15
+// Fallback purchase path for members lacking the ZTRO stake + EXP requirement:
+// pay 115% of the EXP cost directly in ZP instead.
+const ZP_FALLBACK_RATE = 1.15
 
 const FLAVORS = [
     { name: "Vanilla", desc: "천연 오크의 리그닌 분해에서 오는 달콤하고 부드러운 화이트 아로마" },
@@ -131,6 +134,7 @@ export default function BarrelReservePage() {
 
     // User Info & Balances
     const [expBalance, setExpBalance] = useState<number>(0)
+    const [zpBalance, setZpBalance] = useState<number>(0)
     const [stakedZtro, setStakedZtro] = useState<number>(0)
     const [walletAddress, setWalletAddress] = useState<string>("")
 
@@ -160,6 +164,7 @@ export default function BarrelReservePage() {
         try {
             const wallet = await fetchWallet()
             setExpBalance(wallet.exp)
+            setZpBalance(wallet.ap)
 
             const dashboard = await fetchExchangeDashboard()
             setStakedZtro(dashboard.staked)
@@ -212,18 +217,20 @@ export default function BarrelReservePage() {
     const handleOrderSubmit = async () => {
         const cost = currentSpec.expRequirementValue
         const ztroNeed = currentSpec.ztroRequirementValue
+        const meetsStakeAndExp = stakedZtro >= ztroNeed && expBalance >= cost
+        const zpFallbackCost = Math.ceil(cost * ZP_FALLBACK_RATE)
 
-        if (stakedZtro < ztroNeed) {
-            alert(`주문 자격 요건이 부족합니다. 최소 ${ztroNeed.toLocaleString()} ZTRO를 스테이킹해야 합니다. (보보유: ${stakedZtro.toLocaleString()} ZTRO)`)
+        let confirmMessage: string
+        if (meetsStakeAndExp) {
+            confirmMessage = `${currentSpec.label} 배럴 예약을 요청하시겠습니까? 신청 시 ${cost.toLocaleString()} EXP가 즉시 차감됩니다.`
+        } else if (zpBalance >= zpFallbackCost) {
+            confirmMessage = `ZTRO 스테이킹 또는 EXP 잔액 요건을 충족하지 못했습니다. 대신 ${zpFallbackCost.toLocaleString()} ZP (EXP가의 ${(ZP_FALLBACK_RATE * 100).toFixed(0)}%)를 결제하고 ${currentSpec.label} 배럴을 주문하시겠습니까?`
+        } else {
+            alert(`주문 자격 요건이 부족합니다.\n\n[방법 1] 최소 ${ztroNeed.toLocaleString()} ZTRO 스테이킹 + ${cost.toLocaleString()} EXP 필요 (현재: ${stakedZtro.toLocaleString()} ZTRO, ${expBalance.toLocaleString()} EXP)\n[방법 2] 대체 결제로 ${zpFallbackCost.toLocaleString()} ZP 필요 (현재 보유: ${zpBalance.toLocaleString()} ZP)`)
             return
         }
 
-        if (expBalance < cost) {
-            alert(`EXP 잔액이 부족합니다. 최소 ${cost.toLocaleString()} EXP가 차감 가능해야 합니다. (보유: ${expBalance.toLocaleString()} EXP)`)
-            return
-        }
-
-        if (!confirm(`${currentSpec.label} 배럴 예약을 요청하시겠습니까? 신청 시 ${cost.toLocaleString()} EXP가 즉시 차감됩니다.`)) {
+        if (!confirm(confirmMessage)) {
             return
         }
 
@@ -233,7 +240,10 @@ export default function BarrelReservePage() {
 
         try {
             const result = await submitBarrelOrder(selectedSize)
-            setActionSuccess(`주문 완료! 고유 배럴 ID: ${result.barrelId} 예약 및 소유권 카드 생성이 자동으로 완료되었습니다.`)
+            const paidLabel = result.paymentMethod === "zp"
+                ? `${result.paidAmount.toLocaleString()} ZP 대체 결제`
+                : `${result.paidAmount.toLocaleString()} EXP 차감`
+            setActionSuccess(`주문 완료! 고유 배럴 ID: ${result.barrelId} (${paidLabel}) 예약 및 소유권 카드 생성이 자동으로 완료되었습니다.`)
             await loadData()
         } catch (err) {
             setActionError(err instanceof Error ? err.message : "배럴 주문 처리에 실패했습니다.")
@@ -328,7 +338,7 @@ export default function BarrelReservePage() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
                         <div>
                             <span className="text-xs text-muted-foreground block">총 ZTRO 스테이킹 수량</span>
                             <span className="text-base font-bold text-foreground mt-1 block">
@@ -339,6 +349,12 @@ export default function BarrelReservePage() {
                             <span className="text-xs text-muted-foreground block">사용 가능한 <span className="notranslate">EXP</span> 보유고</span>
                             <span className="text-base font-bold text-amber-500 mt-1 block">
                                 {expBalance.toLocaleString()} <span className="notranslate">EXP</span>
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-xs text-muted-foreground block">사용 가능한 ZP 보유고</span>
+                            <span className="text-base font-bold text-emerald-500 mt-1 block">
+                                {zpBalance.toLocaleString()} ZP
                             </span>
                         </div>
                     </div>
@@ -480,6 +496,7 @@ export default function BarrelReservePage() {
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                         주문 시 토큰 스테이킹 조건을 충족해야 하며, 명시된 회원 전용 <span className="notranslate">EXP</span>가 즉시 차감 소모됩니다.
+                                        ZTRO 스테이킹 또는 <span className="notranslate">EXP</span> 요건을 충족하지 못한 회원은 <span className="notranslate">EXP</span>가의 {(ZP_FALLBACK_RATE * 100).toFixed(0)}%에 해당하는 ZP를 결제하여 대체 주문할 수 있습니다.
                                     </p>
                                 </div>
                                 <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
@@ -490,6 +507,10 @@ export default function BarrelReservePage() {
                                     <span className="text-muted-foreground block mt-1">소요 비용:</span>
                                     <span className="text-amber-500 font-bold block">
                                         {currentSpec.expRequirementValue.toLocaleString()} <span className="notranslate">EXP</span> 즉시 차감
+                                    </span>
+                                    <span className="text-muted-foreground block mt-1">또는 (ZTRO/EXP 요건 미충족 시) 대체 결제:</span>
+                                    <span className="text-emerald-500 font-bold block">
+                                        {Math.ceil(currentSpec.expRequirementValue * ZP_FALLBACK_RATE).toLocaleString()} ZP 즉시 차감
                                     </span>
                                 </div>
                                 <Button
