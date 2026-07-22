@@ -24,6 +24,8 @@ const ZENTARO_TRANSACTION_TYPES = [
   'admin_exp_adjustment',
   'staking_exp_reward',
   'barrel_order',
+  'barrel_delivery_fee',
+  'barrel_resale',
   'zentaro_mall_purchase',
   'zentaro_bottle_cap_reward',
   'zentaro_contribution_reward',

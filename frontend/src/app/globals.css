@@ -135,3 +135,38 @@
     @apply font-sans;
   }
 }
+
+@keyframes barrel-liquid-shimmer {
+  0% { background-position: 0% 0%; }
+  100% { background-position: 0% -200%; }
+}
+
+@keyframes barrel-glow-pulse {
+  0%, 100% { box-shadow: 0 0 12px 1px rgba(201, 162, 75, 0.25) inset; }
+  50% { box-shadow: 0 0 22px 4px rgba(201, 162, 75, 0.45) inset; }
+}
+
+@keyframes barrel-bubble-rise {
+  0% { transform: translateY(0) scale(1); opacity: 0; }
+  15% { opacity: 0.8; }
+  100% { transform: translateY(-46px) scale(0.4); opacity: 0; }
+}
+
+.barrel-liquid-fill {
+  background-image: repeating-linear-gradient(
+    180deg,
+    rgba(201, 162, 75, 0.9) 0px,
+    rgba(180, 120, 40, 0.85) 8px,
+    rgba(201, 162, 75, 0.9) 16px
+  );
+  background-size: 100% 32px;
+  animation: barrel-liquid-shimmer 3.5s linear infinite;
+}
+
+.barrel-glow-active {
+  animation: barrel-glow-pulse 2.8s ease-in-out infinite;
+}
+
+.barrel-bubble {
+  animation: barrel-bubble-rise 3.2s ease-in infinite;
+}

@@ -20,6 +20,7 @@ const ADMIN_SECTIONS: AdminSection[] = [
   { label: "회원 관리", href: "/admin/members", requiredLevel: 1 },
   { label: "ZP 충전 신청 관리", href: "/admin/deposits", requiredLevel: 1 },
   { label: "EXP/ZP 발행 현황", href: "/admin/transactions", requiredLevel: 1 },
+  { label: "오크배럴 관리", href: "/admin/barrels", requiredLevel: 2 },
   { label: "Ticket 발급", href: "/admin/tickets", requiredLevel: 2 },
   { label: "현물출자 심사", href: "/admin/contributions", requiredLevel: 2 },
   { label: "병뚜껑 리워드 심사", href: "/admin/bottle-cap-claims", requiredLevel: 2 },

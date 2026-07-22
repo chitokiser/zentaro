@@ -10,6 +10,8 @@ const TYPE_LABEL: Record<string, string> = {
   admin_exp_adjustment: "관리자 EXP 조정",
   staking_exp_reward: "스테이킹 주간 EXP",
   barrel_order: "배럴 주문 (EXP 차감)",
+  barrel_delivery_fee: "배럴 직접배송 택배비",
+  barrel_resale: "배럴 오너 간 매매",
   zentaro_mall_purchase: "몰 구매 (ZP/EXP 결제)",
   zentaro_bottle_cap_reward: "병뚜껑 리워드",
   zentaro_contribution_reward: "현물출자 리워드",

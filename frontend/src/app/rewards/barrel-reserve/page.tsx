@@ -11,8 +11,15 @@ import {
     submitBarrelOrder,
     fetchMyBarrels,
     triggerBarrelAction,
-    type BarrelDocument
+    fetchPublicBarrels,
+    listBarrelForSale,
+    cancelBarrelSale,
+    buyBarrel,
+    fetchMe,
+    type BarrelDocument,
+    type PublicBarrel
 } from "@/lib/auth-client"
+import { BarrelVisual, formatAgingDuration, AGING_TARGET_SECONDS } from "@/components/rewards/barrel-visual"
 import {
     Wine,
     Flame,
@@ -29,7 +36,11 @@ import {
     Calendar,
     AlertTriangle,
     PenTool,
-    CheckCircle2
+    CheckCircle2,
+    Users,
+    Tag,
+    ShoppingCart,
+    Timer
 } from "lucide-react"
 
 interface BarrelSpec {
@@ -101,6 +112,13 @@ const BARREL_SPECS: BarrelSpec[] = [
     }
 ]
 
+const BARREL_DELIVERY_FEES: Record<string, number> = {
+    "5L": 5000,
+    "10L": 8000,
+    "20L": 12000,
+    "40L": 20000,
+}
+
 const FLAVORS = [
     { name: "Vanilla", desc: "천연 오크의 리그닌 분해에서 오는 달콤하고 부드러운 화이트 아로마" },
     { name: "Caramel", desc: "가열된 목질부 설탕 성분의 캐러멜화 과정에서 형성되는 깊은 단맛" },
@@ -130,6 +148,14 @@ export default function BarrelReservePage() {
     const [actionBusy, setActionBusy] = useState<boolean>(false)
     const [actionError, setActionError] = useState<string | null>(null)
     const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+    const [myUid, setMyUid] = useState<string>("")
+
+    // Public Gallery (other members' barrels)
+    const [publicBarrels, setPublicBarrels] = useState<PublicBarrel[]>([])
+    const [galleryLoading, setGalleryLoading] = useState<boolean>(true)
+
+    // Live ticking clock, used to compute cumulative aging duration client-side
+    const [nowTick, setNowTick] = useState<number>(() => Math.floor(Date.now() / 1000))
 
     // Modals for Cert & QR Viewers
     const [activeCertBarrel, setActiveCertBarrel] = useState<BarrelDocument | null>(null)
@@ -146,6 +172,9 @@ export default function BarrelReservePage() {
 
             const myBarrelsList = await fetchMyBarrels()
             setBarrels(myBarrelsList)
+
+            const me = await fetchMe()
+            setMyUid(me.uid)
         } catch (err) {
             console.error("Failed to load user and barrel data:", err)
             const msg = err instanceof Error ? err.message : "회원 정보를 불러오지 못했습니다."
@@ -153,9 +182,37 @@ export default function BarrelReservePage() {
         }
     }, [])
 
+    const loadPublicGallery = useCallback(async () => {
+        setGalleryLoading(true)
+        try {
+            const list = await fetchPublicBarrels()
+            setPublicBarrels(list)
+        } catch (err) {
+            console.error("Failed to load public barrel gallery:", err)
+        } finally {
+            setGalleryLoading(false)
+        }
+    }, [])
+
     useEffect(() => {
         loadData()
-    }, [loadData])
+        loadPublicGallery()
+    }, [loadData, loadPublicGallery])
+
+    useEffect(() => {
+        const timer = setInterval(() => setNowTick(Math.floor(Date.now() / 1000)), 1000)
+        return () => clearInterval(timer)
+    }, [])
+
+    const agingSecondsFor = useCallback(
+        (productionDate?: { _seconds: number } | null, agingEndedAt?: { _seconds: number } | null) => {
+            const startSec = productionDate?._seconds
+            if (!startSec) return 0
+            const endSec = agingEndedAt?._seconds ?? nowTick
+            return Math.max(0, endSec - startSec)
+        },
+        [nowTick],
+    )
 
     const handleOrderSubmit = async () => {
         const cost = currentSpec.expRequirementValue
@@ -203,6 +260,55 @@ export default function BarrelReservePage() {
             await loadData()
         } catch (err) {
             setActionError(err instanceof Error ? err.message : "처리에 실패했습니다.")
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    const handleListForSale = async (barrelId: string, currentValueZp: number) => {
+        if (!confirm(`현재 시세 ${currentValueZp.toLocaleString()} ZP로 이 배럴을 판매 등록하시겠습니까? 가격은 용량과 숙성 시간에 따라 자동 산정되며 오너가 임의로 정할 수 없습니다. 등록 중에는 배송/병입 신청이 제한됩니다.`)) return
+
+        setActionBusy(true)
+        setActionError(null)
+        setActionSuccess(null)
+        try {
+            await listBarrelForSale(barrelId)
+            setActionSuccess("판매 등록이 완료되었습니다.")
+            await Promise.all([loadData(), loadPublicGallery()])
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "판매 등록에 실패했습니다.")
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    const handleCancelSale = async (barrelId: string) => {
+        if (!confirm("판매 등록을 취소하시겠습니까?")) return
+        setActionBusy(true)
+        setActionError(null)
+        setActionSuccess(null)
+        try {
+            await cancelBarrelSale(barrelId)
+            setActionSuccess("판매 등록이 취소되었습니다.")
+            await Promise.all([loadData(), loadPublicGallery()])
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "판매 취소에 실패했습니다.")
+        } finally {
+            setActionBusy(false)
+        }
+    }
+
+    const handleBuyBarrel = async (barrel: PublicBarrel) => {
+        if (!confirm(`${barrel.currentValueZp.toLocaleString()} ZP를 지불하고 이 배럴(${barrel.id})을 구매하시겠습니까? 구매 시점의 실시간 시세가 최종 결제됩니다.`)) return
+        setActionBusy(true)
+        setActionError(null)
+        setActionSuccess(null)
+        try {
+            await buyBarrel(barrel.id)
+            setActionSuccess("배럴 구매가 완료되었습니다. 내 배럴 컬렉션에서 확인해보세요.")
+            await Promise.all([loadData(), loadPublicGallery()])
+        } catch (err) {
+            setActionError(err instanceof Error ? err.message : "구매에 실패했습니다.")
         } finally {
             setActionBusy(false)
         }
@@ -425,21 +531,42 @@ export default function BarrelReservePage() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {barrels.map((barrel) => {
                                     const spec = BARREL_SPECS.find(s => s.size === barrel.capacity)
+                                    const isDone = barrel.status === "직접 배송 완료" || barrel.status === "병입 완료 및 출고"
+                                    const isAging = !isDone
+                                    const agingSeconds = agingSecondsFor(barrel.productionDate, barrel.agingEndedAt)
+                                    const target = AGING_TARGET_SECONDS[barrel.capacity] ?? 365 * 86400
+                                    const progress = agingSeconds / target
+                                    const deliveryFee = BARREL_DELIVERY_FEES[barrel.capacity] ?? 0
+
                                     return (
                                         <div
                                             key={barrel.id}
                                             className="rounded-xl border border-border/60 bg-card p-5 space-y-4 hover:border-amber-500/30 transition-all duration-300"
                                         >
-                                            <div className="flex justify-between items-start">
-                                                <div>
-                                                    <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
-                                                        {barrel.id}
-                                                    </Badge>
-                                                    <h4 className="font-display font-bold text-base text-foreground mt-1">
-                                                        {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
-                                                    </h4>
+                                            <div className="flex justify-between items-start gap-3">
+                                                <div className="flex gap-3">
+                                                    <BarrelVisual
+                                                        capacity={barrel.capacity}
+                                                        progress={progress}
+                                                        isAging={isAging}
+                                                        isDone={isDone}
+                                                    />
+                                                    <div>
+                                                        <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
+                                                            {barrel.id}
+                                                        </Badge>
+                                                        <h4 className="font-display font-bold text-base text-foreground mt-1">
+                                                            {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
+                                                        </h4>
+                                                        {barrel.forSale && (
+                                                            <Badge className="mt-1.5 bg-emerald-500 text-black border-none text-[10px] uppercase font-bold flex items-center gap-1 w-fit">
+                                                                <Tag className="w-3 h-3" />
+                                                                판매중 · {barrel.currentValueZp.toLocaleString()} ZP
+                                                            </Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold">
+                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold whitespace-nowrap">
                                                     {barrel.status === "ordered" ? "보관 대기 (Ordered)" : barrel.status}
                                                 </Badge>
                                             </div>
@@ -449,9 +576,13 @@ export default function BarrelReservePage() {
                                                     <span className="text-muted-foreground block">봉인 현황</span>
                                                     <span className="font-semibold text-emerald-500">{barrel.sealStatus}</span>
                                                 </div>
-                                                <div>
-                                                    <span className="text-muted-foreground block">누적 숙성 기간</span>
-                                                    <span className="font-mono font-semibold text-foreground">{barrel.agingPeriod}</span>
+                                                <div className="col-span-2 sm:col-span-1">
+                                                    <span className="text-muted-foreground flex items-center gap-1">
+                                                        <Timer className="w-3 h-3" /> 누적 숙성 시간 {isAging && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                                    </span>
+                                                    <span className="font-mono font-semibold text-foreground text-[11px]">
+                                                        {formatAgingDuration(agingSeconds)}
+                                                    </span>
                                                 </div>
                                                 <div>
                                                     <span className="text-muted-foreground block">디지털 증명서 번호</span>
@@ -460,7 +591,13 @@ export default function BarrelReservePage() {
                                                 <div>
                                                     <span className="text-muted-foreground block">시작일</span>
                                                     <span className="font-mono text-foreground">
-                                                        {barrel.createdAt ? new Date((barrel.createdAt as any).seconds * 1000).toLocaleDateString() : "-"}
+                                                        {barrel.productionDate ? new Date(barrel.productionDate._seconds * 1000).toLocaleDateString() : "-"}
+                                                    </span>
+                                                </div>
+                                                <div className="col-span-2 sm:col-span-1">
+                                                    <span className="text-muted-foreground block">현재 시세 (자동 산정)</span>
+                                                    <span className="font-mono font-bold text-amber-500">
+                                                        {barrel.currentValueZp.toLocaleString()} ZP
                                                     </span>
                                                 </div>
                                             </div>
@@ -487,7 +624,7 @@ export default function BarrelReservePage() {
                                                     QR 실시간 정보
                                                 </Button>
 
-                                                {barrel.status === "ordered" && (
+                                                {!barrel.forSale && barrel.status === "ordered" && (
                                                     <>
                                                         <Button
                                                             type="button"
@@ -505,12 +642,12 @@ export default function BarrelReservePage() {
                                                             className="text-[11px] h-8 font-semibold"
                                                             onClick={() => handleBarrelAction(barrel.id, "deliver")}
                                                         >
-                                                            직접 배송 신청
+                                                            직접 배송 신청 ({deliveryFee.toLocaleString()} ZP)
                                                         </Button>
                                                     </>
                                                 )}
 
-                                                {barrel.status.includes("숙성 중") && (
+                                                {!barrel.forSale && barrel.status.includes("숙성 중") && (
                                                     <>
                                                         <Button
                                                             type="button"
@@ -530,9 +667,137 @@ export default function BarrelReservePage() {
                                                         >
                                                             에이징 연장
                                                         </Button>
+                                                        <Button
+                                                            type="button"
+                                                            variant="secondary"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 font-semibold"
+                                                            onClick={() => handleBarrelAction(barrel.id, "deliver")}
+                                                        >
+                                                            직접 배송 신청 ({deliveryFee.toLocaleString()} ZP)
+                                                        </Button>
                                                     </>
                                                 )}
+
+                                                {!isDone && (
+                                                    barrel.forSale ? (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="text-[11px] h-8 border-red-500/40 text-red-400 hover:text-red-300"
+                                                            onClick={() => handleCancelSale(barrel.id)}
+                                                        >
+                                                            판매 등록 취소
+                                                        </Button>
+                                                    ) : (
+                                                        <Button
+                                                            type="button"
+                                                            variant="outline"
+                                                            size="sm"
+                                                            className="flex items-center gap-1 text-[11px] h-8 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
+                                                            disabled={actionBusy}
+                                                            onClick={() => handleListForSale(barrel.id, barrel.currentValueZp)}
+                                                        >
+                                                            <Tag className="w-3.5 h-3.5" />
+                                                            현재 시세로 판매 등록
+                                                        </Button>
+                                                    )
+                                                )}
                                             </div>
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* Public Barrel Gallery — visible to all members, incl. marketplace listings */}
+                {errorProfile !== "로그인이 필요합니다." && (
+                    <section className="space-y-6">
+                        <div className="border-b border-border/60 pb-3">
+                            <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                                <Users className="w-5 h-5 text-amber-500" />
+                                전체 회원 배럴 갤러리 (Public Collection)
+                            </h3>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                젠타로 전 회원이 보유한 배럴을 함께 둘러보세요. 판매 등록된 배럴은 ZP로 바로 구매하실 수 있습니다.
+                            </p>
+                        </div>
+
+                        {galleryLoading ? (
+                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                                불러오는 중...
+                            </div>
+                        ) : publicBarrels.length === 0 ? (
+                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                                아직 등록된 배럴이 없습니다.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                                {publicBarrels.map((pb) => {
+                                    const isDone = pb.status === "직접 배송 완료" || pb.status === "병입 완료 및 출고"
+                                    const isAging = !isDone
+                                    const agingSeconds = agingSecondsFor(pb.productionDate, pb.agingEndedAt)
+                                    const target = AGING_TARGET_SECONDS[pb.capacity] ?? 365 * 86400
+                                    const progress = agingSeconds / target
+                                    const isMine = pb.ownerId === myUid
+
+                                    return (
+                                        <div
+                                            key={pb.id}
+                                            className="rounded-xl border border-border/60 bg-card p-4 space-y-3 hover:border-amber-500/30 transition-all duration-300"
+                                        >
+                                            <div className="flex items-start gap-3">
+                                                <BarrelVisual
+                                                    capacity={pb.capacity}
+                                                    progress={progress}
+                                                    isAging={isAging}
+                                                    isDone={isDone}
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[9px]">
+                                                        {pb.id}
+                                                    </Badge>
+                                                    <p className="text-xs font-semibold text-foreground mt-1 truncate">
+                                                        {pb.ownerLabel} {isMine && <span className="text-amber-500">(나)</span>}
+                                                    </p>
+                                                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                        {formatAgingDuration(agingSeconds)} 숙성 중
+                                                    </p>
+                                                    <Badge className="mt-1 bg-amber-500/90 text-black border-none text-[9px] font-bold">
+                                                        {pb.status === "ordered" ? "보관 대기" : pb.status}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+
+                                            <div className="text-[10px] text-center text-muted-foreground">
+                                                현재 시세 <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
+                                            </div>
+
+                                            {pb.forSale ? (
+                                                isMine ? (
+                                                    <div className="text-[10px] text-emerald-400 border border-emerald-500/20 rounded px-2 py-1.5 text-center">
+                                                        내 배럴 · 판매중
+                                                    </div>
+                                                ) : (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        className="w-full text-[11px] h-8 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold flex items-center justify-center gap-1"
+                                                        disabled={actionBusy}
+                                                        onClick={() => handleBuyBarrel(pb)}
+                                                    >
+                                                        <ShoppingCart className="w-3.5 h-3.5" />
+                                                        구매하기
+                                                    </Button>
+                                                )
+                                            ) : (
+                                                <div className="text-[10px] text-muted-foreground text-center py-1.5">
+                                                    비매물
+                                                </div>
+                                            )}
                                         </div>
                                     )
                                 })}
@@ -817,7 +1082,13 @@ export default function BarrelReservePage() {
                             <div className="flex justify-between">
                                 <span>PRODUCTION DATE</span>
                                 <span className="text-white">
-                                    {activeCertBarrel.productionDate ? new Date((activeCertBarrel.productionDate as any).seconds * 1000).toLocaleDateString() : "-"}
+                                    {activeCertBarrel.productionDate ? new Date(activeCertBarrel.productionDate._seconds * 1000).toLocaleDateString() : "-"}
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>CUMULATIVE AGING</span>
+                                <span className="text-white font-mono text-[10px]">
+                                    {formatAgingDuration(agingSecondsFor(activeCertBarrel.productionDate, activeCertBarrel.agingEndedAt))}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -896,8 +1167,10 @@ export default function BarrelReservePage() {
                                     <span className="text-foreground font-mono truncate max-w-40">{activeQrBarrel.userId}</span>
                                 </div>
                                 <div className="flex justify-between py-1.5">
-                                    <span>누적 숙성 등급 :</span>
-                                    <span className="text-foreground font-semibold">{activeQrBarrel.capacity} ({activeQrBarrel.agingPeriod})</span>
+                                    <span>누적 숙성 시간 :</span>
+                                    <span className="text-foreground font-mono font-semibold text-[10px]">
+                                        {formatAgingDuration(agingSecondsFor(activeQrBarrel.productionDate, activeQrBarrel.agingEndedAt))}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between py-1.5">
                                     <span>현재 배럴 상태 :</span>

@@ -965,11 +965,33 @@ export interface BarrelDocument {
   createdAt?: { _seconds: number } | null;
   productionDate?: { _seconds: number } | null;
   fillingDate?: { _seconds: number } | null;
-  agingPeriod: string;
+  agingEndedAt?: { _seconds: number } | null;
+  forSale?: boolean;
+  currentValueZp: number;
   sealStatus: string;
   certNumber: string;
   qrKey: string;
   ownershipHistory: BarrelHistoryEntry[];
+}
+
+export interface PublicBarrel {
+  id: string;
+  capacity: string;
+  status: string;
+  sealStatus: string;
+  certNumber: string;
+  productionDate?: { _seconds: number } | null;
+  agingEndedAt?: { _seconds: number } | null;
+  forSale: boolean;
+  currentValueZp: number;
+  ownerLabel: string;
+  ownerId: string;
+}
+
+export interface BarrelPricingConfig {
+  baseUsdPerLiter: number;
+  usdToZpRate: number;
+  annualGrowthRate: number;
 }
 
 export async function submitBarrelOrder(size: string): Promise<{ success: boolean; barrelId: string; certNumber: string }> {
@@ -993,6 +1015,66 @@ export async function triggerBarrelAction(barrelId: string, action: string): Pro
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ barrelId, action }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchPublicBarrels(): Promise<PublicBarrel[]> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/public`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function listBarrelForSale(barrelId: string): Promise<{ success: boolean; currentValueZp: number }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/list-for-sale`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function cancelBarrelSale(barrelId: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/cancel-sale`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function buyBarrel(barrelId: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/buy`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deleteBarrelAdmin(barrelId: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchBarrelPricingConfig(): Promise<BarrelPricingConfig> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel-pricing-config`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateBarrelPricingConfigAdmin(
+  patch: Partial<BarrelPricingConfig>,
+): Promise<BarrelPricingConfig> {
+  const res = await fetch(`${API_URL}/token-exchange/admin/barrel-pricing-config`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

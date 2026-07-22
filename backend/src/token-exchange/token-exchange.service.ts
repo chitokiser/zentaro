@@ -12,6 +12,68 @@ function fmtUsdt(wei: bigint): number {
   return Number(ethers.formatUnits(wei, 18));
 }
 
+const BARREL_DELIVERY_FEE_ZP: Record<string, number> = {
+  '5L': 5000,
+  '10L': 8000,
+  '20L': 12000,
+  '40L': 20000,
+};
+
+const DELIVERED_STATUS = '직접 배송 완료';
+const BOTTLED_STATUS = '병입 완료 및 출고';
+
+/** Masks an email for display on the public barrel gallery (e.g. "da***@gmail.com"). */
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return '알 수 없음';
+  const [local, domain] = email.split('@');
+  if (!domain) return '***';
+  const visible = local.slice(0, 2);
+  return `${visible}${'*'.repeat(Math.max(local.length - 2, 2))}@${domain}`;
+}
+
+const BARREL_LITERS: Record<string, number> = {
+  '5L': 5,
+  '10L': 10,
+  '20L': 20,
+  '40L': 40,
+};
+
+export interface BarrelPricingConfig {
+  baseUsdPerLiter: number;
+  usdToZpRate: number;
+  annualGrowthRate: number;
+}
+
+// Defaults per member request: 10 USD/liter (barrel included), 10,000 ZP = 1 USD,
+// 25%/year compounding value growth while aging. All three are admin-adjustable.
+const DEFAULT_BARREL_PRICING: BarrelPricingConfig = {
+  baseUsdPerLiter: 10,
+  usdToZpRate: 10000,
+  annualGrowthRate: 0.25,
+};
+
+const SECONDS_PER_YEAR = 365 * 86400;
+
+/** Cumulative aging seconds from production start to (agingEndedAt ?? now), computed fresh every call. */
+function agingSecondsFromDoc(barrel: any): number {
+  const startSec = barrel.productionDate?._seconds;
+  if (!startSec) return 0;
+  const endSec = barrel.agingEndedAt?._seconds ?? Math.floor(Date.now() / 1000);
+  return Math.max(0, endSec - startSec);
+}
+
+/**
+ * Live valuation in ZP: capacity(L) x USD/L x USD-ZP rate, compounded at the configured
+ * annual rate over the barrel's cumulative aging time. Recomputed on every read (never
+ * cached/stored) so the value keeps climbing between page refreshes.
+ */
+function computeBarrelValueZp(capacity: string, agingSeconds: number, config: BarrelPricingConfig): number {
+  const liters = BARREL_LITERS[capacity] ?? 0;
+  const baseZp = liters * config.baseUsdPerLiter * config.usdToZpRate;
+  const ageYears = Math.max(0, agingSeconds) / SECONDS_PER_YEAR;
+  return Math.round(baseZp * Math.pow(1 + config.annualGrowthRate, ageYears));
+}
+
 @Injectable()
 export class TokenExchangeService {
   constructor(
@@ -328,7 +390,9 @@ export class TokenExchangeService {
         createdAt: FieldValue.serverTimestamp(),
         productionDate: FieldValue.serverTimestamp(),
         fillingDate: FieldValue.serverTimestamp(),
-        agingPeriod: '0개월',
+        agingEndedAt: null,
+        forSale: false,
+        salePriceZp: null,
         sealStatus: 'SECURED',
         certNumber,
         qrKey,
@@ -347,12 +411,41 @@ export class TokenExchangeService {
     return { success: true, barrelId, certNumber };
   }
 
-  async listMyBarrels(uid: string) {
-    const snap = await this.db.collection(COLLECTIONS.ZENTARO_BARRELS)
-      .where('userId', '==', uid)
-      .get();
+  async getBarrelPricingConfig(): Promise<BarrelPricingConfig> {
+    const snap = await this.db.collection(COLLECTIONS.ZENTARO_BARREL_PRICING_CONFIG).doc('config').get();
+    if (!snap.exists) return DEFAULT_BARREL_PRICING;
+    const data = snap.data()!;
+    return {
+      baseUsdPerLiter: data.baseUsdPerLiter ?? DEFAULT_BARREL_PRICING.baseUsdPerLiter,
+      usdToZpRate: data.usdToZpRate ?? DEFAULT_BARREL_PRICING.usdToZpRate,
+      annualGrowthRate: data.annualGrowthRate ?? DEFAULT_BARREL_PRICING.annualGrowthRate,
+    };
+  }
 
-    const list = snap.docs.map(doc => doc.data());
+  async updateBarrelPricingConfig(patch: Partial<BarrelPricingConfig>): Promise<BarrelPricingConfig> {
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
+        throw new BadRequestException(`${key} 값은 0 이상의 숫자여야 합니다.`);
+      }
+    }
+    const ref = this.db.collection(COLLECTIONS.ZENTARO_BARREL_PRICING_CONFIG).doc('config');
+    await ref.set(patch, { merge: true });
+    return this.getBarrelPricingConfig();
+  }
+
+  async listMyBarrels(uid: string) {
+    const [snap, pricing] = await Promise.all([
+      this.db.collection(COLLECTIONS.ZENTARO_BARRELS).where('userId', '==', uid).get(),
+      this.getBarrelPricingConfig(),
+    ]);
+
+    const list = snap.docs.map((doc) => {
+      const barrel = doc.data() as any;
+      return {
+        ...barrel,
+        currentValueZp: computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing),
+      };
+    });
     return list.sort((a: any, b: any) => {
       const aTime = a.createdAt?.seconds || 0;
       const bTime = b.createdAt?.seconds || 0;
@@ -360,57 +453,236 @@ export class TokenExchangeService {
     });
   }
 
+  /** Every barrel across every owner, for the public "다른 유저도 볼 수 있는" gallery. Owner email is masked. */
+  async listPublicBarrels() {
+    const [snap, pricing] = await Promise.all([
+      this.db.collection(COLLECTIONS.ZENTARO_BARRELS).get(),
+      this.getBarrelPricingConfig(),
+    ]);
+    const barrels = snap.docs.map((doc) => doc.data() as any);
+
+    const uids = [...new Set(barrels.map((b) => b.userId).filter(Boolean))];
+    const userSnaps = await Promise.all(
+      uids.map((uid) => this.db.collection(COLLECTIONS.USERS).doc(uid).get()),
+    );
+    const emailByUid = new Map(userSnaps.map((s) => [s.id, s.data()?.email ?? null]));
+
+    return barrels
+      .map((b) => ({
+        id: b.id,
+        capacity: b.capacity,
+        status: b.status,
+        sealStatus: b.sealStatus,
+        certNumber: b.certNumber,
+        productionDate: b.productionDate ?? null,
+        agingEndedAt: b.agingEndedAt ?? null,
+        forSale: b.forSale ?? false,
+        currentValueZp: computeBarrelValueZp(b.capacity, agingSecondsFromDoc(b), pricing),
+        ownerLabel: maskEmail(emailByUid.get(b.userId)),
+        ownerId: b.userId,
+      }))
+      .sort((a: any, b: any) => (b.productionDate?.seconds ?? 0) - (a.productionDate?.seconds ?? 0));
+  }
+
   async triggerBarrelAction(uid: string, barrelId: string, action: string) {
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
-    const barrelSnap = await barrelRef.get();
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
 
-    if (!barrelSnap.exists) {
+    return this.db.runTransaction(async (tx) => {
+      const barrelSnap = await tx.get(barrelRef);
+      if (!barrelSnap.exists) {
+        throw new BadRequestException('존재하지 않는 배럴입니다.');
+      }
+
+      const barrelData = barrelSnap.data()!;
+      if (barrelData.userId !== uid) {
+        throw new BadRequestException('해당 배럴의 소유권 권한이 없습니다.');
+      }
+      if (barrelData.forSale) {
+        throw new BadRequestException('판매 등록 중인 배럴은 서비스를 이용할 수 없습니다. 먼저 판매를 취소해주세요.');
+      }
+
+      let nextStatus = barrelData.status;
+      let nextSealStatus = barrelData.sealStatus || 'SECURED';
+      let historyMessage = '';
+      let endsAging = false;
+
+      if (action === 'room_aging') {
+        nextStatus = '위탁 숙성 중 (Room Aging)';
+        historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
+      } else if (action === 'deliver') {
+        const fee = BARREL_DELIVERY_FEE_ZP[barrelData.capacity] ?? 0;
+        const userSnap = await tx.get(userRef);
+        const currentPoints: number = userSnap.data()?.points ?? 0;
+        if (currentPoints < fee) {
+          throw new BadRequestException(
+            `택배비 ${fee.toLocaleString()} ZP가 부족합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
+          );
+        }
+        if (fee > 0) {
+          tx.update(userRef, { points: FieldValue.increment(-fee) });
+          const feeTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+          tx.set(feeTxRef, {
+            userId: uid,
+            amount: -fee,
+            type: 'barrel_delivery_fee',
+            description: `배럴 직접배송 택배비 (${barrelData.capacity}, ${barrelId})`,
+            createdAt: FieldValue.serverTimestamp(),
+          });
+        }
+        nextStatus = DELIVERED_STATUS;
+        nextSealStatus = 'DELIVERED (봉인 유지 인도)';
+        historyMessage = `자택 직접 배송 요청 접수 및 봉인 인도 (택배비 ${fee.toLocaleString()} ZP 차감)`;
+        endsAging = true;
+      } else if (action === 'bottle') {
+        nextStatus = BOTTLED_STATUS;
+        nextSealStatus = 'UNSEALED';
+        historyMessage = '개인 병입 완료 및 한정판 스피릿 출고';
+        endsAging = true;
+      } else if (action === 'extend_aging') {
+        nextStatus = '숙성 연장 중';
+        historyMessage = '배럴 숙성 기간 연장 신청 접수';
+      } else if (action === 'engrave') {
+        nextStatus = '각인 완료';
+        historyMessage = '개인 기념 문구 배럴 각인 완료';
+      } else {
+        throw new BadRequestException('정의되지 않은 배럴 액션 서비스입니다.');
+      }
+
+      const historyEntry = {
+        date: new Date().toISOString(),
+        ownerId: uid,
+        action,
+        message: historyMessage,
+      };
+
+      tx.update(barrelRef, {
+        status: nextStatus,
+        sealStatus: nextSealStatus,
+        ownershipHistory: FieldValue.arrayUnion(historyEntry),
+        ...(endsAging && !barrelData.agingEndedAt ? { agingEndedAt: FieldValue.serverTimestamp() } : {}),
+      });
+
+      return { success: true, nextStatus, nextSealStatus };
+    });
+  }
+
+  /** Prices are never owner-set — sale price is always the live-computed value at read/buy time. */
+  async listBarrelForSale(uid: string, barrelId: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await barrelRef.get();
+    if (!snap.exists) {
       throw new BadRequestException('존재하지 않는 배럴입니다.');
     }
-
-    const barrelData = barrelSnap.data();
-    if (barrelData?.userId !== uid) {
+    const barrel = snap.data()!;
+    if (barrel.userId !== uid) {
       throw new BadRequestException('해당 배럴의 소유권 권한이 없습니다.');
     }
-
-    let nextStatus = barrelData.status;
-    let nextSealStatus = barrelData.sealStatus || 'SECURED';
-    let historyMessage = '';
-
-    if (action === 'room_aging') {
-      nextStatus = '위탁 숙성 중 (Room Aging)';
-      historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
-    } else if (action === 'deliver') {
-      nextStatus = '직접 배송 완료';
-      nextSealStatus = 'DELIVERED (봉인 유지 인도)';
-      historyMessage = '자택 직접 배송 요청 접수 및 봉인 인도';
-    } else if (action === 'bottle') {
-      nextStatus = '병입 완료 및 출고';
-      nextSealStatus = 'UNSEALED';
-      historyMessage = '개인 병입 완료 및 한정판 스피릿 출고';
-    } else if (action === 'extend_aging') {
-      nextStatus = '숙성 연장 중';
-      historyMessage = '배럴 숙성 기간 연장 신청 접수';
-    } else if (action === 'engrave') {
-      nextStatus = '각인 완료';
-      historyMessage = '개인 기념 문구 배럴 각인 완료';
-    } else {
-      throw new BadRequestException('정의되지 않은 배럴 액션 서비스입니다.');
+    if (barrel.status === DELIVERED_STATUS || barrel.status === BOTTLED_STATUS) {
+      throw new BadRequestException('이미 배송/병입이 완료된 배럴은 판매할 수 없습니다.');
     }
+    await barrelRef.update({ forSale: true, salePriceZp: null });
+    const pricing = await this.getBarrelPricingConfig();
+    const currentValueZp = computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing);
+    return { success: true, forSale: true, currentValueZp };
+  }
 
-    const historyEntry = {
-      date: new Date().toISOString(),
-      ownerId: uid,
-      action,
-      message: historyMessage,
-    };
+  async cancelBarrelSale(uid: string, barrelId: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await barrelRef.get();
+    if (!snap.exists) {
+      throw new BadRequestException('존재하지 않는 배럴입니다.');
+    }
+    if (snap.data()!.userId !== uid) {
+      throw new BadRequestException('해당 배럴의 소유권 권한이 없습니다.');
+    }
+    await barrelRef.update({ forSale: false, salePriceZp: null });
+    return { success: true, forSale: false };
+  }
 
-    await barrelRef.update({
-      status: nextStatus,
-      sealStatus: nextSealStatus,
-      ownershipHistory: FieldValue.arrayUnion(historyEntry),
+  async buyBarrel(buyerUid: string, barrelId: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const buyerRef = this.db.collection(COLLECTIONS.USERS).doc(buyerUid);
+    const pricing = await this.getBarrelPricingConfig();
+
+    return this.db.runTransaction(async (tx) => {
+      const barrelSnap = await tx.get(barrelRef);
+      if (!barrelSnap.exists) {
+        throw new BadRequestException('존재하지 않는 배럴입니다.');
+      }
+      const barrel = barrelSnap.data()!;
+      if (!barrel.forSale) {
+        throw new BadRequestException('판매 중인 배럴이 아닙니다.');
+      }
+      if (barrel.userId === buyerUid) {
+        throw new BadRequestException('본인 소유 배럴은 구매할 수 없습니다.');
+      }
+
+      const sellerUid = barrel.userId;
+      // Priced live at the moment of purchase — never a stale stored value.
+      const price = computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing);
+
+      const [buyerSnap, sellerSnap] = await Promise.all([
+        tx.get(buyerRef),
+        tx.get(this.db.collection(COLLECTIONS.USERS).doc(sellerUid)),
+      ]);
+      const buyerPoints: number = buyerSnap.data()?.points ?? 0;
+      if (buyerPoints < price) {
+        throw new BadRequestException(`ZP 잔액이 부족합니다. (필요: ${price.toLocaleString()} ZP, 보유: ${buyerPoints.toLocaleString()} ZP)`);
+      }
+      if (!sellerSnap.exists) {
+        throw new BadRequestException('판매자 정보를 찾을 수 없습니다.');
+      }
+
+      const sellerRef = this.db.collection(COLLECTIONS.USERS).doc(sellerUid);
+      tx.update(buyerRef, { points: FieldValue.increment(-price) });
+      tx.update(sellerRef, { points: FieldValue.increment(price) });
+
+      const historyEntry = {
+        date: new Date().toISOString(),
+        ownerId: buyerUid,
+        action: 'sold',
+        message: `${price.toLocaleString()} ZP에 소유권 이전 (이전 소유자: ${sellerUid})`,
+      };
+
+      tx.update(barrelRef, {
+        userId: buyerUid,
+        forSale: false,
+        salePriceZp: null,
+        ownershipHistory: FieldValue.arrayUnion(historyEntry),
+      });
+
+      const buyerTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(buyerTxRef, {
+        userId: buyerUid,
+        amount: -price,
+        type: 'barrel_resale',
+        description: `배럴 구매 (${barrelId})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      const sellerTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(sellerTxRef, {
+        userId: sellerUid,
+        amount: price,
+        type: 'barrel_resale',
+        description: `배럴 판매 (${barrelId})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { success: true, barrelId, newOwnerId: buyerUid };
     });
+  }
 
-    return { success: true, nextStatus, nextSealStatus };
+  async deleteBarrelAdmin(barrelId: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await barrelRef.get();
+    if (!snap.exists) {
+      throw new BadRequestException('존재하지 않는 배럴입니다.');
+    }
+    if (snap.data()!.status !== DELIVERED_STATUS) {
+      throw new BadRequestException('직접 배송 완료 상태의 배럴만 삭제할 수 있습니다.');
+    }
+    await barrelRef.delete();
+    return { success: true, barrelId };
   }
 }
