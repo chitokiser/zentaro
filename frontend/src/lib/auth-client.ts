@@ -79,6 +79,7 @@ function authHeaders(): HeadersInit {
 export interface Me {
   uid: string;
   email: string | null;
+  photoUrl: string | null;
   isAdmin: boolean;
   adminLevel: 1 | 2 | 3 | null;
 }
@@ -876,6 +877,31 @@ export async function submitDepositRequest(input: {
 
 export async function fetchMyDeposits(): Promise<DepositRequest[]> {
   const res = await fetch(`${API_URL}/wallet/deposits`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchAllDepositsAdmin(): Promise<DepositRequest[]> {
+  const res = await fetch(`${API_URL}/wallet/admin/deposits`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function approveDepositAdmin(id: string) {
+  const res = await fetch(`${API_URL}/wallet/admin/deposits/${id}/approve`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function rejectDepositAdmin(id: string, reason?: string) {
+  const res = await fetch(`${API_URL}/wallet/admin/deposits/${id}/reject`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ reason }),
+  });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }

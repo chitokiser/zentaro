@@ -145,6 +145,7 @@ export class AuthService {
     return {
       uid,
       email: data.email ?? null,
+      photoUrl: data.photoUrl ?? null,
       isAdmin: adminLevel !== null,
       adminLevel,
     };
@@ -204,7 +205,15 @@ export class AuthService {
   }
 
   async updateShippingAddress(uid: string, dto: ShippingAddressDto) {
-    await this.usersCol().doc(uid).set({ shippingAddress: dto }, { merge: true });
-    return dto;
+    const shippingAddress = {
+      recipientName: dto.recipientName,
+      phone: dto.phone,
+      postalCode: dto.postalCode,
+      addressLine1: dto.addressLine1,
+      addressLine2: dto.addressLine2 ?? null,
+      deliveryMemo: dto.deliveryMemo ?? null,
+    };
+    await this.usersCol().doc(uid).set({ shippingAddress }, { merge: true });
+    return shippingAddress;
   }
 }

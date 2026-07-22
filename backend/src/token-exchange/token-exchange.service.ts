@@ -226,8 +226,9 @@ export class TokenExchangeService {
           const userInfo = await bank.user(address);
           const stakedZtro = Number(userInfo.depo);
 
-          if (stakedZtro > 0) {
-            const expAmount = stakedZtro; // 1 EXP per staked ZTRO
+          const expAmount = Math.floor(stakedZtro / 100); // 10,000 ZTRO staked = 100 EXP/week
+
+          if (expAmount > 0) {
             const userId = walletDoc.id;
 
             await this.db.runTransaction(async (tx) => {

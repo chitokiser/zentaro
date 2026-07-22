@@ -28,6 +28,17 @@ export class OrdersService {
    * (network calls don't belong inside a Firestore transaction).
    */
   async checkout(uid: string, dto: CheckoutDto) {
+    // class-transformer instantiates dto.shippingAddress as a ShippingAddressDto
+    // (via @Type), and Firestore refuses to serialize objects with a custom
+    // prototype — so writes must use a plain-object copy, not the DTO instance.
+    const shippingAddress = {
+      recipientName: dto.shippingAddress.recipientName,
+      phone: dto.shippingAddress.phone,
+      postalCode: dto.shippingAddress.postalCode,
+      addressLine1: dto.shippingAddress.addressLine1,
+      addressLine2: dto.shippingAddress.addressLine2 ?? null,
+      deliveryMemo: dto.shippingAddress.deliveryMemo ?? null,
+    };
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
     const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
     const productRefs = dto.items.map((item) =>
@@ -104,7 +115,7 @@ export class OrdersService {
         tx.set(walletRef, { exp: FieldValue.increment(-expToUse) }, { merge: true });
       }
       if (dto.saveAddress) {
-        tx.set(userRef, { shippingAddress: dto.shippingAddress }, { merge: true });
+        tx.set(userRef, { shippingAddress }, { merge: true });
       }
 
       // Distribute the EXP/AP split proportionally per line so per-item
@@ -123,7 +134,7 @@ export class OrdersService {
       const orderData = {
         userId: uid,
         items,
-        shippingAddress: dto.shippingAddress,
+        shippingAddress,
         totalPriceAp,
         totalCostAp,
         totalApPaid: apToPay,
@@ -162,7 +173,7 @@ export class OrdersService {
         items: result.items,
         totalApPaid: result.totalApPaid,
         totalExpPaid: result.totalExpPaid,
-        shippingAddress: dto.shippingAddress,
+        shippingAddress,
       })
       .catch(() => undefined);
 

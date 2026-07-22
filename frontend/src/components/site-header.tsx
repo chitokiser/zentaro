@@ -52,16 +52,24 @@ export function SiteHeader() {
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [isAdmin, setIsAdmin] = React.useState(false)
   const [wallet, setWallet] = React.useState<WalletData | null>(null)
+  const [photoUrl, setPhotoUrl] = React.useState<string | null>(null)
+  const [loggedIn, setLoggedIn] = React.useState(false)
 
   React.useEffect(() => {
     function refresh() {
       if (!getToken()) {
         setIsAdmin(false)
         setWallet(null)
+        setPhotoUrl(null)
+        setLoggedIn(false)
         return
       }
+      setLoggedIn(true)
       fetchMe()
-        .then((me) => setIsAdmin(me.isAdmin))
+        .then((me) => {
+          setIsAdmin(me.isAdmin)
+          setPhotoUrl(me.photoUrl)
+        })
         .catch(() => setIsAdmin(false))
       fetchWallet()
         .then(setWallet)
@@ -144,12 +152,33 @@ export function SiteHeader() {
               {t.header.myWallet}
             </Link>
           </Button>
-          <Button asChild size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
-            <Link href="/my/profile">
-              <User className="size-4" />
-              {t.header.login}
+          {loggedIn ? (
+            <Link
+              href="/my/profile"
+              className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-secondary/40 hover:border-primary/60"
+            >
+              <span className="sr-only">{t.header.myProfile}</span>
+              {photoUrl ? (
+                <Image
+                  src={photoUrl}
+                  alt=""
+                  width={36}
+                  height={36}
+                  className="size-full object-cover"
+                  unoptimized
+                />
+              ) : (
+                <User className="size-4 text-foreground/80" />
+              )}
             </Link>
-          </Button>
+          ) : (
+            <Button asChild size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
+              <Link href="/my/profile">
+                <User className="size-4" />
+                {t.header.login}
+              </Link>
+            </Button>
+          )}
         </div>
 
         <div className="flex items-center gap-1 md:hidden">
@@ -221,9 +250,19 @@ export function SiteHeader() {
                 <Link
                   href="/my/profile"
                   onClick={() => setMobileOpen(false)}
-                  className="rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
+                  className="flex items-center justify-center gap-2 rounded-md bg-primary px-3 py-2 text-center text-sm font-medium text-primary-foreground"
                 >
-                  {t.header.login}
+                  {loggedIn && photoUrl ? (
+                    <Image
+                      src={photoUrl}
+                      alt=""
+                      width={20}
+                      height={20}
+                      className="size-5 rounded-full object-cover"
+                      unoptimized
+                    />
+                  ) : null}
+                  {loggedIn ? t.header.myProfile : t.header.login}
                 </Link>
               </div>
             </SheetContent>

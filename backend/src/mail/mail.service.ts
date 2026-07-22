@@ -20,8 +20,8 @@ export interface OrderNotificationPayload {
     phone: string;
     postalCode: string;
     addressLine1: string;
-    addressLine2?: string;
-    deliveryMemo?: string;
+    addressLine2?: string | null;
+    deliveryMemo?: string | null;
   };
 }
 
