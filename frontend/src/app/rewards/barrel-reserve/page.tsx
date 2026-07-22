@@ -1037,6 +1037,99 @@ export default function BarrelReservePage() {
                     </div>
                 </section>
 
+                {/* Aging & Quality Assessment Guide */}
+                <section className="space-y-8">
+                    <div className="text-center max-w-2xl mx-auto space-y-3">
+                        <Badge variant="outline" className="text-amber-500 border-amber-500/30 px-3 py-1 bg-amber-500/5 font-mono">
+                            AGING &amp; QUALITY ASSESSMENT
+                        </Badge>
+                        <h3 className="font-display text-2xl font-bold text-foreground">
+                            Zentaro 오크통 숙성 및 품질 평가 안내
+                        </h3>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            오크통에서의 숙성은 시간이 아니라 <span className="text-foreground font-semibold">최적의 균형을 찾는 과정</span>입니다.
+                        </p>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto space-y-4 text-sm text-muted-foreground leading-relaxed">
+                        <p>
+                            Zentaro의 마스터 블렌더는 숙성 기간 동안 정기적으로 <span className="text-foreground font-semibold">20mL의 샘플</span>을
+                            채취하여 향, 맛, 색상, 바디감, 오크의 균형을 종합적으로 평가합니다. 모든 평가 결과는 기록되며, 점수에 따라 해당 배럴의 가치와 등급이 결정됩니다.
+                        </p>
+                        <p>
+                            특히 소형 오크통은 대형 오크통보다 숙성이 훨씬 빠르게 진행됩니다. 따라서 너무 오래 숙성하면 오크 향과 탄닌이 과도하게 추출되어
+                            본연의 풍미와 균형을 잃을 수 있습니다. Zentaro는 가장 이상적인 숙성 시점을 찾아 오크통 오너에게 최고의 상태로 위스키를 제공합니다.
+                        </p>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto space-y-4">
+                        <h4 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-amber-500" />
+                            마스터 블렌더 시음 일정
+                        </h4>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div className="p-4 rounded-xl border border-border/60 bg-card">
+                                <span className="text-xs font-mono text-amber-500">숙성 시작 후 2주</span>
+                                <p className="mt-1 text-sm text-foreground">첫 번째 시음 및 초기 숙성 평가</p>
+                            </div>
+                            <div className="p-4 rounded-xl border border-border/60 bg-card">
+                                <span className="text-xs font-mono text-amber-500">숙성 1~3개월</span>
+                                <p className="mt-1 text-sm text-foreground">7일마다 정기 시음</p>
+                            </div>
+                            <div className="p-4 rounded-xl border border-border/60 bg-card">
+                                <span className="text-xs font-mono text-amber-500">숙성 3~6개월</span>
+                                <p className="mt-1 text-sm text-foreground">숙성 상태에 따라 2주마다 정기 시음</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="max-w-4xl mx-auto space-y-4">
+                        <h4 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+                            <Award className="w-4 h-4 text-amber-500" />
+                            품질 평가 항목
+                        </h4>
+                        <div className="flex flex-wrap gap-2">
+                            {[
+                                "색상(Color)",
+                                "향(Aroma)",
+                                "바디감(Body)",
+                                "단맛(Sweetness)",
+                                "오크 밸런스(Oak Balance)",
+                                "탄닌(Tannin)",
+                                "피니시(Finish)",
+                                "전체 균형(Overall Balance)",
+                            ].map((item) => (
+                                <Badge key={item} variant="outline" className="border-amber-500/30 text-foreground/90 px-3 py-1.5 text-xs">
+                                    {item}
+                                </Badge>
+                            ))}
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                            각 시음 결과는 Zentaro 숙성 관리 시스템에 기록되며, 숙성 진행 상황을 지속적으로 모니터링합니다.
+                        </p>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto space-y-3">
+                        <h4 className="font-display text-base font-semibold text-foreground flex items-center gap-2">
+                            <Truck className="w-4 h-4 text-amber-500" />
+                            병입 및 배송
+                        </h4>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            마스터 블렌더가 <span className="text-foreground font-semibold">가장 이상적인 숙성 상태</span>에 도달했다고 판단하는 즉시 병입을 진행합니다.
+                        </p>
+                        <p className="text-sm text-muted-foreground leading-relaxed">
+                            병입 후에는 오크통 오너에게 숙성 결과와 품질 평가 리포트를 함께 제공하며, 최상의 상태로 배송해 드립니다.
+                        </p>
+                    </div>
+
+                    <blockquote className="max-w-2xl mx-auto text-center border-l-2 border-amber-500/60 pl-5 py-2">
+                        <p className="font-display text-base sm:text-lg text-foreground italic">
+                            &ldquo;최고의 위스키는 가장 오래 숙성된 위스키가 아니라, 가장 완벽한 순간에 병입된 위스키입니다.&rdquo;
+                        </p>
+                        <p className="mt-2 text-xs text-muted-foreground">— Zentaro Master Blender</p>
+                    </blockquote>
+                </section>
+
                 {/* Philosophy and Core Values */}
                 <section className="rounded-2xl bg-gradient-to-br from-zinc-950 to-zinc-900 border border-amber-500/20 py-12 px-6 text-center space-y-6 relative overflow-hidden">
                     <div className="space-y-2">

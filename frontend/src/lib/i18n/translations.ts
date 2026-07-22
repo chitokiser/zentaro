@@ -38,7 +38,7 @@ const ko = {
       barrelReserve: "ZenTaro Barrel Reserve",
       barrelReserveDesc: "EXP 회원 전용 프리미엄 배럴 프로그램",
       webzine: "ZENTARO 웹진",
-      webzineDesc: "술·미식 매거진 (AI 자동작성 + 관리자 블로그)",
+      webzineDesc: "술·미식 매거진",
     },
     myPage: { label: "My Page" },
     myPageItems: {
@@ -269,7 +269,7 @@ const en: Dict = {
       barrelReserve: "ZenTaro Barrel Reserve",
       barrelReserveDesc: "Premium barrel program for EXP members",
       webzine: "ZENTARO Webzine",
-      webzineDesc: "Spirits & food magazine (AI-written + admin blog)",
+      webzineDesc: "Spirits & food magazine",
     },
     myPage: { label: "My Page" },
     myPageItems: {
@@ -498,7 +498,7 @@ const vi: Dict = {
       barrelReserve: "ZenTaro Barrel Reserve",
       barrelReserveDesc: "Chương trình thùng gỗ sồi cao cấp cho thành viên EXP",
       webzine: "Tạp chí ZENTARO",
-      webzineDesc: "Tạp chí rượu & ẩm thực (AI viết + blog quản trị viên)",
+      webzineDesc: "Tạp chí rượu & ẩm thực",
     },
     myPage: { label: "Trang của tôi" },
     myPageItems: {
