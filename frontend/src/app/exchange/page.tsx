@@ -160,7 +160,7 @@ export default function ExchangePage() {
             {/* 입금 안내 */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
               <p className="text-xs text-muted-foreground leading-relaxed">
-                가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 EXP를 지급받습니다. 스테이킹한 수량에 따라 그 외 다양한 혜택을 받을 수 있습니다.
+                가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 <span className="notranslate">EXP</span>를 지급받습니다. 스테이킹한 수량에 따라 그 외 다양한 혜택을 받을 수 있습니다.
               </p>
             </div>
 
@@ -215,12 +215,12 @@ export default function ExchangePage() {
             {/* 이번주 EXP 배당 */}
             <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-card p-4 text-sm sm:grid-cols-2">
               <div>
-                <p className="text-xs text-muted-foreground">이번주 예상 EXP 배당</p>
+                <p className="text-xs text-muted-foreground">이번주 예상 <span className="notranslate">EXP</span> 배당</p>
                 <p className="font-semibold text-primary">
-                  {Math.floor(dashboard.staked / 100).toLocaleString()} EXP
+                  {Math.floor(dashboard.staked / 100).toLocaleString()} <span className="notranslate">EXP</span>
                 </p>
                 <p className="mt-0.5 text-[10px] text-muted-foreground">
-                  (스테이킹 10,000 ZTRO당 100 EXP 기준)
+                  (스테이킹 10,000 ZTRO당 100 <span className="notranslate">EXP</span> 기준)
                 </p>
               </div>
               <div>

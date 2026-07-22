@@ -134,7 +134,7 @@ export function SiteHeader() {
                 ZP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
               </span>
               <span className="text-muted-foreground">
-                EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
+                <span className="notranslate">EXP</span> <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
               </span>
             </div>
           ) : null}
@@ -214,7 +214,7 @@ export function SiteHeader() {
                       ZP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
                     </span>
                     <span className="text-muted-foreground">
-                      EXP <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
+                      <span className="notranslate">EXP</span> <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
                     </span>
                   </div>
                 ) : null}

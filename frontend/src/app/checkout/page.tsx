@@ -86,7 +86,7 @@ export default function CheckoutPage() {
         <h1 className="font-display text-2xl font-semibold text-primary">주문이 완료되었습니다</h1>
         <p className="mt-2 text-sm text-muted-foreground">주문번호: {result.orderId}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          결제: ZP {result.totalApPaid.toLocaleString()} + EXP {result.totalExpPaid.toLocaleString()}
+          결제: ZP {result.totalApPaid.toLocaleString()} + <span className="notranslate">EXP</span> {result.totalExpPaid.toLocaleString()}
         </p>
         <Button asChild className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
           <Link href="/mall">쇼핑 계속하기</Link>
@@ -161,7 +161,7 @@ export default function CheckoutPage() {
                 </div>
                 {max > 0 ? (
                   <label className="mt-1 flex flex-col gap-1 text-[11px] text-muted-foreground">
-                    사용할 EXP (최대 {max.toLocaleString()})
+                    사용할 <span className="notranslate">EXP</span> (최대 {max.toLocaleString()})
                     <input
                       type="number"
                       min={0}
@@ -234,8 +234,8 @@ export default function CheckoutPage() {
           <span>{totalPriceAp.toLocaleString()} ZP</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">EXP 사용 (보유 {expBalance.toLocaleString()})</span>
-          <span>-{totalExpToUse.toLocaleString()} EXP</span>
+          <span className="text-muted-foreground"><span className="notranslate">EXP</span> 사용 (보유 {expBalance.toLocaleString()})</span>
+          <span>-{totalExpToUse.toLocaleString()} <span className="notranslate">EXP</span></span>
         </div>
         <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
           <span>최종 결제 (ZP)</span>

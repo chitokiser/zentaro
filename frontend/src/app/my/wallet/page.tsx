@@ -143,7 +143,7 @@ export default function WalletPage() {
           </p>
         </div>
         <div className="rounded-lg border border-border/60 bg-card p-4">
-          <span className="text-xs text-muted-foreground">EXP</span>
+          <span className="text-xs text-muted-foreground notranslate">EXP</span>
           <p className="mt-1 font-display text-2xl font-semibold text-primary">
             {wallet.exp.toLocaleString()}
           </p>

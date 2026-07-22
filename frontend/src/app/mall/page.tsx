@@ -18,7 +18,7 @@ export default async function MallPage({
       <PageHeader
         eyebrow="서비스"
         title="ZENTARO Mall"
-        description="드랍쉬핑·직배송 상품을 ZP(Reward Point)와 EXP로 만나보세요."
+        description={<>드랍쉬핑·직배송 상품을 ZP(Reward Point)와 <span className="notranslate">EXP</span>로 만나보세요.</>}
       />
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-8 flex flex-wrap gap-2">

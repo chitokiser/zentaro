@@ -26,12 +26,6 @@ export const metadata: Metadata = {
   title,
   description,
   metadataBase: new URL("https://zentaro.netlify.app"),
-  // The site already ships its own ko/en/vi translations (see i18n-context),
-  // so browser/Google auto-translate is redundant and mangles domain terms
-  // like "EXP" (mistranslated as an expiration-date abbreviation).
-  other: {
-    google: "notranslate",
-  },
   openGraph: {
     title,
     description,
@@ -64,8 +58,7 @@ export default function RootLayout({
   return (
     <html
       lang="vi"
-      translate="no"
-      className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased notranslate`}
+      className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <I18nProvider>

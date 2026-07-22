@@ -54,7 +54,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   return (
     <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4">
       {maxExp > 0 ? (
-        <p className="text-xs text-primary">최대 {maxExp.toLocaleString()} EXP로 결제 가능 (결제 시 적용)</p>
+        <p className="text-xs text-primary">최대 {maxExp.toLocaleString()} <span className="notranslate">EXP</span>로 결제 가능 (결제 시 적용)</p>
       ) : (
         <p className="text-xs text-muted-foreground">ZP 100% 결제 상품 (직배송/자체재고)</p>
       )}

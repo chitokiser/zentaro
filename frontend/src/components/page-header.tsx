@@ -7,7 +7,7 @@ export function PageHeader({
 }: {
   eyebrow: string
   title: string
-  description?: string
+  description?: React.ReactNode
 }) {
   return (
     <div className="border-b border-border/60 bg-card/40 py-16">

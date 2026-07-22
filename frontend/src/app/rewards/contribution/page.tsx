@@ -67,7 +67,7 @@ export default function ContributionPage() {
       <PageHeader
         eyebrow="서비스"
         title="현물출자"
-        description="집에 있는 오크통·브랜디·위스키·진·럼을 보내주시면 검수 후 쇼핑머니(ZP+EXP)를 드립니다."
+        description={<>집에 있는 오크통·브랜디·위스키·진·럼을 보내주시면 검수 후 쇼핑머니(ZP+<span className="notranslate">EXP</span>)를 드립니다.</>}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
@@ -97,7 +97,7 @@ export default function ContributionPage() {
             >
               <h3 className="font-display text-base font-medium">현물출자 신청</h3>
               <p className="text-xs text-muted-foreground">
-                신청 후 담당자가 실물을 검수하여 쇼핑머니(ZP+EXP) 지급액을 결정합니다.
+                신청 후 담당자가 실물을 검수하여 쇼핑머니(ZP+<span className="notranslate">EXP</span>) 지급액을 결정합니다.
               </p>
 
               <div className="flex flex-col gap-2 sm:flex-row">

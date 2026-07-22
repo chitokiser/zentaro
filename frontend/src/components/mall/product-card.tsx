@@ -80,7 +80,7 @@ export function ProductCard({ product }: { product: Product }) {
         </Link>
         <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
         {maxExp > 0 ? (
-          <span className="text-[11px] text-primary">최대 {maxExp.toLocaleString()} EXP로 결제 가능</span>
+          <span className="text-[11px] text-primary">최대 {maxExp.toLocaleString()} <span className="notranslate">EXP</span>로 결제 가능</span>
         ) : (
           <span className="text-[11px] text-muted-foreground">ZP 100% 결제 상품</span>
         )}

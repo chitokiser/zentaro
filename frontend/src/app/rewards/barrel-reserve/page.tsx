@@ -213,7 +213,7 @@ export default function BarrelReservePage() {
             <PageHeader
                 eyebrow="서비스"
                 title="ZenTaro Barrel Reserve"
-                description="EXP 회원 전용 프리미엄 배럴 프로그램 — 시간을 소유하는 사람들을 위한 특별한 경험"
+                description={<><span className="notranslate">EXP</span> 회원 전용 프리미엄 배럴 프로그램 — 시간을 소유하는 사람들을 위한 특별한 경험</>}
             />
 
             <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8 space-y-16">
@@ -235,9 +235,9 @@ export default function BarrelReservePage() {
                             </span>
                         </div>
                         <div>
-                            <span className="text-xs text-muted-foreground block">사용 가능한 EXP 보유고</span>
+                            <span className="text-xs text-muted-foreground block">사용 가능한 <span className="notranslate">EXP</span> 보유고</span>
                             <span className="text-base font-bold text-amber-500 mt-1 block">
-                                {expBalance.toLocaleString()} EXP
+                                {expBalance.toLocaleString()} <span className="notranslate">EXP</span>
                             </span>
                         </div>
                     </div>
@@ -378,7 +378,7 @@ export default function BarrelReservePage() {
                                         Order Requirements
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                                        주문 시 토큰 스테이킹 조건을 충족해야 하며, 명시된 회원 전용 EXP가 즉시 차감 소모됩니다.
+                                        주문 시 토큰 스테이킹 조건을 충족해야 하며, 명시된 회원 전용 <span className="notranslate">EXP</span>가 즉시 차감 소모됩니다.
                                     </p>
                                 </div>
                                 <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
@@ -388,7 +388,7 @@ export default function BarrelReservePage() {
                                     </span>
                                     <span className="text-muted-foreground block mt-1">소요 비용:</span>
                                     <span className="text-amber-500 font-bold block">
-                                        {currentSpec.expRequirementValue.toLocaleString()} EXP 즉시 차감
+                                        {currentSpec.expRequirementValue.toLocaleString()} <span className="notranslate">EXP</span> 즉시 차감
                                     </span>
                                 </div>
                                 <Button
@@ -558,14 +558,14 @@ export default function BarrelReservePage() {
                             <div className="text-amber-500 font-mono font-bold text-xs">STEP 1 & 2</div>
                             <h4 className="font-semibold text-sm text-foreground">배럴 스펙 선택 및 소유 요건 검토</h4>
                             <p className="text-xs text-muted-foreground leading-normal">
-                                회원이 원하는 배럴 용량을 정하면, 시스템이 지갑 속 ZTRO 스테이킹 누적치 및 EXP 보유액을 실시간 조회 후 검증합니다.
+                                회원이 원하는 배럴 용량을 정하면, 시스템이 지갑 속 ZTRO 스테이킹 누적치 및 <span className="notranslate">EXP</span> 보유액을 실시간 조회 후 검증합니다.
                             </p>
                         </div>
                         <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
                             <div className="text-amber-500 font-mono font-bold text-xs">STEP 3 & 4</div>
                             <h4 className="font-semibold text-sm text-foreground">주문 승인 및 마스터 원주 충전</h4>
                             <p className="text-xs text-muted-foreground leading-normal">
-                                자격 검증이 통과되면 오프체인 EXP가 자동 차감되며, 젠타로 주류원에서 수작업 오크통에 원주 주입 과정을 셋업합니다.
+                                자격 검증이 통과되면 오프체인 <span className="notranslate">EXP</span>가 자동 차감되며, 젠타로 주류원에서 수작업 오크통에 원주 주입 과정을 셋업합니다.
                             </p>
                         </div>
                         <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
