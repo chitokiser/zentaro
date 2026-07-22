@@ -112,12 +112,7 @@ const BARREL_SPECS: BarrelSpec[] = [
     }
 ]
 
-const BARREL_DELIVERY_FEES: Record<string, number> = {
-    "5L": 5000,
-    "10L": 8000,
-    "20L": 12000,
-    "40L": 20000,
-}
+const BARREL_STORAGE_FEE_RATE = 0.15
 
 const FLAVORS = [
     { name: "Vanilla", desc: "천연 오크의 리그닌 분해에서 오는 달콤하고 부드러운 화이트 아로마" },
@@ -536,7 +531,7 @@ export default function BarrelReservePage() {
                                     const agingSeconds = agingSecondsFor(barrel.productionDate, barrel.agingEndedAt)
                                     const target = AGING_TARGET_SECONDS[barrel.capacity] ?? 365 * 86400
                                     const progress = agingSeconds / target
-                                    const deliveryFee = BARREL_DELIVERY_FEES[barrel.capacity] ?? 0
+                                    const deliveryFee = Math.round(barrel.currentValueZp * BARREL_STORAGE_FEE_RATE)
 
                                     return (
                                         <div
@@ -642,7 +637,7 @@ export default function BarrelReservePage() {
                                                             className="text-[11px] h-8 font-semibold"
                                                             onClick={() => handleBarrelAction(barrel.id, "deliver")}
                                                         >
-                                                            직접 배송 신청 ({deliveryFee.toLocaleString()} ZP)
+                                                            직접 배송 신청 (보관료 {deliveryFee.toLocaleString()} ZP)
                                                         </Button>
                                                     </>
                                                 )}
@@ -674,7 +669,7 @@ export default function BarrelReservePage() {
                                                             className="text-[11px] h-8 font-semibold"
                                                             onClick={() => handleBarrelAction(barrel.id, "deliver")}
                                                         >
-                                                            직접 배송 신청 ({deliveryFee.toLocaleString()} ZP)
+                                                            직접 배송 신청 (보관료 {deliveryFee.toLocaleString()} ZP)
                                                         </Button>
                                                     </>
                                                 )}

@@ -2,13 +2,11 @@
 
 import { cn } from "@/lib/utils"
 
-const OAK_BARREL_IMAGE = "/images/products/Oak%20barrel.png"
-
-const SIZE_STYLE: Record<string, { scale: number; label: string }> = {
-    "5L": { scale: 0.72, label: "Light Toast" },
-    "10L": { scale: 0.84, label: "Honey Charred" },
-    "20L": { scale: 0.96, label: "Heavy Toast" },
-    "40L": { scale: 1.08, label: "Ex-Bourbon" },
+const SIZE_STYLE: Record<string, { scale: number; label: string; image: string }> = {
+    "5L": { scale: 0.72, label: "Light Toast", image: "/images/products/oak/5.png" },
+    "10L": { scale: 0.84, label: "Honey Charred", image: "/images/products/oak/10.png" },
+    "20L": { scale: 0.96, label: "Heavy Toast", image: "/images/products/oak/20.png" },
+    "40L": { scale: 1.08, label: "Ex-Bourbon", image: "/images/products/oak/40.png" },
 }
 
 interface BarrelVisualProps {
@@ -38,7 +36,7 @@ export function BarrelVisual({ capacity, progress, isAging, isDone, className }:
             >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                    src={OAK_BARREL_IMAGE}
+                    src={style.image}
                     alt={`${capacity} Oak Barrel`}
                     className={cn(
                         "w-full h-full object-contain transition-all duration-700",

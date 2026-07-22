@@ -12,18 +12,14 @@ function fmtUsdt(wei: bigint): number {
   return Number(ethers.formatUnits(wei, 18));
 }
 
-const BARREL_DELIVERY_FEE_ZP: Record<string, number> = {
-  '5L': 5000,
-  '10L': 8000,
-  '20L': 12000,
-  '40L': 20000,
-};
-
 const DELIVERED_STATUS = '직접 배송 완료';
 const BOTTLED_STATUS = '병입 완료 및 출고';
 
 /** Platform cut on every P2P barrel resale, taken out of the seller's proceeds. */
-const P2P_TRADE_FEE_RATE = 0.03;
+const P2P_TRADE_FEE_RATE = 0.15;
+
+/** Barrel room storage fee charged on direct-delivery, as a % of the barrel's live value. */
+const BARREL_STORAGE_FEE_RATE = 0.15;
 
 /** Masks an email for display on the public barrel gallery (e.g. "da***@gmail.com"). */
 function maskEmail(email: string | null | undefined): string {
@@ -490,6 +486,7 @@ export class TokenExchangeService {
   async triggerBarrelAction(uid: string, barrelId: string, action: string) {
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const pricing = await this.getBarrelPricingConfig();
 
     return this.db.runTransaction(async (tx) => {
       const barrelSnap = await tx.get(barrelRef);
@@ -514,12 +511,17 @@ export class TokenExchangeService {
         nextStatus = '위탁 숙성 중 (Room Aging)';
         historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
       } else if (action === 'deliver') {
-        const fee = BARREL_DELIVERY_FEE_ZP[barrelData.capacity] ?? 0;
+        const currentValueZp = computeBarrelValueZp(
+          barrelData.capacity,
+          agingSecondsFromDoc(barrelData),
+          pricing,
+        );
+        const fee = Math.round(currentValueZp * BARREL_STORAGE_FEE_RATE);
         const userSnap = await tx.get(userRef);
         const currentPoints: number = userSnap.data()?.points ?? 0;
         if (currentPoints < fee) {
           throw new BadRequestException(
-            `택배비 ${fee.toLocaleString()} ZP가 부족합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
+            `배럴룸 보관료 ${fee.toLocaleString()} ZP가 부족합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
           );
         }
         if (fee > 0) {
@@ -529,13 +531,13 @@ export class TokenExchangeService {
             userId: uid,
             amount: -fee,
             type: 'barrel_delivery_fee',
-            description: `배럴 직접배송 택배비 (${barrelData.capacity}, ${barrelId})`,
+            description: `배럴룸 보관료 (${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}%, ${barrelData.capacity}, ${barrelId})`,
             createdAt: FieldValue.serverTimestamp(),
           });
         }
         nextStatus = DELIVERED_STATUS;
         nextSealStatus = 'DELIVERED (봉인 유지 인도)';
-        historyMessage = `자택 직접 배송 요청 접수 및 봉인 인도 (택배비 ${fee.toLocaleString()} ZP 차감)`;
+        historyMessage = `자택 직접 배송 요청 접수 및 봉인 인도 (배럴룸 보관료 ${fee.toLocaleString()} ZP 차감)`;
         endsAging = true;
       } else if (action === 'bottle') {
         nextStatus = BOTTLED_STATUS;
