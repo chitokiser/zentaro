@@ -1,7 +1,12 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Inject } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { ethers } from 'ethers';
+import { FieldValue } from 'firebase-admin/firestore';
+import type { Firestore } from 'firebase-admin/firestore';
 import { WalletService } from '../wallet/wallet.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { FIRESTORE } from '../firebase/firebase.module';
+import { COLLECTIONS } from '../common/collections';
 
 function fmtUsdt(wei: bigint): number {
   return Number(ethers.formatUnits(wei, 18));
@@ -12,7 +17,8 @@ export class TokenExchangeService {
   constructor(
     private readonly walletService: WalletService,
     private readonly blockchain: BlockchainService,
-  ) {}
+    @Inject(FIRESTORE) private readonly db: Firestore,
+  ) { }
 
   async dashboard(uid: string) {
     const { address } = await this.walletService.getOrCreateChainWallet(uid);
@@ -190,5 +196,63 @@ export class TokenExchangeService {
       }
     }
     return { txHash: receipt.hash };
+  }
+
+  @Cron('0 0 * * 0')
+  async distributeWeeklyStakingRewards() {
+    console.log('[StakingReward] Starting weekly ZTRO staking EXP reward distribution...');
+    try {
+      const walletsSnap = await this.db.collection(COLLECTIONS.ZENTARO_WALLETS).get();
+      const provider = this.blockchain.getProvider();
+      const bank = this.blockchain.getBankContract(provider);
+
+      let processedCount = 0;
+      let totalExpDistributed = 0;
+
+      for (const walletDoc of walletsSnap.docs) {
+        const walletData = walletDoc.data();
+        const address = walletData.chainAddress;
+
+        if (!address) continue;
+
+        try {
+          const userInfo = await bank.user(address);
+          const stakedZtro = Number(userInfo.depo);
+
+          if (stakedZtro > 0) {
+            const expAmount = stakedZtro; // 1 EXP per staked ZTRO
+            const userId = walletDoc.id;
+
+            await this.db.runTransaction(async (tx) => {
+              const userWalletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(userId);
+              const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+
+              tx.set(userWalletRef, { exp: FieldValue.increment(expAmount) }, { merge: true });
+
+              tx.set(txRef, {
+                userId,
+                amount: expAmount,
+                type: 'staking_exp_reward',
+                description: `ZTRO 스테이킹 주간 보상 (스테이킹 수량: ${stakedZtro.toLocaleString()} ZTRO)`,
+                stakedAmount: stakedZtro,
+                createdAt: FieldValue.serverTimestamp(),
+              });
+            });
+
+            console.log(`[StakingReward] Distributed ${expAmount} EXP to user ${userId} (address: ${address})`);
+            processedCount++;
+            totalExpDistributed += expAmount;
+          }
+        } catch (walletErr) {
+          console.error(`[StakingReward] Error processing wallet address ${address}:`, walletErr);
+        }
+      }
+
+      console.log(`[StakingReward] Weekly distribution complete. Processed ${processedCount} users. Total EXP: ${totalExpDistributed}`);
+      return { processedCount, totalExpDistributed };
+    } catch (err) {
+      console.error('[StakingReward] Global staking reward distribution error:', err);
+      throw err;
+    }
   }
 }

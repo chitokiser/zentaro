@@ -5,11 +5,13 @@ import type { CurrentUserPayload } from '../auth/current-user.decorator';
 import { TokenExchangeService } from './token-exchange.service';
 import { BuyZtroDto } from './dto/buy-ztro.dto';
 import { AmountDto } from './dto/amount.dto';
+import { AdminGuard } from '../auth/admin.guard';
+import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
 @Controller('token-exchange')
 @UseGuards(JwtAuthGuard)
 export class TokenExchangeController {
-  constructor(private readonly tokenExchangeService: TokenExchangeService) {}
+  constructor(private readonly tokenExchangeService: TokenExchangeService) { }
 
   @Get('dashboard')
   dashboard(@CurrentUser() user: CurrentUserPayload) {
@@ -39,5 +41,12 @@ export class TokenExchangeController {
   @Post('claim-dividend')
   claimDividend(@CurrentUser() user: CurrentUserPayload) {
     return this.tokenExchangeService.claimDividend(user.uid);
+  }
+
+  @Post('admin/distribute-rewards')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(1)
+  distributeRewards() {
+    return this.tokenExchangeService.distributeWeeklyStakingRewards();
   }
 }

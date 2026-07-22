@@ -125,7 +125,7 @@ export default function ExchangePage() {
                 주소 복사
               </Button>
               <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
-                가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 ZP를 지급받습니다. 그 외 다양한 혜택을 받을 수 있고, 차후 인증된 거래소 상장 시 ZTRO 토큰을 매도할 수 있습니다.
+                가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹 수량에 비례하여 1:1 비율로 EXP가 지급됩니다. (지급 방식: 스테이킹한 ZTRO 수량 X 1 EXP / 주) 그 외 다양한 혜택을 받을 수 있고, 차후 인증된 거래소 상장 시 ZTRO 토큰을 매도할 수 있습니다.
               </p>
             </div>
 
