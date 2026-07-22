@@ -22,6 +22,24 @@ function remainingLabel(unlockAtSec: number): string {
   return `${days}일 남음`
 }
 
+// EXP 스테이킹 보상은 매주 일요일 00:00 UTC에 서버 크론으로 지급됩니다 (token-exchange.service.ts).
+function nextWeeklyDistributionUtc(now: Date): Date {
+  const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0))
+  while (d.getUTCDay() !== 0 || d.getTime() <= now.getTime()) {
+    d.setUTCDate(d.getUTCDate() + 1)
+  }
+  return d
+}
+
+function formatCountdown(targetMs: number, nowMs: number): string {
+  const diff = Math.max(0, targetMs - nowMs)
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
+  const seconds = Math.floor((diff % 60000) / 1000)
+  return `${days}일 ${hours}시간 ${minutes}분 ${seconds}초`
+}
+
 export default function ExchangePage() {
   const [dashboard, setDashboard] = useState<ExchangeDashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -33,6 +51,7 @@ export default function ExchangePage() {
   const [buyAmount, setBuyAmount] = useState(1)
   const [sellAmount, setSellAmount] = useState(1)
   const [stakeAmount, setStakeAmount] = useState(1)
+  const [now, setNow] = useState(() => Date.now())
 
   const load = useCallback(() => {
     fetchExchangeDashboard()
@@ -43,6 +62,11 @@ export default function ExchangePage() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [])
 
   async function runAction(name: string, fn: () => Promise<unknown>) {
     setBusy(name)
@@ -140,6 +164,28 @@ export default function ExchangePage() {
                   {dashboard.staked > 0
                     ? remainingLabel(dashboard.stakingTime + dashboard.stakeLockSeconds)
                     : "-"}
+                </p>
+              </div>
+            </div>
+
+            {/* 이번주 EXP 배당 */}
+            <div className="grid grid-cols-1 gap-3 rounded-lg border border-border/60 bg-card p-4 text-sm sm:grid-cols-2">
+              <div>
+                <p className="text-xs text-muted-foreground">이번주 예상 EXP 배당</p>
+                <p className="font-semibold text-primary">
+                  {Math.floor(dashboard.staked / 100).toLocaleString()} EXP
+                </p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  (스테이킹 10,000 ZTRO당 100 EXP 기준)
+                </p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">다음 배당까지</p>
+                <p className="font-semibold">
+                  {formatCountdown(nextWeeklyDistributionUtc(new Date(now)).getTime(), now)}
+                </p>
+                <p className="mt-0.5 text-[10px] text-muted-foreground">
+                  (베트남 시간 기준 매주 일요일 오전 7시 지급)
                 </p>
               </div>
             </div>
