@@ -83,6 +83,20 @@ const ko = {
     ctaTitle: "ZENTARO 바로가기",
     ctaDescription: "프리미엄 크래프트 증류소 ZENTARO에서 더 많은 이야기를 만나보세요",
   },
+  mall: {
+    eyebrow: "서비스",
+    title: "ZENTARO Mall",
+    descriptionPrefix: "드랍쉬핑·직배송 상품을 ZP(Reward Point)와 ",
+    descriptionSuffix: "로 만나보세요.",
+    allCategory: "전체",
+    empty: "해당 카테고리에 등록된 상품이 없습니다.",
+    addToCart: "장바구니 담기",
+    addedToCart: "담았습니다",
+    buyNow: "바로 구매",
+    maxExpPrefix: "최대 ",
+    maxExpSuffix: "로 결제 가능",
+    zpOnly: "ZP 100% 결제 상품",
+  },
   home: {
     hero: {
       subtitle: "진(Gin), 위스키, 리큐르 — 보태니컬을 증류하는 ZENTARO의 여정을 만나보세요.",
@@ -300,6 +314,20 @@ const en: Dict = {
     ctaTitle: "Visit ZENTARO",
     ctaDescription: "Discover more stories from premium craft distillery ZENTARO",
   },
+  mall: {
+    eyebrow: "Services",
+    title: "ZENTARO Mall",
+    descriptionPrefix: "Shop dropshipping and direct-delivery products with ZP (Reward Points) and ",
+    descriptionSuffix: ".",
+    allCategory: "All",
+    empty: "No products in this category yet.",
+    addToCart: "Add to Cart",
+    addedToCart: "Added",
+    buyNow: "Buy Now",
+    maxExpPrefix: "Payable with up to ",
+    maxExpSuffix: "",
+    zpOnly: "100% ZP payment item",
+  },
   home: {
     hero: {
       subtitle: "Gin, whisky, liqueur — discover ZENTARO's journey of distilling botanicals.",
@@ -514,6 +542,20 @@ const vi: Dict = {
     relatedVideo: "Xem video liên quan →",
     ctaTitle: "Đến trang ZENTARO",
     ctaDescription: "Khám phá thêm câu chuyện từ nhà chưng cất thủ công cao cấp ZENTARO",
+  },
+  mall: {
+    eyebrow: "Dịch vụ",
+    title: "ZENTARO Mall",
+    descriptionPrefix: "Khám phá các sản phẩm dropshipping và giao hàng trực tiếp bằng ZP (Điểm thưởng) và ",
+    descriptionSuffix: ".",
+    allCategory: "Tất cả",
+    empty: "Chưa có sản phẩm nào trong danh mục này.",
+    addToCart: "Thêm vào giỏ",
+    addedToCart: "Đã thêm",
+    buyNow: "Mua ngay",
+    maxExpPrefix: "Có thể thanh toán tối đa ",
+    maxExpSuffix: "",
+    zpOnly: "Sản phẩm thanh toán 100% bằng ZP",
   },
   home: {
     hero: {

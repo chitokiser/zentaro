@@ -16,10 +16,18 @@ const FULFILLMENT_LABEL: Record<string, string> = {
   direct: "직배송(자체재고)",
 }
 
-export function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product
+  isAdmin?: boolean
+  onEdit?: () => void
+  onDelete?: () => void
+  deleteBusy?: boolean
+}
+
+export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: ProductCardProps) {
   const router = useRouter()
   const { addItem } = useCart()
-  const { locale } = useI18n()
+  const { locale, t } = useI18n()
   const [added, setAdded] = useState(false)
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
 
@@ -51,7 +59,26 @@ export function ProductCard({ product }: { product: Product }) {
   }
 
   return (
-    <div className="flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card">
+    <div className="relative flex flex-col overflow-hidden rounded-xl border border-border/60 bg-card">
+      {isAdmin ? (
+        <div className="absolute right-1.5 top-1.5 z-10 flex gap-1">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-md bg-black/70 px-2 py-1 text-[10px] font-medium text-white hover:bg-black/90"
+          >
+            수정
+          </button>
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={deleteBusy}
+            className="rounded-md bg-destructive/80 px-2 py-1 text-[10px] font-medium text-white hover:bg-destructive disabled:opacity-50"
+          >
+            {deleteBusy ? "삭제 중" : "삭제"}
+          </button>
+        </div>
+      ) : null}
       <Link href={`/mall/${product.id}`} className="relative flex aspect-square items-center justify-center bg-secondary/60 text-xs text-muted-foreground">
         {product.imageUrl ? (
           <Image
@@ -84,9 +111,11 @@ export function ProductCard({ product }: { product: Product }) {
         </Link>
         <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
         {maxExp > 0 ? (
-          <span className="text-[11px] text-primary">최대 {maxExp.toLocaleString()} <span className="notranslate">EXP</span>로 결제 가능</span>
+          <span className="text-[11px] text-primary">
+            {t.mall.maxExpPrefix}{maxExp.toLocaleString()} <span className="notranslate">EXP</span>{t.mall.maxExpSuffix}
+          </span>
         ) : (
-          <span className="text-[11px] text-muted-foreground">ZP 100% 결제 상품</span>
+          <span className="text-[11px] text-muted-foreground">{t.mall.zpOnly}</span>
         )}
 
         <div className="mt-1 flex gap-2">
@@ -96,14 +125,14 @@ export function ProductCard({ product }: { product: Product }) {
             className="flex-1 border-primary/40 text-primary hover:bg-secondary"
             onClick={handleAddToCart}
           >
-            {added ? "담았습니다" : "장바구니 담기"}
+            {added ? t.mall.addedToCart : t.mall.addToCart}
           </Button>
           <Button
             size="sm"
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={handleBuyNow}
           >
-            바로 구매
+            {t.mall.buyNow}
           </Button>
         </div>
       </div>
