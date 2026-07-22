@@ -48,11 +48,6 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
           description: t.nav.serviceItems.nftDesc,
         },
         {
-          label: t.nav.serviceItems.jumpToken,
-          href: "/rewards/jump-token",
-          description: t.nav.serviceItems.jumpTokenDesc,
-        },
-        {
           label: t.nav.serviceItems.contribution,
           href: "/rewards/contribution",
           description: t.nav.serviceItems.contributionDesc,

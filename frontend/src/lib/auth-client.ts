@@ -846,3 +846,36 @@ export async function setAdminUserLevel(uid: string, adminLevel: 1 | 2 | 3 | nul
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface DepositRequest {
+  id: string;
+  userId: string;
+  email: string;
+  zpAmount: number;
+  depositorName: string;
+  currency: 'VND' | 'KRW';
+  refCode: string;
+  status: 'pending' | 'approved' | 'rejected';
+  rejectReason: string | null;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function submitDepositRequest(input: {
+  zpAmount: number;
+  depositorName: string;
+  currency: 'VND' | 'KRW';
+}): Promise<{ refCode: string }> {
+  const res = await fetch(`${API_URL}/wallet/deposit`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchMyDeposits(): Promise<DepositRequest[]> {
+  const res = await fetch(`${API_URL}/wallet/deposits`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

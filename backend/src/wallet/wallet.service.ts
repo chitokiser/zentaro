@@ -1,9 +1,10 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 
 export interface WalletView {
   ap: number;
@@ -29,7 +30,7 @@ export class WalletService {
   constructor(
     @Inject(FIRESTORE) private readonly db: Firestore,
     private readonly blockchain: BlockchainService,
-  ) {}
+  ) { }
 
   async getWallet(uid: string): Promise<WalletView> {
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
@@ -114,5 +115,106 @@ export class WalletService {
     const encPrivateKey = snap.data()!.encPrivateKey as string;
     const privateKey = this.blockchain.decryptPrivateKey(encPrivateKey);
     return { address, privateKey };
+  }
+
+  async createDepositRequest(
+    uid: string,
+    email: string,
+    dto: CreateDepositRequestDto,
+  ): Promise<{ refCode: string }> {
+    const refCode = `DEP-${Date.now()}-${Math.floor(100 + Math.random() * 900)}`;
+    const depositRef = this.db.collection(COLLECTIONS.ZENTARO_DEPOSITS).doc();
+    await depositRef.set({
+      userId: uid,
+      email,
+      zpAmount: dto.zpAmount,
+      depositorName: dto.depositorName,
+      currency: dto.currency,
+      refCode,
+      status: 'pending',
+      createdAt: FieldValue.serverTimestamp(),
+      reviewedAt: null,
+      rejectReason: null,
+    });
+    return { refCode };
+  }
+
+  async listMyDeposits(uid: string) {
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_DEPOSITS)
+      .where('userId', '==', uid)
+      .get();
+    return snap.docs
+      .map((doc) => ({ id: doc.id, ...doc.data() }))
+      .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+  }
+
+  async listAllDeposits() {
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_DEPOSITS)
+      .orderBy('createdAt', 'desc')
+      .get();
+    return snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+  }
+
+  async approveDeposit(id: string) {
+    const depositRef = this.db.collection(COLLECTIONS.ZENTARO_DEPOSITS).doc(id);
+
+    return this.db.runTransaction(async (tx) => {
+      const snap = await tx.get(depositRef);
+      if (!snap.exists) {
+        throw new NotFoundException('Deposit request not found');
+      }
+      const deposit = snap.data()!;
+      if (deposit.status !== 'pending') {
+        throw new BadRequestException('Already reviewed');
+      }
+
+      const userRef = this.db.collection(COLLECTIONS.USERS).doc(deposit.userId);
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new NotFoundException('User not found');
+      }
+
+      tx.update(depositRef, {
+        status: 'approved',
+        reviewedAt: FieldValue.serverTimestamp(),
+      });
+
+      tx.update(userRef, {
+        points: FieldValue.increment(deposit.zpAmount),
+      });
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: deposit.userId,
+        amount: deposit.zpAmount,
+        type: 'points_charge',
+        description: `ZP 충전 완료 (입금자: ${deposit.depositorName})`,
+        depositId: id,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { id, status: 'approved' };
+    });
+  }
+
+  async rejectDeposit(id: string, reason?: string) {
+    const depositRef = this.db.collection(COLLECTIONS.ZENTARO_DEPOSITS).doc(id);
+    return this.db.runTransaction(async (tx) => {
+      const snap = await tx.get(depositRef);
+      if (!snap.exists) {
+        throw new NotFoundException('Deposit request not found');
+      }
+      if (snap.data()!.status !== 'pending') {
+        throw new BadRequestException('Already reviewed');
+      }
+      tx.update(depositRef, {
+        status: 'rejected',
+        rejectReason: reason ?? null,
+        reviewedAt: FieldValue.serverTimestamp(),
+      });
+      return { id, status: 'rejected' };
+    });
   }
 }
