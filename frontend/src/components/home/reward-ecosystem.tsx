@@ -2,9 +2,9 @@ import { ArrowDown } from "lucide-react"
 
 const FLOW = [
   "Bottle Cap",
-  "Ticket",
+  "QR",
   "Lottery",
-  "Time Token",
+  "ZTRO Token",
   "Staking",
   "Weekly Reward",
   "Premium Products",

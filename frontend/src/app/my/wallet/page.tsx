@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
 
 interface WalletData {
   ap: number
@@ -30,6 +30,12 @@ export default function WalletPage() {
   const [depositRequests, setDepositRequests] = useState<DepositRequest[]>([])
   const [recentResult, setRecentResult] = useState<{ refCode: string; zpAmount: number; currency: 'VND' | 'KRW'; estimatedAmount: number } | null>(null)
   const [addressCopied, setAddressCopied] = useState(false)
+
+  // ZP -> EXP 1:1 conversion
+  const [convertAmount, setConvertAmount] = useState<number>(10000)
+  const [convertBusy, setConvertBusy] = useState(false)
+  const [convertError, setConvertError] = useState<string | null>(null)
+  const [convertSuccess, setConvertSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     loadWalletData()
@@ -115,6 +121,32 @@ export default function WalletPage() {
     }
   }
 
+  const handleConvert = async () => {
+    if (!wallet) return
+    if (!Number.isInteger(convertAmount) || convertAmount <= 0) {
+      setConvertError("전환할 ZP는 1 이상의 정수로 입력해주세요.")
+      return
+    }
+    if (convertAmount > wallet.ap) {
+      setConvertError(`보유 ZP(${wallet.ap.toLocaleString()})보다 많이 전환할 수 없습니다.`)
+      return
+    }
+    if (!confirm(`${convertAmount.toLocaleString()} ZP를 동일한 수량의 EXP로 전환하시겠습니까? (1:1, 되돌릴 수 없음)`)) return
+
+    setConvertBusy(true)
+    setConvertError(null)
+    setConvertSuccess(null)
+    try {
+      await convertZpToExp(convertAmount)
+      setConvertSuccess(`${convertAmount.toLocaleString()} ZP를 ${convertAmount.toLocaleString()} EXP로 전환했습니다.`)
+      loadWalletData()
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : "전환 중 오류가 발생했습니다.")
+    } finally {
+      setConvertBusy(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
@@ -159,6 +191,37 @@ export default function WalletPage() {
           <p className="mt-1 font-display text-2xl font-semibold text-primary">
             {dashboard ? dashboard.staked.toLocaleString() : "0"}
           </p>
+        </div>
+      </div>
+
+      {/* ZP -> EXP 1:1 전환 */}
+      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="font-display text-sm font-semibold text-foreground">ZP → <span className="notranslate">EXP</span> 전환 (1:1)</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            충전한 ZP를 동일한 수량의 <span className="notranslate">EXP</span>로 즉시 전환할 수 있습니다. 전환은 되돌릴 수 없습니다.
+          </p>
+        </div>
+        {convertError ? <p className="text-xs text-destructive">{convertError}</p> : null}
+        {convertSuccess ? <p className="text-xs text-emerald-500">{convertSuccess}</p> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="number"
+            min={1}
+            step={1000}
+            value={convertAmount}
+            onChange={(e) => setConvertAmount(Number(e.target.value))}
+            className="w-40 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
+          <span className="text-xs text-muted-foreground">ZP → {convertAmount.toLocaleString()} <span className="notranslate">EXP</span></span>
+          <button
+            type="button"
+            disabled={convertBusy}
+            onClick={handleConvert}
+            className="bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
+          >
+            {convertBusy ? "전환 중..." : "전환하기"}
+          </button>
         </div>
       </div>
 

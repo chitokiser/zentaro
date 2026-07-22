@@ -26,9 +26,11 @@ const ZENTARO_TRANSACTION_TYPES = [
   'barrel_order',
   'barrel_delivery_fee',
   'barrel_resale',
+  'barrel_resale_fee',
   'zentaro_mall_purchase',
   'zentaro_bottle_cap_reward',
   'zentaro_contribution_reward',
+  'zp_to_exp_conversion',
 ];
 
 const DEFAULT_WALLET = {
@@ -230,6 +232,40 @@ export class WalletService {
         reviewedAt: FieldValue.serverTimestamp(),
       });
       return { id, status: 'rejected' };
+    });
+  }
+
+  /** Converts charged ZP into EXP at a fixed 1:1 rate. */
+  async convertZpToExp(uid: string, amount: number) {
+    if (!Number.isInteger(amount) || amount <= 0) {
+      throw new BadRequestException('전환할 ZP는 1 이상의 정수여야 합니다.');
+    }
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+
+    return this.db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new NotFoundException('User not found');
+      }
+      const currentPoints: number = userSnap.data()?.points ?? 0;
+      if (currentPoints < amount) {
+        throw new BadRequestException(`ZP 잔액이 부족합니다. (필요: ${amount.toLocaleString()} ZP, 보유: ${currentPoints.toLocaleString()} ZP)`);
+      }
+
+      tx.update(userRef, { points: FieldValue.increment(-amount) });
+      tx.set(walletRef, { exp: FieldValue.increment(amount) }, { merge: true });
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount,
+        type: 'zp_to_exp_conversion',
+        description: `ZP → EXP 전환 (1:1, ${amount.toLocaleString()} ZP 차감 후 지급)`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return { success: true, convertedAmount: amount };
     });
   }
 

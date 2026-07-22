@@ -12,6 +12,8 @@ const TYPE_LABEL: Record<string, string> = {
   barrel_order: "배럴 주문 (EXP 차감)",
   barrel_delivery_fee: "배럴 직접배송 택배비",
   barrel_resale: "배럴 오너 간 매매",
+  barrel_resale_fee: "배럴 P2P 거래 수수료 (3%)",
+  zp_to_exp_conversion: "ZP → EXP 전환 (1:1)",
   zentaro_mall_purchase: "몰 구매 (ZP/EXP 결제)",
   zentaro_bottle_cap_reward: "병뚜껑 리워드",
   zentaro_contribution_reward: "현물출자 리워드",

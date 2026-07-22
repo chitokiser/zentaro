@@ -266,7 +266,7 @@ export default function BarrelReservePage() {
     }
 
     const handleListForSale = async (barrelId: string, currentValueZp: number) => {
-        if (!confirm(`현재 시세 ${currentValueZp.toLocaleString()} ZP로 이 배럴을 판매 등록하시겠습니까? 가격은 용량과 숙성 시간에 따라 자동 산정되며 오너가 임의로 정할 수 없습니다. 등록 중에는 배송/병입 신청이 제한됩니다.`)) return
+        if (!confirm(`현재 시세 ${currentValueZp.toLocaleString()} ZP로 이 배럴을 판매 등록하시겠습니까? 가격은 용량과 숙성 시간에 따라 자동 산정되며 오너가 임의로 정할 수 없습니다. 거래 성사 시 판매 대금의 3%가 수수료로 차감됩니다. 등록 중에는 배송/병입 신청이 제한됩니다.`)) return
 
         setActionBusy(true)
         setActionError(null)

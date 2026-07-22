@@ -22,6 +22,9 @@ const BARREL_DELIVERY_FEE_ZP: Record<string, number> = {
 const DELIVERED_STATUS = '직접 배송 완료';
 const BOTTLED_STATUS = '병입 완료 및 출고';
 
+/** Platform cut on every P2P barrel resale, taken out of the seller's proceeds. */
+const P2P_TRADE_FEE_RATE = 0.03;
+
 /** Masks an email for display on the public barrel gallery (e.g. "da***@gmail.com"). */
 function maskEmail(email: string | null | undefined): string {
   if (!email) return '알 수 없음';
@@ -621,6 +624,8 @@ export class TokenExchangeService {
       const sellerUid = barrel.userId;
       // Priced live at the moment of purchase — never a stale stored value.
       const price = computeBarrelValueZp(barrel.capacity, agingSecondsFromDoc(barrel), pricing);
+      const fee = Math.round(price * P2P_TRADE_FEE_RATE);
+      const sellerReceives = price - fee;
 
       const [buyerSnap, sellerSnap] = await Promise.all([
         tx.get(buyerRef),
@@ -636,13 +641,13 @@ export class TokenExchangeService {
 
       const sellerRef = this.db.collection(COLLECTIONS.USERS).doc(sellerUid);
       tx.update(buyerRef, { points: FieldValue.increment(-price) });
-      tx.update(sellerRef, { points: FieldValue.increment(price) });
+      tx.update(sellerRef, { points: FieldValue.increment(sellerReceives) });
 
       const historyEntry = {
         date: new Date().toISOString(),
         ownerId: buyerUid,
         action: 'sold',
-        message: `${price.toLocaleString()} ZP에 소유권 이전 (이전 소유자: ${sellerUid})`,
+        message: `${price.toLocaleString()} ZP에 소유권 이전 (수수료 ${fee.toLocaleString()} ZP 차감, 이전 소유자: ${sellerUid})`,
       };
 
       tx.update(barrelRef, {
@@ -663,11 +668,21 @@ export class TokenExchangeService {
       const sellerTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
       tx.set(sellerTxRef, {
         userId: sellerUid,
-        amount: price,
+        amount: sellerReceives,
         type: 'barrel_resale',
-        description: `배럴 판매 (${barrelId})`,
+        description: `배럴 판매 (${barrelId}, 거래 수수료 ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}% 차감 후 실수령)`,
         createdAt: FieldValue.serverTimestamp(),
       });
+      if (fee > 0) {
+        const feeTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+        tx.set(feeTxRef, {
+          userId: sellerUid,
+          amount: -fee,
+          type: 'barrel_resale_fee',
+          description: `배럴 P2P 거래 수수료 ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}% (${barrelId})`,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
 
       return { success: true, barrelId, newOwnerId: buyerUid };
     });

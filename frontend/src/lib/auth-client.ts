@@ -924,6 +924,16 @@ export async function fetchMyDeposits(): Promise<DepositRequest[]> {
   return res.json();
 }
 
+export async function convertZpToExp(amount: number): Promise<{ success: boolean; convertedAmount: number }> {
+  const res = await fetch(`${API_URL}/wallet/convert-zp-to-exp`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ amount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function fetchAllDepositsAdmin(): Promise<DepositRequest[]> {
   const res = await fetch(`${API_URL}/wallet/admin/deposits`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
@@ -1021,7 +1031,7 @@ export async function triggerBarrelAction(barrelId: string, action: string): Pro
 }
 
 export async function fetchPublicBarrels(): Promise<PublicBarrel[]> {
-  const res = await fetch(`${API_URL}/token-exchange/barrel/public`);
+  const res = await fetch(`${API_URL}/token-exchange/barrel/public`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
