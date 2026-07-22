@@ -57,6 +57,11 @@ export default function AdminProductsPage() {
   const [directMainCategory, setDirectMainCategory] = useState("")
   const [directSubCategory, setDirectSubCategory] = useState("")
   const [directDescription, setDirectDescription] = useState("")
+  const [showTranslations, setShowTranslations] = useState(false)
+  const [directNameEn, setDirectNameEn] = useState("")
+  const [directNameVi, setDirectNameVi] = useState("")
+  const [directDescriptionEn, setDirectDescriptionEn] = useState("")
+  const [directDescriptionVi, setDirectDescriptionVi] = useState("")
   const [directImageUrl, setDirectImageUrl] = useState("")
   const [directBadges, setDirectBadges] = useState("")
   const [directPriceAp, setDirectPriceAp] = useState("")
@@ -242,6 +247,10 @@ export default function AdminProductsPage() {
         mainCategory: directMainCategory,
         category: subCategory,
         description: directDescription || undefined,
+        nameEn: directNameEn.trim() || undefined,
+        nameVi: directNameVi.trim() || undefined,
+        descriptionEn: directDescriptionEn.trim() || undefined,
+        descriptionVi: directDescriptionVi.trim() || undefined,
         imageUrl: directImageUrl || undefined,
         badges: directBadges
           ? directBadges.split(",").map((b) => b.trim()).filter(Boolean)
@@ -264,6 +273,11 @@ export default function AdminProductsPage() {
       setDirectMainCategory("")
       setDirectSubCategory("")
       setDirectDescription("")
+      setDirectNameEn("")
+      setDirectNameVi("")
+      setDirectDescriptionEn("")
+      setDirectDescriptionVi("")
+      setShowTranslations(false)
       setDirectImageUrl("")
       setDirectBadges("")
       setDirectPriceAp("")
@@ -285,6 +299,11 @@ export default function AdminProductsPage() {
     setDirectMainCategory(product.mainCategory ?? "")
     setDirectSubCategory(product.category ?? "")
     setDirectDescription(product.description ?? "")
+    setDirectNameEn(product.nameEn ?? "")
+    setDirectNameVi(product.nameVi ?? "")
+    setDirectDescriptionEn(product.descriptionEn ?? "")
+    setDirectDescriptionVi(product.descriptionVi ?? "")
+    setShowTranslations(Boolean(product.nameEn || product.nameVi || product.descriptionEn || product.descriptionVi))
     setDirectImageUrl(product.imageUrl ?? "")
     setDirectBadges((product.badges ?? []).join(", "))
     setDirectPriceAp(String(product.priceAp ?? ""))
@@ -303,6 +322,11 @@ export default function AdminProductsPage() {
     setDirectMainCategory("")
     setDirectSubCategory("")
     setDirectDescription("")
+    setDirectNameEn("")
+    setDirectNameVi("")
+    setDirectDescriptionEn("")
+    setDirectDescriptionVi("")
+    setShowTranslations(false)
     setDirectImageUrl("")
     setDirectBadges("")
     setDirectPriceAp("")
@@ -546,6 +570,47 @@ export default function AdminProductsPage() {
             value={directDescription}
             onChange={(e) => setDirectDescription(e.target.value)}
           />
+          <Badge
+            variant={showTranslations ? "default" : "outline"}
+            className="cursor-pointer text-[10px] w-fit sm:col-span-2"
+            onClick={() => setShowTranslations((v) => !v)}
+          >
+            영어/베트남어 번역 {showTranslations ? "숨기기" : "입력 (선택)"}
+          </Badge>
+          {showTranslations && (
+            <div className="grid grid-cols-1 gap-2 sm:col-span-2 sm:grid-cols-2 rounded-md border border-border/40 bg-background/40 p-3">
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">English</span>
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Product name (English)"
+                  value={directNameEn}
+                  onChange={(e) => setDirectNameEn(e.target.value)}
+                />
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Description (English)"
+                  value={directDescriptionEn}
+                  onChange={(e) => setDirectDescriptionEn(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">Tiếng Việt</span>
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Tên sản phẩm (Tiếng Việt)"
+                  value={directNameVi}
+                  onChange={(e) => setDirectNameVi(e.target.value)}
+                />
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Mô tả (Tiếng Việt)"
+                  value={directDescriptionVi}
+                  onChange={(e) => setDirectDescriptionVi(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
           <input
             className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm sm:col-span-2"
             placeholder="이미지 URL (선택)"

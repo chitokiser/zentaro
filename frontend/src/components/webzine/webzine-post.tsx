@@ -4,6 +4,7 @@ import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { localizedText } from "@/lib/i18n/content"
 import type { WebzinePost } from "@/lib/api"
 
 const ZENTARO_URL = "https://zentaro.netlify.app/"
@@ -17,14 +18,16 @@ export function WebzinePostView({
   embedUrl: string | null
   directVideo: string | null
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const authorLabel = post.source === "ai" ? "ZENTARO AI" : post.authorName
+  const postTitle = localizedText(locale, post.title, post.titleEn, post.titleVi)
+  const postContentHtml = localizedText(locale, post.contentHtml, post.contentHtmlEn, post.contentHtmlVi)
 
   return (
     <div>
       <PageHeader
         eyebrow={post.tags.join(" · ")}
-        title={post.title}
+        title={postTitle}
         description={`${t.webzine.writtenByPrefix}${authorLabel}${t.webzine.writtenBySuffix}`}
       />
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
@@ -40,7 +43,7 @@ export function WebzinePostView({
           <div className="mb-8 aspect-video w-full overflow-hidden rounded-lg border border-border/60">
             <iframe
               src={embedUrl}
-              title={post.title}
+              title={postTitle}
               className="h-full w-full"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               allowFullScreen
@@ -63,7 +66,7 @@ export function WebzinePostView({
 
         <div
           className="text-sm leading-relaxed text-foreground sm:text-base [&_a]:text-primary [&_a]:underline [&_a]:underline-offset-4 [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:font-display [&_h3]:text-lg [&_h3]:font-semibold [&_h3]:first:mt-0 [&_li]:ml-4 [&_li]:list-disc [&_p]:mb-4 [&_ul]:mb-4"
-          dangerouslySetInnerHTML={{ __html: post.contentHtml }}
+          dangerouslySetInnerHTML={{ __html: postContentHtml }}
         />
 
         <a

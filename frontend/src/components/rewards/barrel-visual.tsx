@@ -2,80 +2,75 @@
 
 import { cn } from "@/lib/utils"
 
-const SIZE_STYLE: Record<string, { scale: number; wood: string; hoop: string; label: string }> = {
-    "5L": { scale: 0.72, wood: "#c8a26a", hoop: "#8a6a3e", label: "Light Toast" },
-    "10L": { scale: 0.84, wood: "#b98a52", hoop: "#7a5a34", label: "Honey Charred" },
-    "20L": { scale: 0.96, wood: "#9c6f3f", hoop: "#5f4526", label: "Heavy Toast" },
-    "40L": { scale: 1.08, wood: "#7d5631", hoop: "#4a3319", label: "Ex-Bourbon" },
+const OAK_BARREL_IMAGE = "/images/products/Oak%20barrel.png"
+
+const SIZE_STYLE: Record<string, { scale: number; label: string }> = {
+    "5L": { scale: 0.72, label: "Light Toast" },
+    "10L": { scale: 0.84, label: "Honey Charred" },
+    "20L": { scale: 0.96, label: "Heavy Toast" },
+    "40L": { scale: 1.08, label: "Ex-Bourbon" },
 }
 
 interface BarrelVisualProps {
     capacity: string
-    progress: number // 0..1 aging progress, drives liquid fill height
-    isAging: boolean // when true, plays the shimmer/glow/bubble animation
-    isDone: boolean // delivered/bottled — shown as sealed/empty
+    progress: number // 0..1 aging progress, drives the progress bar fill
+    isAging: boolean // when true, plays the glow/shimmer/bubble animation
+    isDone: boolean // delivered/bottled — shown dimmed with an EMPTY tag
     className?: string
 }
 
 export function BarrelVisual({ capacity, progress, isAging, isDone, className }: BarrelVisualProps) {
     const style = SIZE_STYLE[capacity] ?? SIZE_STYLE["10L"]
-    const fillPct = isDone ? 0 : Math.min(100, Math.max(6, Math.round(progress * 100)))
+    const fillPct = isDone ? 0 : Math.min(100, Math.max(4, Math.round(progress * 100)))
+    const size = { width: 96 * style.scale, height: 96 * style.scale }
 
     return (
         <div
-            className={cn("relative flex flex-col items-center justify-end select-none", className)}
-            style={{ width: 96 * style.scale, height: 108 * style.scale }}
+            className={cn("relative flex flex-col items-center gap-1.5 select-none", className)}
             title={`${capacity} · ${style.label}`}
         >
             <div
-                className="relative w-full h-full rounded-[38%/22%] overflow-hidden border-2"
-                style={{
-                    borderColor: style.hoop,
-                    background: `linear-gradient(180deg, ${style.wood} 0%, ${style.wood}dd 55%, ${style.wood}bb 100%)`,
-                }}
+                className={cn(
+                    "relative rounded-xl overflow-hidden border-2 border-amber-700/30 bg-black/10",
+                    isAging && "barrel-glow-active",
+                )}
+                style={size}
             >
-                {/* Hoops (top / mid / bottom bands) */}
-                <div className="absolute left-0 right-0 top-[14%] h-[7%]" style={{ background: style.hoop, opacity: 0.85 }} />
-                <div className="absolute left-0 right-0 top-[47%] h-[6%]" style={{ background: style.hoop, opacity: 0.7 }} />
-                <div className="absolute left-0 right-0 bottom-[14%] h-[7%]" style={{ background: style.hoop, opacity: 0.85 }} />
-
-                {/* Wood stave lines */}
-                <div
-                    className="absolute inset-0 opacity-25"
-                    style={{
-                        backgroundImage:
-                            "repeating-linear-gradient(90deg, rgba(0,0,0,0.25) 0px, rgba(0,0,0,0.25) 1px, transparent 1px, transparent 10px)",
-                    }}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                    src={OAK_BARREL_IMAGE}
+                    alt={`${capacity} Oak Barrel`}
+                    className={cn(
+                        "w-full h-full object-contain transition-all duration-700",
+                        isDone && "grayscale opacity-40",
+                    )}
                 />
 
-                {/* Liquid fill, height = aging progress */}
-                {!isDone && (
-                    <div
-                        className={cn(
-                            "absolute inset-x-0 bottom-0 barrel-liquid-fill transition-[height] duration-1000 ease-out",
-                            isAging && "barrel-glow-active",
-                        )}
-                        style={{ height: `${fillPct}%` }}
-                    >
-                        {isAging &&
-                            [0, 1, 2].map((i) => (
-                                <span
-                                    key={i}
-                                    className="barrel-bubble absolute bottom-1 w-1 h-1 rounded-full bg-amber-100/70"
-                                    style={{ left: `${20 + i * 28}%`, animationDelay: `${i * 1.1}s` }}
-                                />
-                            ))}
-                    </div>
-                )}
+                {isAging &&
+                    [0, 1, 2].map((i) => (
+                        <span
+                            key={i}
+                            className="barrel-bubble absolute bottom-2 w-1 h-1 rounded-full bg-amber-100/80"
+                            style={{ left: `${28 + i * 22}%`, animationDelay: `${i * 1.1}s` }}
+                        />
+                    ))}
 
                 {isDone && (
-                    <div className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-amber-100/70 bg-black/20">
+                    <div className="absolute inset-0 flex items-center justify-center text-[9px] font-mono text-amber-100/80 bg-black/30">
                         EMPTY
                     </div>
                 )}
             </div>
 
-            <span className="mt-1.5 text-[9px] font-mono text-muted-foreground">{capacity}</span>
+            {/* Aging progress bar */}
+            <div className="w-full h-1.5 rounded-full bg-black/15 overflow-hidden" style={size.width ? { width: size.width } : undefined}>
+                <div
+                    className={cn("h-full barrel-liquid-fill transition-[width] duration-1000 ease-out", !isAging && "opacity-50")}
+                    style={{ width: `${fillPct}%` }}
+                />
+            </div>
+
+            <span className="text-[9px] font-mono text-muted-foreground">{capacity}</span>
         </div>
     )
 }

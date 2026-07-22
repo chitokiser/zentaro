@@ -5,6 +5,7 @@ import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { localizedText } from "@/lib/i18n/content"
 import type { WebzinePost } from "@/lib/api"
 import { getYoutubeThumbnail, isDirectVideoFile } from "@/lib/video-utils"
 
@@ -36,7 +37,7 @@ export function WebzineList({
   tags: readonly string[]
   activeTag?: string
 }) {
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
 
   return (
     <div>
@@ -63,6 +64,8 @@ export function WebzineList({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => {
               const thumbnail = getPostThumbnail(post)
+              const postTitle = localizedText(locale, post.title, post.titleEn, post.titleVi)
+              const postContentHtml = localizedText(locale, post.contentHtml, post.contentHtmlEn, post.contentHtmlVi)
               return (
                 <Link
                   key={post.id}
@@ -82,7 +85,7 @@ export function WebzineList({
                       ) : (
                         <Image
                           src={thumbnail.url}
-                          alt={post.title}
+                          alt={postTitle}
                           fill
                           sizes="(max-width: 768px) 100vw, 33vw"
                           className="object-cover"
@@ -97,9 +100,9 @@ export function WebzineList({
                       </Badge>
                     ))}
                   </div>
-                  <h3 className="font-display text-base font-medium">{post.title}</h3>
+                  <h3 className="font-display text-base font-medium">{postTitle}</h3>
                   <p className="line-clamp-3 text-xs text-muted-foreground">
-                    {stripHtml(post.contentHtml)}
+                    {stripHtml(postContentHtml)}
                   </p>
                 </Link>
               )

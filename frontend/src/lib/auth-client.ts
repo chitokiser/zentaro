@@ -301,6 +301,10 @@ export interface AdminProduct {
   mainCategory?: string;
   category: string;
   description?: string;
+  nameEn?: string | null;
+  nameVi?: string | null;
+  descriptionEn?: string | null;
+  descriptionVi?: string | null;
   badges?: string[];
   priceAp: number;
   costAp?: number;
@@ -368,6 +372,10 @@ export async function createDirectProduct(input: {
   mainCategory: string;
   category: string;
   description?: string;
+  nameEn?: string;
+  nameVi?: string;
+  descriptionEn?: string;
+  descriptionVi?: string;
   imageUrl?: string | null;
   badges?: string[];
   priceAp: number;
@@ -392,6 +400,10 @@ export async function updateProductAdmin(
     mainCategory: string;
     category: string;
     description: string;
+    nameEn: string;
+    nameVi: string;
+    descriptionEn: string;
+    descriptionVi: string;
     imageUrl: string;
     badges: string[];
     priceAp: number;
@@ -429,6 +441,10 @@ export interface AdminPost {
   id: string;
   title: string;
   contentHtml: string;
+  titleEn?: string | null;
+  titleVi?: string | null;
+  contentHtmlEn?: string | null;
+  contentHtmlVi?: string | null;
   videoUrl: string | null;
   tags: string[];
   source: "ai" | "admin";
@@ -446,6 +462,10 @@ export async function fetchAllPostsAdmin(): Promise<AdminPost[]> {
 export async function createPost(input: {
   title: string;
   contentHtml: string;
+  titleEn?: string;
+  titleVi?: string;
+  contentHtmlEn?: string;
+  contentHtmlVi?: string;
   videoUrl?: string;
   tags: string[];
 }) {
@@ -463,6 +483,10 @@ export async function updatePost(
   input: Partial<{
     title: string;
     contentHtml: string;
+    titleEn: string;
+    titleVi: string;
+    contentHtmlEn: string;
+    contentHtmlVi: string;
     videoUrl: string;
     tags: string[];
   }>,

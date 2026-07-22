@@ -10,6 +10,10 @@ export interface Product {
   fulfillmentType?: "dropshipping" | "direct";
   imageUrl: string | null;
   description: string;
+  nameEn?: string | null;
+  nameVi?: string | null;
+  descriptionEn?: string | null;
+  descriptionVi?: string | null;
   badges?: string[];
 }
 
@@ -55,6 +59,10 @@ export interface WebzinePost {
   id: string;
   title: string;
   contentHtml: string;
+  titleEn?: string | null;
+  titleVi?: string | null;
+  contentHtmlEn?: string | null;
+  contentHtmlVi?: string | null;
   videoUrl: string | null;
   tags: string[];
   source: "ai" | "admin";

@@ -57,6 +57,14 @@ export default function AdminWebzinePage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
 
+  // Manual EN/VI translations (optional) so the site's language switcher can show
+  // this post fully translated instead of just untranslated Korean.
+  const [showTranslations, setShowTranslations] = useState(false)
+  const [titleEn, setTitleEn] = useState("")
+  const [titleVi, setTitleVi] = useState("")
+  const [contentHtmlEn, setContentHtmlEn] = useState("")
+  const [contentHtmlVi, setContentHtmlVi] = useState("")
+
   const load = useCallback(() => {
     fetchAllPostsAdmin()
       .then(setPosts)
@@ -84,12 +92,19 @@ export default function AdminWebzinePage() {
     setMessage(null)
     try {
       const finalHtml = contentMode === "text" ? textToHtml(contentHtml) : contentHtml
+      const translationFields = {
+        titleEn: titleEn.trim() || undefined,
+        titleVi: titleVi.trim() || undefined,
+        contentHtmlEn: contentHtmlEn.trim() || undefined,
+        contentHtmlVi: contentHtmlVi.trim() || undefined,
+      }
       if (editingId) {
         await updatePost(editingId, {
           title,
           contentHtml: finalHtml,
           videoUrl: videoUrl.trim() || undefined,
           tags: selectedTags,
+          ...translationFields,
         })
         setMessage(`"${title}"을(를) 수정했습니다.`)
       } else {
@@ -98,6 +113,7 @@ export default function AdminWebzinePage() {
           contentHtml: finalHtml,
           videoUrl: videoUrl.trim() || undefined,
           tags: selectedTags,
+          ...translationFields,
         })
         setMessage(`"${title}"을(를) 웹진에 게시했습니다.`)
       }
@@ -107,6 +123,11 @@ export default function AdminWebzinePage() {
       setContentHtml("")
       setContentMode("html")
       setSelectedTags([])
+      setTitleEn("")
+      setTitleVi("")
+      setContentHtmlEn("")
+      setContentHtmlVi("")
+      setShowTranslations(false)
       load()
     } catch (err) {
       setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
@@ -122,6 +143,11 @@ export default function AdminWebzinePage() {
     setContentHtml(post.contentHtml)
     setContentMode("html")
     setSelectedTags(post.tags)
+    setTitleEn(post.titleEn ?? "")
+    setTitleVi(post.titleVi ?? "")
+    setContentHtmlEn(post.contentHtmlEn ?? "")
+    setContentHtmlVi(post.contentHtmlVi ?? "")
+    setShowTranslations(Boolean(post.titleEn || post.titleVi || post.contentHtmlEn || post.contentHtmlVi))
     setMessage(null)
     setError(null)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -134,6 +160,11 @@ export default function AdminWebzinePage() {
     setContentHtml("")
     setContentMode("html")
     setSelectedTags([])
+    setTitleEn("")
+    setTitleVi("")
+    setContentHtmlEn("")
+    setContentHtmlVi("")
+    setShowTranslations(false)
   }
 
   async function handleGenerateAi() {
@@ -265,6 +296,49 @@ export default function AdminWebzinePage() {
             </Badge>
           ))}
         </div>
+        <Badge
+          variant={showTranslations ? "default" : "outline"}
+          className="cursor-pointer text-[10px] w-fit"
+          onClick={() => setShowTranslations((v) => !v)}
+        >
+          영어/베트남어 번역 {showTranslations ? "숨기기" : "입력 (선택)"}
+        </Badge>
+
+        {showTranslations && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md border border-border/40 bg-background/40 p-3">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">English</span>
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="Title (English)"
+                value={titleEn}
+                onChange={(e) => setTitleEn(e.target.value)}
+              />
+              <textarea
+                className="min-h-32 rounded-md border border-border/60 bg-background px-3 py-2 text-xs"
+                placeholder="Content (English, HTML or plain text)"
+                value={contentHtmlEn}
+                onChange={(e) => setContentHtmlEn(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">Tiếng Việt</span>
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="Tiêu đề (Tiếng Việt)"
+                value={titleVi}
+                onChange={(e) => setTitleVi(e.target.value)}
+              />
+              <textarea
+                className="min-h-32 rounded-md border border-border/60 bg-background px-3 py-2 text-xs"
+                placeholder="Nội dung (Tiếng Việt, HTML hoặc văn bản thường)"
+                value={contentHtmlVi}
+                onChange={(e) => setContentHtmlVi(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Button type="submit" disabled={busy} className="self-start bg-primary text-primary-foreground hover:bg-primary/90">
             {busy ? "저장 중..." : editingId ? "수정 저장" : "게시하기"}

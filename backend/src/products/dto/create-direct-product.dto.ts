@@ -19,6 +19,22 @@ export class CreateDirectProductDto {
 
   @IsOptional()
   @IsString()
+  nameEn?: string;
+
+  @IsOptional()
+  @IsString()
+  nameVi?: string;
+
+  @IsOptional()
+  @IsString()
+  descriptionEn?: string;
+
+  @IsOptional()
+  @IsString()
+  descriptionVi?: string;
+
+  @IsOptional()
+  @IsString()
   imageUrl?: string;
 
   @IsOptional()

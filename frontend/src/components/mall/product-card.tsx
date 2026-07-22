@@ -7,6 +7,8 @@ import Image from "next/image"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
+import { useI18n } from "@/lib/i18n/i18n-context"
+import { localizedText } from "@/lib/i18n/content"
 import type { Product } from "@/lib/api"
 
 const FULFILLMENT_LABEL: Record<string, string> = {
@@ -17,7 +19,9 @@ const FULFILLMENT_LABEL: Record<string, string> = {
 export function ProductCard({ product }: { product: Product }) {
   const router = useRouter()
   const { addItem } = useCart()
+  const { locale } = useI18n()
   const [added, setAdded] = useState(false)
+  const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
 
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
@@ -27,7 +31,7 @@ export function ProductCard({ product }: { product: Product }) {
   function cartItem() {
     return {
       productId: product.id,
-      name: product.name,
+      name: productName,
       imageUrl: product.imageUrl,
       priceAp: product.priceAp,
       costAp,
@@ -52,7 +56,7 @@ export function ProductCard({ product }: { product: Product }) {
         {product.imageUrl ? (
           <Image
             src={product.imageUrl}
-            alt={product.name}
+            alt={productName}
             fill
             className="object-cover"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
@@ -76,7 +80,7 @@ export function ProductCard({ product }: { product: Product }) {
           ))}
         </div>
         <Link href={`/mall/${product.id}`} className="text-sm font-medium text-foreground hover:text-primary">
-          {product.name}
+          {productName}
         </Link>
         <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
         {maxExp > 0 ? (

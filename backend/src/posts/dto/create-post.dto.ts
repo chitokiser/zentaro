@@ -12,6 +12,22 @@ export class CreatePostDto {
   contentHtml: string;
 
   @IsOptional()
+  @IsString()
+  titleEn?: string;
+
+  @IsOptional()
+  @IsString()
+  titleVi?: string;
+
+  @IsOptional()
+  @IsString()
+  contentHtmlEn?: string;
+
+  @IsOptional()
+  @IsString()
+  contentHtmlVi?: string;
+
+  @IsOptional()
   // Raw spaces (common in copy-pasted video file links) aren't valid in a
   // URL — encode them rather than reject an otherwise-valid link.
   @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/ /g, '%20') : value))

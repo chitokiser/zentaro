@@ -108,6 +108,10 @@ export class PostsService {
     const docRef = await this.col().add({
       title: dto.title,
       contentHtml: dto.contentHtml,
+      titleEn: dto.titleEn ?? null,
+      titleVi: dto.titleVi ?? null,
+      contentHtmlEn: dto.contentHtmlEn ?? null,
+      contentHtmlVi: dto.contentHtmlVi ?? null,
       videoUrl: dto.videoUrl ?? null,
       tags: dto.tags,
       source,

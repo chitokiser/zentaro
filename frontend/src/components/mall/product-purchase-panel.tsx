@@ -6,12 +6,16 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { getToken } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/i18n-context"
+import { localizedText } from "@/lib/i18n/content"
 import type { Product } from "@/lib/api"
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
   const router = useRouter()
   const { addItem } = useCart()
+  const { locale } = useI18n()
   const [added, setAdded] = useState(false)
+  const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
 
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
@@ -21,7 +25,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
   function cartItem() {
     return {
       productId: product.id,
-      name: product.name,
+      name: productName,
       imageUrl: product.imageUrl,
       priceAp: product.priceAp,
       costAp,
