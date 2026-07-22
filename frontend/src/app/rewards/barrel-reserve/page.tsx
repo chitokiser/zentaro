@@ -227,11 +227,7 @@ export default function BarrelReservePage() {
                         </Link>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
-                        <div>
-                            <span className="text-xs text-muted-foreground block">On-chain 지갑 주소</span>
-                            <span className="font-mono text-xs text-foreground select-all break-all">{walletAddress || "확인 불가"}</span>
-                        </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
                         <div>
                             <span className="text-xs text-muted-foreground block">총 ZTRO 스테이킹 수량</span>
                             <span className="text-base font-bold text-foreground mt-1 block">
@@ -260,6 +256,16 @@ export default function BarrelReservePage() {
                         회원은 ZenTaro 주류원(Distillery)이 직접 증류한 최상급 중성주와 원주를 엄선된 프리미엄 오크 배럴에 담아,
                         프라이빗 숙성 환경 속에서 시간이 더해가는 무한한 가치를 직접 설계하고 소유 공유하게 됩니다.
                     </p>
+                    <div className="flex justify-center pt-2">
+                        <div className="relative group max-w-sm w-full overflow-hidden rounded-2xl border border-amber-500/10 bg-gradient-to-b from-amber-500/5 to-transparent p-1">
+                            <img
+                                src="/images/rewards/barrel.png"
+                                alt="ZenTaro Premium Oak Barrel"
+                                className="w-full h-auto rounded-xl object-contain opacity-90 group-hover:opacity-100 group-hover:scale-[1.01] transition duration-700 max-h-64 mx-auto"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/30 via-transparent to-transparent pointer-events-none" />
+                        </div>
+                    </div>
                 </section>
 
                 {/* Action Status Output */}
@@ -295,8 +301,8 @@ export default function BarrelReservePage() {
                                 type="button"
                                 onClick={() => setSelectedSize(spec.size)}
                                 className={`text-left p-4 rounded-xl border transition-all duration-300 flex flex-col justify-between h-36 relative overflow-hidden group ${selectedSize === spec.size
-                                        ? "border-amber-500 bg-amber-500/5 shadow-md shadow-amber-500/10"
-                                        : "border-border/60 bg-card hover:border-amber-500/40 hover:bg-card/80"
+                                    ? "border-amber-500 bg-amber-500/5 shadow-md shadow-amber-500/10"
+                                    : "border-border/60 bg-card hover:border-amber-500/40 hover:bg-card/80"
                                     }`}
                             >
                                 <div>

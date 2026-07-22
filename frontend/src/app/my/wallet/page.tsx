@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
 
 interface WalletData {
   ap: number
@@ -14,16 +14,9 @@ interface WalletData {
   nfts: string[]
 }
 
-const TILES: { key: keyof WalletData; label: string }[] = [
-  { key: "ap", label: "ZP (Reward Point)" },
-  { key: "exp", label: "EXP (Mall 마진 결제)" },
-  { key: "timeToken", label: "Time Token" },
-  { key: "jumpToken", label: "Jump Token" },
-  { key: "rewardPoint", label: "Bonus Reward Point" },
-]
-
 export default function WalletPage() {
   const [wallet, setWallet] = useState<WalletData | null>(null)
+  const [dashboard, setDashboard] = useState<ExchangeDashboard | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // ZP Top-up UI States
@@ -44,8 +37,11 @@ export default function WalletPage() {
   }, [])
 
   const loadWalletData = () => {
-    fetchWallet()
-      .then((data) => setWallet(data))
+    Promise.all([fetchWallet(), fetchExchangeDashboard()])
+      .then(([wData, dData]) => {
+        setWallet(wData)
+        setDashboard(dData)
+      })
       .catch((err) => setError(err instanceof Error ? err.message : "오류가 발생했습니다."))
   }
 
@@ -128,15 +124,34 @@ export default function WalletPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-        {TILES.map((tile) => (
-          <div key={tile.key} className="rounded-lg border border-border/60 bg-card p-4">
-            <span className="text-xs text-muted-foreground">{tile.label}</span>
-            <p className="mt-1 font-display text-2xl font-semibold text-primary">
-              {(wallet[tile.key] as number).toLocaleString()}
-            </p>
-          </div>
-        ))}
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+        <div className="rounded-lg border border-border/60 bg-card p-4">
+          <span className="text-xs text-muted-foreground">ZP</span>
+          <p className="mt-1 font-display text-2xl font-semibold text-primary">
+            {wallet.ap.toLocaleString()}
+          </p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 font-mono">
+            ≈ {Math.round((wallet.ap / 10000) * usdRate).toLocaleString()} VND
+          </p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-card p-4">
+          <span className="text-xs text-muted-foreground">EXP</span>
+          <p className="mt-1 font-display text-2xl font-semibold text-primary">
+            {wallet.exp.toLocaleString()}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-card p-4">
+          <span className="text-xs text-muted-foreground">ZTRO</span>
+          <p className="mt-1 font-display text-2xl font-semibold text-primary">
+            {dashboard ? dashboard.ztroBalance.toLocaleString() : "0"}
+          </p>
+        </div>
+        <div className="rounded-lg border border-border/60 bg-card p-4">
+          <span className="text-xs text-muted-foreground">ZTRO 스테이킹</span>
+          <p className="mt-1 font-display text-2xl font-semibold text-primary">
+            {dashboard ? dashboard.staked.toLocaleString() : "0"}
+          </p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -336,8 +351,8 @@ export default function WalletPage() {
                     <td className="py-2.5">{req.currency}</td>
                     <td className="py-2.5">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-medium ${req.status === 'approved' ? 'bg-emerald-500/10 text-emerald-500' :
-                          req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
-                            'bg-yellow-500/10 text-yellow-500'
+                        req.status === 'rejected' ? 'bg-red-500/10 text-red-500' :
+                          'bg-yellow-500/10 text-yellow-500'
                         }`}>
                         {req.status === 'approved' ? '승인완료 (Approved)' :
                           req.status === 'rejected' ? '반려됨 (Rejected)' :

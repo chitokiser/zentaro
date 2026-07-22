@@ -119,12 +119,7 @@ export default function ExchangePage() {
 
             {/* 입금 안내 */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">Ztro 보관지갑</h3>
-              <p className="mt-1 font-mono text-xs break-all text-foreground">{dashboard.address}</p>
-              <Button type="button" variant="outline" size="sm" className="mt-3 block" onClick={copyAddress}>
-                주소 복사
-              </Button>
-              <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 EXP를 지급받습니다. 스테이킹한 수량에 따라 그 외 다양한 혜택을 받을 수 있습니다.
               </p>
             </div>
