@@ -1,4 +1,7 @@
+"use client"
+
 import { ArrowDown } from "lucide-react"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const FLOW = [
   "Bottle Cap",
@@ -11,14 +14,16 @@ const FLOW = [
 ]
 
 export function RewardEcosystem() {
+  const { t } = useI18n()
+
   return (
     <section className="mx-auto max-w-4xl px-4 py-24 sm:px-6 lg:px-8">
       <div className="text-center">
         <span className="text-xs font-medium uppercase tracking-[0.4em] text-primary">
-          Reward Ecosystem
+          {t.home.rewardEcosystem.eyebrow}
         </span>
         <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-          한눈에 보는 리워드 구조
+          {t.home.rewardEcosystem.title}
         </h2>
       </div>
 

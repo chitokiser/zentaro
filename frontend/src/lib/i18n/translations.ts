@@ -83,6 +83,54 @@ const ko = {
     ctaTitle: "ZENTARO 바로가기",
     ctaDescription: "프리미엄 크래프트 증류소 ZENTARO에서 더 많은 이야기를 만나보세요",
   },
+  home: {
+    hero: {
+      subtitle: "진(Gin), 위스키, 리큐르 — 보태니컬을 증류하는 ZENTARO의 여정을 만나보세요.",
+      exploreCta: "Explore",
+      shopCta: "Shop Now",
+    },
+    brandStory: {
+      eyebrow: "ZenTaro Story",
+      title: "네 가지 여정이 만나는 지점",
+      pillars: {
+        distillation: { title: "증류", description: "구리 단식 증류기로 한 방울씩 뽑아내는 정제된 스피릿." },
+        botanical: { title: "허브", description: "주니퍼베리, 로터스, 핑크페퍼 등 엄선한 보태니컬." },
+        aging: { title: "숙성", description: "배럴룸에서 시간이 빚어내는 깊은 풍미의 변화." },
+        people: { title: "사람", description: "증류사의 손끝에서 완성되는 크래프트 정신." },
+      },
+    },
+    business: {
+      eyebrow: "Business",
+      title: "ZENTARO의 사업 영역",
+    },
+    mall: {
+      eyebrow: "ZENTARO Mall",
+      title: "프리미엄 쇼핑몰",
+      description: "관리자가 지정한 대표 상품을 ZP(Reward Point)로 만나보세요.",
+      viewAll: "전체 상품 보러가기 →",
+    },
+    rewardEcosystem: {
+      eyebrow: "Reward Ecosystem",
+      title: "한눈에 보는 리워드 구조",
+    },
+    experienceCenter: {
+      eyebrow: "Experience Center",
+      title: "체험 프로그램",
+      reserveCta: "예약하기",
+      programs: {
+        distillationExperience: "증류 체험",
+        ginMaking: "Gin 만들기",
+        bbq: "BBQ",
+        herbGarden: "허브 정원",
+        tasting: "시음회",
+      },
+    },
+    community: {
+      eyebrow: "Community",
+      title: "ZENTARO와 함께하기",
+      description: "공지사항과 SNS 채널을 통해 ZENTARO의 새로운 소식을 만나보세요.",
+    },
+  },
 };
 
 type Dict = typeof ko;
@@ -164,6 +212,54 @@ const en: Dict = {
     ctaTitle: "Visit ZENTARO",
     ctaDescription: "Discover more stories from premium craft distillery ZENTARO",
   },
+  home: {
+    hero: {
+      subtitle: "Gin, whisky, liqueur — discover ZENTARO's journey of distilling botanicals.",
+      exploreCta: "Explore",
+      shopCta: "Shop Now",
+    },
+    brandStory: {
+      eyebrow: "ZenTaro Story",
+      title: "Where four journeys meet",
+      pillars: {
+        distillation: { title: "Distillation", description: "Refined spirit drawn drop by drop through a copper pot still." },
+        botanical: { title: "Botanical", description: "Carefully selected botanicals — juniper berry, lotus, pink pepper, and more." },
+        aging: { title: "Aging", description: "Deep, evolving flavor shaped by time in the barrel room." },
+        people: { title: "People", description: "Craft spirit completed at the hands of our master distillers." },
+      },
+    },
+    business: {
+      eyebrow: "Business",
+      title: "ZENTARO's Business Divisions",
+    },
+    mall: {
+      eyebrow: "ZENTARO Mall",
+      title: "Premium Shopping Mall",
+      description: "Meet curated flagship products chosen by our team, payable with ZP (Reward Points).",
+      viewAll: "View all products →",
+    },
+    rewardEcosystem: {
+      eyebrow: "Reward Ecosystem",
+      title: "Reward Structure at a Glance",
+    },
+    experienceCenter: {
+      eyebrow: "Experience Center",
+      title: "Experience Programs",
+      reserveCta: "Reserve Now",
+      programs: {
+        distillationExperience: "Distillation Experience",
+        ginMaking: "Gin Making",
+        bbq: "BBQ",
+        herbGarden: "Herb Garden",
+        tasting: "Tasting Session",
+      },
+    },
+    community: {
+      eyebrow: "Community",
+      title: "Join ZENTARO",
+      description: "Discover the latest ZENTARO news through our announcements and social channels.",
+    },
+  },
 };
 
 const vi: Dict = {
@@ -242,6 +338,54 @@ const vi: Dict = {
     relatedVideo: "Xem video liên quan →",
     ctaTitle: "Đến trang ZENTARO",
     ctaDescription: "Khám phá thêm câu chuyện từ nhà chưng cất thủ công cao cấp ZENTARO",
+  },
+  home: {
+    hero: {
+      subtitle: "Gin, whisky, rượu mùi — khám phá hành trình chưng cất thảo mộc của ZENTARO.",
+      exploreCta: "Explore",
+      shopCta: "Shop Now",
+    },
+    brandStory: {
+      eyebrow: "ZenTaro Story",
+      title: "Nơi hội tụ của bốn hành trình",
+      pillars: {
+        distillation: { title: "Chưng cất", description: "Tinh chất được chưng cất từng giọt qua nồi chưng cất đồng truyền thống." },
+        botanical: { title: "Thảo mộc", description: "Các loại thảo mộc được tuyển chọn kỹ lưỡng — quả bách xù, hoa sen, tiêu hồng và hơn thế nữa." },
+        aging: { title: "Ủ trưởng thành", description: "Hương vị đậm đà được thời gian tôi luyện trong phòng ủ thùng gỗ sồi." },
+        people: { title: "Con người", description: "Tinh thần thủ công được hoàn thiện qua đôi tay của những nghệ nhân chưng cất." },
+      },
+    },
+    business: {
+      eyebrow: "Business",
+      title: "Các mảng kinh doanh của ZENTARO",
+    },
+    mall: {
+      eyebrow: "ZENTARO Mall",
+      title: "Trung tâm mua sắm cao cấp",
+      description: "Khám phá các sản phẩm tiêu biểu do quản trị viên lựa chọn, thanh toán bằng ZP (Điểm thưởng).",
+      viewAll: "Xem tất cả sản phẩm →",
+    },
+    rewardEcosystem: {
+      eyebrow: "Reward Ecosystem",
+      title: "Cấu trúc phần thưởng trong một cái nhìn",
+    },
+    experienceCenter: {
+      eyebrow: "Experience Center",
+      title: "Chương trình trải nghiệm",
+      reserveCta: "Đặt chỗ ngay",
+      programs: {
+        distillationExperience: "Trải nghiệm chưng cất",
+        ginMaking: "Làm Gin",
+        bbq: "BBQ",
+        herbGarden: "Vườn thảo mộc",
+        tasting: "Buổi nếm thử",
+      },
+    },
+    community: {
+      eyebrow: "Community",
+      title: "Cùng đồng hành với ZENTARO",
+      description: "Khám phá tin tức mới nhất của ZENTARO qua thông báo và các kênh mạng xã hội.",
+    },
   },
 };
 

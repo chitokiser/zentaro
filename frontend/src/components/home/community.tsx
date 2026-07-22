@@ -1,4 +1,7 @@
+"use client"
+
 import { MessageCircle, Camera, Send, PlayCircle } from "lucide-react"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const CHANNELS = [
   { label: "YouTube", icon: PlayCircle, href: "https://youtube.com" },
@@ -8,16 +11,18 @@ const CHANNELS = [
 ]
 
 export function Community() {
+  const { t } = useI18n()
+
   return (
     <section className="mx-auto max-w-5xl px-4 py-24 text-center sm:px-6 lg:px-8">
       <span className="text-xs font-medium uppercase tracking-[0.4em] text-primary">
-        Community
+        {t.home.community.eyebrow}
       </span>
       <h2 className="mt-3 font-display text-3xl font-semibold sm:text-4xl">
-        ZENTARO와 함께하기
+        {t.home.community.title}
       </h2>
       <p className="mx-auto mt-3 max-w-md text-sm text-muted-foreground">
-        공지사항과 SNS 채널을 통해 ZENTARO의 새로운 소식을 만나보세요.
+        {t.home.community.description}
       </p>
 
       <div className="mt-10 flex flex-wrap justify-center gap-4">

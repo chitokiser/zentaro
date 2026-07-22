@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const SLIDES = [
   "/images/hero/5.png",
@@ -14,6 +15,7 @@ const SLIDES = [
 
 export function Hero() {
   const [active, setActive] = useState(0)
+  const { t } = useI18n()
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -61,8 +63,7 @@ export function Hero() {
           Tells a Story
         </h1>
         <p className="max-w-xl text-balance text-base text-muted-foreground drop-shadow-[0_1px_8px_rgba(0,0,0,0.6)] sm:text-lg">
-          진(Gin), 위스키, 리큐르 — 보태니컬을 증류하는 ZENTARO의 여정을
-          만나보세요.
+          {t.home.hero.subtitle}
         </p>
         <div className="mt-4 flex flex-wrap items-center justify-center gap-4">
           <Button
@@ -70,7 +71,7 @@ export function Hero() {
             size="lg"
             className="bg-primary px-8 text-primary-foreground hover:bg-primary/90"
           >
-            <Link href="/about/distillery">Explore</Link>
+            <Link href="/about/distillery">{t.home.hero.exploreCta}</Link>
           </Button>
           <Button
             asChild
@@ -78,7 +79,7 @@ export function Hero() {
             variant="outline"
             className="border-primary/50 px-8 text-foreground hover:bg-secondary hover:text-primary"
           >
-            <Link href="/mall">Shop Now</Link>
+            <Link href="/mall">{t.home.hero.shopCta}</Link>
           </Button>
         </div>
       </div>
