@@ -241,6 +241,18 @@ export class BlockchainService {
     return createHash('sha256').update(rawKey).digest();
   }
 
+  /**
+   * Older deploys derived the key differently (no "0x" stripping, so a
+   * 0x-prefixed value fell through to the SHA-256 branch instead of being
+   * read as raw hex). Kept so wallets encrypted before that fix still decrypt.
+   */
+  private legacyEncryptionKeys(): Buffer[] {
+    const rawKey = this.config.get<string>('WALLET_ENCRYPTION_KEY');
+    if (!rawKey) return [];
+    const { createHash } = require('node:crypto');
+    return [createHash('sha256').update(rawKey).digest()];
+  }
+
   /** AES-256-GCM, random IV per call. Output: "iv.tag.ciphertext" (all base64). */
   encryptPrivateKey(privateKey: string): string {
     const key = this.encryptionKey();
@@ -254,19 +266,33 @@ export class BlockchainService {
     return [iv, tag, data].map((b) => b.toString('base64')).join('.');
   }
 
+  private tryDecryptWithKey(payload: string, key: Buffer): string | null {
+    try {
+      const [ivB64, tagB64, dataB64] = payload.split('.');
+      const decipher = createDecipheriv(
+        'aes-256-gcm',
+        key,
+        Buffer.from(ivB64, 'base64'),
+      );
+      decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
+      const out = Buffer.concat([
+        decipher.update(Buffer.from(dataB64, 'base64')),
+        decipher.final(),
+      ]);
+      return out.toString('utf8');
+    } catch {
+      return null;
+    }
+  }
+
   decryptPrivateKey(payload: string): string {
-    const [ivB64, tagB64, dataB64] = payload.split('.');
-    const key = this.encryptionKey();
-    const decipher = createDecipheriv(
-      'aes-256-gcm',
-      key,
-      Buffer.from(ivB64, 'base64'),
+    const candidates = [this.encryptionKey(), ...this.legacyEncryptionKeys()];
+    for (const key of candidates) {
+      const result = this.tryDecryptWithKey(payload, key);
+      if (result !== null) return result;
+    }
+    throw new InternalServerErrorException(
+      'Unable to decrypt wallet private key',
     );
-    decipher.setAuthTag(Buffer.from(tagB64, 'base64'));
-    const out = Buffer.concat([
-      decipher.update(Buffer.from(dataB64, 'base64')),
-      decipher.final(),
-    ]);
-    return out.toString('utf8');
   }
 }

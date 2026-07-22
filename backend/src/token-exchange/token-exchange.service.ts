@@ -124,24 +124,31 @@ export class TokenExchangeService {
   }
 
   async stake(uid: string, amount: number) {
-    const { address, privateKey } =
-      await this.walletService.getDecryptedPrivateKey(uid);
-    await this.blockchain.ensureGas(address);
-    const signer = this.blockchain.getUserSigner(privateKey);
+    try {
+      const { address, privateKey } =
+        await this.walletService.getDecryptedPrivateKey(uid);
+      await this.blockchain.ensureGas(address);
+      const signer = this.blockchain.getUserSigner(privateKey);
 
-    const bank = this.blockchain.getBankContract(signer);
-    const ztro = this.blockchain.getZtroContract(signer);
-    const bankAddress = await bank.getAddress();
+      const bank = this.blockchain.getBankContract(signer);
+      const ztro = this.blockchain.getZtroContract(signer);
+      const bankAddress = await bank.getAddress();
 
-    const allowance: bigint = await ztro.allowance(address, bankAddress);
-    if (allowance < BigInt(amount)) {
-      const approveTx = await ztro.approve(bankAddress, ethers.MaxUint256);
-      await approveTx.wait();
+      const allowance: bigint = await ztro.allowance(address, bankAddress);
+      if (allowance < BigInt(amount)) {
+        const approveTx = await ztro.approve(bankAddress, ethers.MaxUint256);
+        await approveTx.wait();
+      }
+
+      const tx = await bank.stake(amount);
+      const receipt = await tx.wait();
+      return { txHash: receipt.hash as string };
+    } catch (err) {
+      console.error('[TokenExchange] stake error:', err);
+      throw new BadRequestException(
+        err instanceof Error ? err.message : '스테이킹에 실패했습니다.',
+      );
     }
-
-    const tx = await bank.stake(amount);
-    const receipt = await tx.wait();
-    return { txHash: receipt.hash as string };
   }
 
   async unstake(uid: string) {
