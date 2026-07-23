@@ -4,6 +4,7 @@ import { BrandStory } from "@/components/home/brand-story";
 import { BusinessCards } from "@/components/home/business-cards";
 import { ShoppingMall } from "@/components/home/shopping-mall";
 import { RewardEcosystem } from "@/components/home/reward-ecosystem";
+import { BarrelReservePromo } from "@/components/home/barrel-reserve-promo";
 import { ExperienceCenter } from "@/components/home/experience-center";
 import { Community } from "@/components/home/community";
 
@@ -16,6 +17,7 @@ export default function Home() {
       <BusinessCards />
       <ShoppingMall />
       <RewardEcosystem />
+      <BarrelReservePromo />
       <ExperienceCenter />
       <Community />
     </div>

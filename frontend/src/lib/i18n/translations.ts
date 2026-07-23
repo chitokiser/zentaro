@@ -504,6 +504,13 @@ const ko = {
       eyebrow: "Reward Ecosystem",
       title: "한눈에 보는 리워드 구조",
     },
+    barrelReserve: {
+      eyebrow: "Barrel Reserve",
+      title: "나만의 오크통에 술을 담다",
+      description: "5L~40L 프리미엄 오크통을 분양받아 나만의 원주를 숙성시키세요. 숙성 기간과 블렌드마스터 평가에 따라 자산 가치가 함께 성장합니다.",
+      highlights: ["리터당 분양가", "숙성 기간 복리 성장", "블렌드마스터 맛 평가", "회원간 P2P 거래"],
+      cta: "오크통 분양 알아보기",
+    },
     experienceCenter: {
       eyebrow: "Experience Center",
       title: "체험 프로그램",
@@ -1112,6 +1119,13 @@ const en: Dict = {
       eyebrow: "Reward Ecosystem",
       title: "Reward Structure at a Glance",
     },
+    barrelReserve: {
+      eyebrow: "Barrel Reserve",
+      title: "Fill Your Own Oak Barrel",
+      description: "Reserve a premium 5L~40L oak barrel and age your own spirit. Its value grows over time with aging duration and the Blend Master's tasting score.",
+      highlights: ["Price per liter", "Compounding aging value", "Blend Master tasting score", "Member-to-member P2P trading"],
+      cta: "Explore Barrel Reserve",
+    },
     experienceCenter: {
       eyebrow: "Experience Center",
       title: "Experience Programs",
@@ -1717,6 +1731,13 @@ const vi: Dict = {
     rewardEcosystem: {
       eyebrow: "Reward Ecosystem",
       title: "Cấu trúc phần thưởng trong một cái nhìn",
+    },
+    barrelReserve: {
+      eyebrow: "Barrel Reserve",
+      title: "Sở hữu thùng gỗ sồi của riêng bạn",
+      description: "Đăng ký thùng gỗ sồi cao cấp 5L~40L và tự ủ rượu nền của riêng mình. Giá trị tài sản tăng dần theo thời gian ủ và điểm đánh giá của Blend Master.",
+      highlights: ["Giá theo lít", "Giá trị tăng theo thời gian ủ", "Đánh giá của Blend Master", "Giao dịch P2P giữa hội viên"],
+      cta: "Khám phá Barrel Reserve",
     },
     experienceCenter: {
       eyebrow: "Experience Center",
