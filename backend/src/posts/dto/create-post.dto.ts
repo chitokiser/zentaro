@@ -13,11 +13,19 @@ export class CreatePostDto {
 
   @IsOptional()
   @IsString()
+  titleKo?: string;
+
+  @IsOptional()
+  @IsString()
   titleEn?: string;
 
   @IsOptional()
   @IsString()
   titleVi?: string;
+
+  @IsOptional()
+  @IsString()
+  contentHtmlKo?: string;
 
   @IsOptional()
   @IsString()

@@ -60,8 +60,10 @@ export default function AdminWebzinePage() {
   // Manual EN/VI translations (optional) so the site's language switcher can show
   // this post fully translated instead of just untranslated Korean.
   const [showTranslations, setShowTranslations] = useState(false)
+  const [titleKo, setTitleKo] = useState("")
   const [titleEn, setTitleEn] = useState("")
   const [titleVi, setTitleVi] = useState("")
+  const [contentHtmlKo, setContentHtmlKo] = useState("")
   const [contentHtmlEn, setContentHtmlEn] = useState("")
   const [contentHtmlVi, setContentHtmlVi] = useState("")
 
@@ -93,8 +95,10 @@ export default function AdminWebzinePage() {
     try {
       const finalHtml = contentMode === "text" ? textToHtml(contentHtml) : contentHtml
       const translationFields = {
+        titleKo: titleKo.trim() || undefined,
         titleEn: titleEn.trim() || undefined,
         titleVi: titleVi.trim() || undefined,
+        contentHtmlKo: contentHtmlKo.trim() || undefined,
         contentHtmlEn: contentHtmlEn.trim() || undefined,
         contentHtmlVi: contentHtmlVi.trim() || undefined,
       }
@@ -123,8 +127,10 @@ export default function AdminWebzinePage() {
       setContentHtml("")
       setContentMode("html")
       setSelectedTags([])
+      setTitleKo("")
       setTitleEn("")
       setTitleVi("")
+      setContentHtmlKo("")
       setContentHtmlEn("")
       setContentHtmlVi("")
       setShowTranslations(false)
@@ -143,11 +149,15 @@ export default function AdminWebzinePage() {
     setContentHtml(post.contentHtml)
     setContentMode("html")
     setSelectedTags(post.tags)
+    setTitleKo(post.titleKo ?? "")
     setTitleEn(post.titleEn ?? "")
     setTitleVi(post.titleVi ?? "")
+    setContentHtmlKo(post.contentHtmlKo ?? "")
     setContentHtmlEn(post.contentHtmlEn ?? "")
     setContentHtmlVi(post.contentHtmlVi ?? "")
-    setShowTranslations(Boolean(post.titleEn || post.titleVi || post.contentHtmlEn || post.contentHtmlVi))
+    setShowTranslations(
+      Boolean(post.titleKo || post.titleEn || post.titleVi || post.contentHtmlKo || post.contentHtmlEn || post.contentHtmlVi),
+    )
     setMessage(null)
     setError(null)
     window.scrollTo({ top: 0, behavior: "smooth" })
@@ -160,8 +170,10 @@ export default function AdminWebzinePage() {
     setContentHtml("")
     setContentMode("html")
     setSelectedTags([])
+    setTitleKo("")
     setTitleEn("")
     setTitleVi("")
+    setContentHtmlKo("")
     setContentHtmlEn("")
     setContentHtmlVi("")
     setShowTranslations(false)
@@ -246,7 +258,7 @@ export default function AdminWebzinePage() {
         </h3>
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="제목"
+          placeholder="Tiêu đề (베트남어, 기본 언어)"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
@@ -301,11 +313,29 @@ export default function AdminWebzinePage() {
           className="cursor-pointer text-[10px] w-fit"
           onClick={() => setShowTranslations((v) => !v)}
         >
-          영어/베트남어 번역 {showTranslations ? "숨기기" : "입력 (선택)"}
+          한국어/영어 번역 {showTranslations ? "숨기기" : "입력 (선택)"}
         </Badge>
+        <p className="text-[11px] text-muted-foreground">
+          기본 제목/본문은 베트남어로 작성해주세요. 아래는 한국어·영어 번역(선택)입니다.
+        </p>
 
         {showTranslations && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 rounded-md border border-border/40 bg-background/40 p-3">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 rounded-md border border-border/40 bg-background/40 p-3">
+            <div className="flex flex-col gap-2">
+              <span className="text-xs font-semibold text-muted-foreground">한국어</span>
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="제목 (한국어)"
+                value={titleKo}
+                onChange={(e) => setTitleKo(e.target.value)}
+              />
+              <textarea
+                className="min-h-32 rounded-md border border-border/60 bg-background px-3 py-2 text-xs"
+                placeholder="본문 (한국어, HTML 또는 일반 텍스트)"
+                value={contentHtmlKo}
+                onChange={(e) => setContentHtmlKo(e.target.value)}
+              />
+            </div>
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold text-muted-foreground">English</span>
               <input

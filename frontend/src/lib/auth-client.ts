@@ -447,8 +447,10 @@ export interface AdminPost {
   id: string;
   title: string;
   contentHtml: string;
+  titleKo?: string | null;
   titleEn?: string | null;
   titleVi?: string | null;
+  contentHtmlKo?: string | null;
   contentHtmlEn?: string | null;
   contentHtmlVi?: string | null;
   videoUrl: string | null;
@@ -468,8 +470,10 @@ export async function fetchAllPostsAdmin(): Promise<AdminPost[]> {
 export async function createPost(input: {
   title: string;
   contentHtml: string;
+  titleKo?: string;
   titleEn?: string;
   titleVi?: string;
+  contentHtmlKo?: string;
   contentHtmlEn?: string;
   contentHtmlVi?: string;
   videoUrl?: string;
@@ -489,8 +493,10 @@ export async function updatePost(
   input: Partial<{
     title: string;
     contentHtml: string;
+    titleKo: string;
     titleEn: string;
     titleVi: string;
+    contentHtmlKo: string;
     contentHtmlEn: string;
     contentHtmlVi: string;
     videoUrl: string;

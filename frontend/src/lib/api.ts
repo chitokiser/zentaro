@@ -61,8 +61,10 @@ export interface WebzinePost {
   id: string;
   title: string;
   contentHtml: string;
+  titleKo?: string | null;
   titleEn?: string | null;
   titleVi?: string | null;
+  contentHtmlKo?: string | null;
   contentHtmlEn?: string | null;
   contentHtmlVi?: string | null;
   videoUrl: string | null;

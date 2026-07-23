@@ -64,8 +64,11 @@ export function WebzineList({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {posts.map((post) => {
               const thumbnail = getPostThumbnail(post)
-              const postTitle = localizedText(locale, post.title, post.titleEn, post.titleVi)
-              const postContentHtml = localizedText(locale, post.contentHtml, post.contentHtmlEn, post.contentHtmlVi)
+              const postTitle = locale === "ko" && post.titleKo ? post.titleKo : localizedText(locale, post.title, post.titleEn, post.titleVi)
+              const postContentHtml =
+                locale === "ko" && post.contentHtmlKo
+                  ? post.contentHtmlKo
+                  : localizedText(locale, post.contentHtml, post.contentHtmlEn, post.contentHtmlVi)
               return (
                 <Link
                   key={post.id}
