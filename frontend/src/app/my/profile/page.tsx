@@ -12,6 +12,7 @@ import {
   type ShippingAddress,
 } from "@/lib/auth-client"
 import { GoogleSignInButton } from "@/components/google-sign-in-button"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const EMPTY_ADDRESS: ShippingAddress = {
   recipientName: "",
@@ -23,6 +24,8 @@ const EMPTY_ADDRESS: ShippingAddress = {
 }
 
 function ShippingAddressSection() {
+  const { t } = useI18n()
+  const p = t.myPage.profile
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -47,7 +50,7 @@ function ShippingAddressSection() {
       await updateShippingAddress(address)
       setSaved(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "저장에 실패했습니다.")
+      setError(err instanceof Error ? err.message : p.saveError)
     } finally {
       setSaving(false)
     }
@@ -57,53 +60,55 @@ function ShippingAddressSection() {
 
   return (
     <form onSubmit={handleSave} className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-6">
-      <h3 className="font-display text-lg font-medium">배송지 관리</h3>
+      <h3 className="font-display text-lg font-medium">{p.shippingTitle}</h3>
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="받는 사람"
+        placeholder={p.recipientPlaceholder}
         value={address.recipientName}
         onChange={(e) => setAddress({ ...address, recipientName: e.target.value })}
       />
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="연락처"
+        placeholder={p.phonePlaceholder}
         value={address.phone}
         onChange={(e) => setAddress({ ...address, phone: e.target.value })}
       />
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="우편번호"
+        placeholder={p.postalCodePlaceholder}
         value={address.postalCode}
         onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
       />
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="주소"
+        placeholder={p.addressPlaceholder}
         value={address.addressLine1}
         onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
       />
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="상세 주소 (선택)"
+        placeholder={p.addressDetailPlaceholder}
         value={address.addressLine2 ?? ""}
         onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })}
       />
       <input
         className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-        placeholder="배송 메모 (선택)"
+        placeholder={p.deliveryMemoPlaceholder}
         value={address.deliveryMemo ?? ""}
         onChange={(e) => setAddress({ ...address, deliveryMemo: e.target.value })}
       />
       {error ? <p className="text-xs text-destructive">{error}</p> : null}
-      {saved ? <p className="text-xs text-primary">저장되었습니다.</p> : null}
+      {saved ? <p className="text-xs text-primary">{p.savedNotice}</p> : null}
       <Button type="submit" disabled={saving} variant="outline" className="mt-1">
-        {saving ? "저장 중..." : "배송지 저장"}
+        {saving ? p.saving : p.saveShipping}
       </Button>
     </form>
   )
 }
 
 export default function ProfilePage() {
+  const { t } = useI18n()
+  const p = t.myPage.profile
   const [mode, setMode] = useState<"login" | "register">("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -124,7 +129,7 @@ export default function ProfilePage() {
       }
       setLoggedIn(true)
     } catch (err) {
-      setError(err instanceof Error ? err.message : "오류가 발생했습니다.")
+      setError(err instanceof Error ? err.message : p.genericError)
     } finally {
       setLoading(false)
     }
@@ -133,10 +138,8 @@ export default function ProfilePage() {
   if (loggedIn) {
     return (
       <div className="mx-auto max-w-sm rounded-lg border border-border/60 bg-card p-6">
-        <h3 className="font-display text-lg font-medium">회원정보</h3>
-        <p className="mt-2 text-sm text-muted-foreground">
-          로그인되었습니다. 지갑 정보는 My Wallet 탭에서 확인할 수 있습니다.
-        </p>
+        <h3 className="font-display text-lg font-medium">{p.accountInfoTitle}</h3>
+        <p className="mt-2 text-sm text-muted-foreground">{p.loggedInNotice}</p>
         <Button
           variant="outline"
           className="mt-4"
@@ -145,7 +148,7 @@ export default function ProfilePage() {
             setLoggedIn(false)
           }}
         >
-          로그아웃
+          {p.logout}
         </Button>
         <ShippingAddressSection />
       </div>
@@ -160,14 +163,14 @@ export default function ProfilePage() {
           onClick={() => setMode("login")}
           type="button"
         >
-          로그인
+          {p.loginTab}
         </button>
         <button
           className={`rounded-full px-3 py-1 ${mode === "register" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
           onClick={() => setMode("register")}
           type="button"
         >
-          회원가입
+          {p.registerTab}
         </button>
       </div>
 
@@ -175,7 +178,7 @@ export default function ProfilePage() {
         {mode === "register" && (
           <input
             className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-            placeholder="닉네임"
+            placeholder={p.nicknamePlaceholder}
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             required
@@ -184,7 +187,7 @@ export default function ProfilePage() {
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
           type="email"
-          placeholder="이메일"
+          placeholder={p.emailPlaceholder}
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required
@@ -192,7 +195,7 @@ export default function ProfilePage() {
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
           type="password"
-          placeholder="비밀번호"
+          placeholder={p.passwordPlaceholder}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           minLength={8}
@@ -200,13 +203,13 @@ export default function ProfilePage() {
         />
         {error ? <p className="text-xs text-destructive">{error}</p> : null}
         <Button type="submit" disabled={loading} className="mt-2 bg-primary text-primary-foreground hover:bg-primary/90">
-          {loading ? "처리 중..." : mode === "login" ? "로그인" : "회원가입"}
+          {loading ? p.processing : mode === "login" ? p.loginTab : p.registerTab}
         </Button>
       </form>
 
       <div className="my-5 flex items-center gap-3 text-xs text-muted-foreground">
         <span className="h-px flex-1 bg-border/60" />
-        또는
+        {p.orDivider}
         <span className="h-px flex-1 bg-border/60" />
       </div>
 

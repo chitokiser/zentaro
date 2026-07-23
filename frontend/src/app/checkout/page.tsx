@@ -13,6 +13,7 @@ import {
   checkoutCart,
   type ShippingAddress,
 } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const EMPTY_ADDRESS: ShippingAddress = {
   recipientName: "",
@@ -24,6 +25,8 @@ const EMPTY_ADDRESS: ShippingAddress = {
 }
 
 export default function CheckoutPage() {
+  const { t } = useI18n()
+  const c = t.checkout
   const { items, removeItem, updateQuantity, clear, totalPriceAp } = useCart()
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
   const [expBalance, setExpBalance] = useState(0)
@@ -74,7 +77,7 @@ export default function CheckoutPage() {
       setResult(res)
       clear()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "주문에 실패했습니다.")
+      setError(err instanceof Error ? err.message : c.orderError)
     } finally {
       setBusy(false)
     }
@@ -83,13 +86,13 @@ export default function CheckoutPage() {
   if (result) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center">
-        <h1 className="font-display text-2xl font-semibold text-primary">주문이 완료되었습니다</h1>
-        <p className="mt-2 text-sm text-muted-foreground">주문번호: {result.orderId}</p>
+        <h1 className="font-display text-2xl font-semibold text-primary">{c.orderCompleteTitle}</h1>
+        <p className="mt-2 text-sm text-muted-foreground">{c.orderNumberLabel} {result.orderId}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          결제: ZP {result.totalApPaid.toLocaleString()} + <span className="notranslate">EXP</span> {result.totalExpPaid.toLocaleString()}
+          {c.paymentPrefix}{result.totalApPaid.toLocaleString()} + <span className="notranslate">EXP</span> {result.totalExpPaid.toLocaleString()}
         </p>
         <Button asChild className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
-          <Link href="/mall">쇼핑 계속하기</Link>
+          <Link href="/mall">{c.continueShopping}</Link>
         </Button>
       </div>
     )
@@ -99,9 +102,9 @@ export default function CheckoutPage() {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-muted-foreground">
         <Link href="/my/profile" className="text-primary underline underline-offset-4">
-          로그인
-        </Link>{" "}
-        후 결제할 수 있습니다.
+          {c.loginCta}
+        </Link>
+        {c.loginSuffix}
       </div>
     )
   }
@@ -109,9 +112,9 @@ export default function CheckoutPage() {
   if (items.length === 0) {
     return (
       <div className="mx-auto max-w-lg px-4 py-16 text-center text-sm text-muted-foreground">
-        장바구니가 비어 있습니다.{" "}
+        {c.emptyCart}{" "}
         <Link href="/mall" className="text-primary underline underline-offset-4">
-          몰 구경하기
+          {c.browseMall}
         </Link>
       </div>
     )
@@ -119,7 +122,7 @@ export default function CheckoutPage() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-10 sm:px-6">
-      <h1 className="font-display text-2xl font-semibold text-primary">주문/결제</h1>
+      <h1 className="font-display text-2xl font-semibold text-primary">{c.title}</h1>
 
       <section className="flex flex-col gap-4">
         {items.map((item) => {
@@ -156,12 +159,12 @@ export default function CheckoutPage() {
                     className="ml-2 text-destructive underline underline-offset-4"
                     onClick={() => removeItem(item.productId)}
                   >
-                    삭제
+                    {c.removeItem}
                   </button>
                 </div>
                 {max > 0 ? (
                   <label className="mt-1 flex flex-col gap-1 text-[11px] text-muted-foreground">
-                    사용할 <span className="notranslate">EXP</span> (최대 {max.toLocaleString()})
+                    {c.useExpPrefix} <span className="notranslate">EXP</span> {c.useExpMaxPrefix} {max.toLocaleString()}{c.useExpMaxSuffix}
                     <input
                       type="number"
                       min={0}
@@ -172,7 +175,7 @@ export default function CheckoutPage() {
                     />
                   </label>
                 ) : (
-                  <span className="text-[11px] text-muted-foreground">ZP 100% 결제 상품</span>
+                  <span className="text-[11px] text-muted-foreground">{c.zpOnlyItem}</span>
                 )}
               </div>
             </div>
@@ -181,64 +184,64 @@ export default function CheckoutPage() {
       </section>
 
       <section className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4">
-        <h2 className="text-sm font-semibold">배송지 정보</h2>
+        <h2 className="text-sm font-semibold">{c.shippingInfoTitle}</h2>
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="받는 사람"
+          placeholder={c.recipientPlaceholder}
           value={address.recipientName}
           onChange={(e) => setAddress({ ...address, recipientName: e.target.value })}
           required
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="연락처"
+          placeholder={c.phonePlaceholder}
           value={address.phone}
           onChange={(e) => setAddress({ ...address, phone: e.target.value })}
           required
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="우편번호"
+          placeholder={c.postalCodePlaceholder}
           value={address.postalCode}
           onChange={(e) => setAddress({ ...address, postalCode: e.target.value })}
           required
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="주소"
+          placeholder={c.addressPlaceholder}
           value={address.addressLine1}
           onChange={(e) => setAddress({ ...address, addressLine1: e.target.value })}
           required
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="상세 주소 (선택)"
+          placeholder={c.addressDetailPlaceholder}
           value={address.addressLine2 ?? ""}
           onChange={(e) => setAddress({ ...address, addressLine2: e.target.value })}
         />
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
-          placeholder="배송 메모 (선택)"
+          placeholder={c.deliveryMemoPlaceholder}
           value={address.deliveryMemo ?? ""}
           onChange={(e) => setAddress({ ...address, deliveryMemo: e.target.value })}
         />
         <label className="flex items-center gap-2 text-xs text-muted-foreground">
           <input type="checkbox" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
-          다음에도 이 배송지 사용하기
+          {c.saveAddressLabel}
         </label>
       </section>
 
       <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
         <div className="flex justify-between">
-          <span className="text-muted-foreground">상품 합계</span>
+          <span className="text-muted-foreground">{c.subtotalLabel}</span>
           <span>{totalPriceAp.toLocaleString()} ZP</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground"><span className="notranslate">EXP</span> 사용 (보유 {expBalance.toLocaleString()})</span>
+          <span className="text-muted-foreground"><span className="notranslate">EXP</span> {c.expUsedPrefix} {expBalance.toLocaleString()})</span>
           <span>-{totalExpToUse.toLocaleString()} <span className="notranslate">EXP</span></span>
         </div>
         <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
-          <span>최종 결제 (ZP)</span>
+          <span>{c.finalPaymentLabel}</span>
           <span>{totalApToPay.toLocaleString()} ZP</span>
         </div>
       </section>
@@ -246,7 +249,7 @@ export default function CheckoutPage() {
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
       <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
-        {busy ? "처리 중..." : "결제 확정"}
+        {busy ? c.submitting : c.submitButton}
       </Button>
     </form>
   )

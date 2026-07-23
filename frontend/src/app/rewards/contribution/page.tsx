@@ -8,19 +8,29 @@ import { Badge } from "@/components/ui/badge"
 import {
   fetchMyContributions,
   submitContribution,
-  CONTRIBUTION_ITEM_LABELS,
   type Contribution,
 } from "@/lib/auth-client"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 const ITEM_TYPES = ["oak_barrel", "brandy", "whisky", "gin", "rum", "other"] as const
 
-const STATUS_LABEL: Record<Contribution["status"], string> = {
-  pending: "심사중",
-  approved: "승인됨",
-  rejected: "반려됨",
-}
-
 export default function ContributionPage() {
+  const { t } = useI18n()
+  const c = t.contribution
+  const itemLabels: Record<(typeof ITEM_TYPES)[number], string> = {
+    oak_barrel: c.itemLabels.oakBarrel,
+    brandy: c.itemLabels.brandy,
+    whisky: c.itemLabels.whisky,
+    gin: c.itemLabels.gin,
+    rum: c.itemLabels.rum,
+    other: c.itemLabels.other,
+  }
+  const statusLabel: Record<Contribution["status"], string> = {
+    pending: c.statusPending,
+    approved: c.statusApproved,
+    rejected: c.statusRejected,
+  }
+
   const [items, setItems] = useState<Contribution[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
@@ -35,8 +45,8 @@ export default function ContributionPage() {
   const load = useCallback(() => {
     fetchMyContributions()
       .then(setItems)
-      .catch((err) => setError(err instanceof Error ? err.message : "오류가 발생했습니다."))
-  }, [])
+      .catch((err) => setError(err instanceof Error ? err.message : c.genericError))
+  }, [c.genericError])
 
   useEffect(() => {
     load()
@@ -49,14 +59,14 @@ export default function ContributionPage() {
     setError(null)
     try {
       await submitContribution({ itemType, quantity, description, contactPhone, address })
-      setMessage("신청이 접수되었습니다. 검수 후 쇼핑머니(ZP+EXP)가 지급됩니다.")
+      setMessage(c.submitSuccess)
       setQuantity(1)
       setDescription("")
       setContactPhone("")
       setAddress("")
       load()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "신청에 실패했습니다.")
+      setError(err instanceof Error ? err.message : c.submitError)
     } finally {
       setBusy(false)
     }
@@ -65,17 +75,17 @@ export default function ContributionPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="서비스"
-        title="현물출자"
-        description={<>집에 있는 오크통·브랜디·위스키·진·럼을 보내주시면 검수 후 쇼핑머니(ZP+<span className="notranslate">EXP</span>)를 드립니다.</>}
+        eyebrow={c.eyebrow}
+        title={c.title}
+        description={<>{c.descriptionPrefix}<span className="notranslate">EXP</span>{c.descriptionSuffix}</>}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
         {error === "로그인이 필요합니다." ? (
           <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-            로그인이 필요합니다.{" "}
+            {c.loginRequired}{" "}
             <Link href="/my/profile" className="text-primary underline underline-offset-4">
-              로그인 하러가기
+              {c.loginCta}
             </Link>
           </div>
         ) : (
@@ -95,14 +105,14 @@ export default function ContributionPage() {
               onSubmit={handleSubmit}
               className="flex flex-col gap-4 rounded-lg border border-border/60 bg-card p-5"
             >
-              <h3 className="font-display text-base font-medium">현물출자 신청</h3>
+              <h3 className="font-display text-base font-medium">{c.formTitle}</h3>
               <p className="text-xs text-muted-foreground">
-                신청 후 담당자가 실물을 검수하여 쇼핑머니(ZP+<span className="notranslate">EXP</span>) 지급액을 결정합니다.
+                {c.formDescriptionPrefix}<span className="notranslate">EXP</span>{c.formDescriptionSuffix}
               </p>
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  품목
+                  {c.itemTypeLabel}
                   <select
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={itemType}
@@ -110,13 +120,13 @@ export default function ContributionPage() {
                   >
                     {ITEM_TYPES.map((type) => (
                       <option key={type} value={type}>
-                        {CONTRIBUTION_ITEM_LABELS[type]}
+                        {itemLabels[type]}
                       </option>
                     ))}
                   </select>
                 </label>
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  수량
+                  {c.quantityLabel}
                   <input
                     type="number"
                     min={1}
@@ -128,7 +138,7 @@ export default function ContributionPage() {
               </div>
 
               <label className="flex flex-col gap-1 text-xs text-muted-foreground">
-                상세 설명 (용량, 숙성연수, 상태 등)
+                {c.descriptionLabel}
                 <textarea
                   className="min-h-24 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                   value={description}
@@ -140,7 +150,7 @@ export default function ContributionPage() {
 
               <div className="flex flex-col gap-2 sm:flex-row">
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  연락처
+                  {c.contactLabel}
                   <input
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={contactPhone}
@@ -150,7 +160,7 @@ export default function ContributionPage() {
                   />
                 </label>
                 <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
-                  수거 주소 (선택)
+                  {c.addressLabel}
                   <input
                     className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                     value={address}
@@ -164,15 +174,15 @@ export default function ContributionPage() {
                 disabled={busy}
                 className="self-start bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                신청하기
+                {c.submitButton}
               </Button>
             </form>
 
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">신청 내역</h3>
+              <h3 className="font-display text-base font-medium">{c.historyTitle}</h3>
               <div className="mt-4 flex flex-col gap-2">
                 {items && items.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">신청 내역이 없습니다.</p>
+                  <p className="text-xs text-muted-foreground">{c.historyEmpty}</p>
                 ) : null}
                 {items?.map((item) => (
                   <div
@@ -181,7 +191,7 @@ export default function ContributionPage() {
                   >
                     <div className="flex items-center gap-3">
                       <span className="text-sm font-medium">
-                        {CONTRIBUTION_ITEM_LABELS[item.itemType] ?? item.itemType} x{item.quantity}
+                        {itemLabels[item.itemType as (typeof ITEM_TYPES)[number]] ?? item.itemType} x{item.quantity}
                       </span>
                       <Badge
                         variant={
@@ -193,15 +203,15 @@ export default function ContributionPage() {
                         }
                         className="text-[10px]"
                       >
-                        {STATUS_LABEL[item.status]}
+                        {statusLabel[item.status]}
                       </Badge>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {item.status === "approved"
-                        ? `+${item.apAmount} ZP 지급`
+                        ? `+${item.apAmount}${c.approvedAmountSuffix}`
                         : item.status === "rejected"
-                          ? item.rejectReason ?? "반려 사유 없음"
-                          : "검수 대기중"}
+                          ? item.rejectReason ?? c.rejectFallback
+                          : c.pendingNote}
                     </span>
                   </div>
                 ))}

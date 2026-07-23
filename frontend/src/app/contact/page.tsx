@@ -1,11 +1,15 @@
+"use client"
+
 import { PageHeader } from "@/components/page-header"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 export default function ContactPage() {
+  const { t } = useI18n()
   return (
     <div>
-      <PageHeader eyebrow="ZENTARO" title="Contact" description="문의하기" />
+      <PageHeader eyebrow={t.contact.eyebrow} title={t.contact.title} description={t.contact.description} />
       <div className="mx-auto max-w-2xl px-4 py-14 text-sm text-muted-foreground sm:px-6 lg:px-8">
-        <p>문의 채널 정보가 준비 중입니다.</p>
+        <p>{t.contact.body}</p>
       </div>
     </div>
   )
