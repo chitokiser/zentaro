@@ -25,6 +25,10 @@ function fmtUsdt(wei: bigint): number {
 
 const DELIVERED_STATUS = '직접 배송 완료';
 const BOTTLED_STATUS = '병입 완료 및 출고';
+const ROOM_AGING_STATUS = '위탁 숙성 중 (Room Aging)';
+
+/** Time between order/payment and the oak barrel actually being filled and starting to age; no growth or "aging" status during this window. */
+const BARREL_PREP_SECONDS = 24 * 60 * 60;
 
 /** Platform cut on every P2P barrel resale, taken out of the seller's proceeds. */
 const P2P_TRADE_FEE_RATE = 0.15;
@@ -57,12 +61,15 @@ const DEFAULT_BARREL_PRICING: BarrelPricingConfig = {
 
 const SECONDS_PER_YEAR = 365 * 86400;
 
-/** Cumulative aging seconds from production start to (agingEndedAt ?? now), computed fresh every call. */
+/**
+ * Cumulative aging seconds from production start to (agingEndedAt ?? now), computed fresh every call.
+ * Net of BARREL_PREP_SECONDS: the barrel is being filled/prepped for the first 24h and isn't aging yet.
+ */
 function agingSecondsFromDoc(barrel: any): number {
   const startSec = barrel.productionDate?._seconds;
   if (!startSec) return 0;
   const endSec = barrel.agingEndedAt?._seconds ?? Math.floor(Date.now() / 1000);
-  return Math.max(0, endSec - startSec);
+  return Math.max(0, endSec - startSec - BARREL_PREP_SECONDS);
 }
 
 /**
@@ -80,6 +87,19 @@ function computeBarrelValueZp(capacity: string, agingSeconds: number, config: Ba
 /** Blend master's 0-500 taste score maps to the barrel's annual growth rate: base 1.25x + score/100 (1점=1.26x, 100점=2.25x). */
 function annualGrowthRateFromScore(score: number): number {
   return 0.25 + score / 100;
+}
+
+/**
+ * Barrels auto-advance from 'ordered' (being filled/prepped) to aging once BARREL_PREP_SECONDS
+ * has passed since productionDate — no manual "start aging" action needed. Computed on every
+ * read rather than written to Firestore, consistent with how valuation is never cached either.
+ */
+function effectiveStatus(barrel: any): string {
+  if (barrel.status !== 'ordered') return barrel.status;
+  const startSec = barrel.productionDate?._seconds;
+  if (!startSec) return barrel.status;
+  const elapsed = Math.floor(Date.now() / 1000) - startSec;
+  return elapsed >= BARREL_PREP_SECONDS ? ROOM_AGING_STATUS : barrel.status;
 }
 
 /** Admins can override a specific barrel's annual growth rate; falls back to the global config when unset. */
@@ -513,7 +533,7 @@ export class TokenExchangeService {
     return { success: true, barrelId, customAnnualGrowthRate: annualGrowthRate, currentValueZp };
   }
 
-  /** Adds a flat-fee flavor add-on any time while the barrel is still aging; each enhancement is one-time-only per barrel. */
+  /** Adds a flavor add-on any time while the barrel is still aging, priced per liter of capacity; each enhancement is one-time-only per barrel. */
   async addBarrelEnhancement(uid: string, barrelId: string, enhancementId: string) {
     const option = AGING_ENHANCEMENTS[enhancementId];
     if (!option) {
@@ -543,39 +563,42 @@ export class TokenExchangeService {
         throw new BadRequestException('이미 추가된 인핸스먼트 옵션입니다.');
       }
 
+      const liters = BARREL_LITERS[barrel.capacity] ?? 0;
+      const cost = liters * option.pricePerLiterZp;
+
       const currentPoints: number = userSnap.data()?.points ?? 0;
-      if (currentPoints < option.priceZp) {
+      if (currentPoints < cost) {
         throw new BadRequestException(
-          `${option.priceZp.toLocaleString()} ZP가 필요합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
+          `${cost.toLocaleString()} ZP가 필요합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
         );
       }
 
-      tx.update(userRef, { points: FieldValue.increment(-option.priceZp) });
+      tx.update(userRef, { points: FieldValue.increment(-cost) });
       tx.update(barrelRef, {
         enhancements: FieldValue.arrayUnion(enhancementId),
-        bonusValueZp: FieldValue.increment(option.priceZp),
+        bonusValueZp: FieldValue.increment(cost),
         ownershipHistory: FieldValue.arrayUnion({
           date: new Date().toISOString(),
           ownerId: uid,
           action: 'enhancement_added',
-          message: `숙성 인핸스먼트 추가: ${enhancementId} (${option.priceZp.toLocaleString()} ZP)`,
+          message: `숙성 인핸스먼트 추가: ${enhancementId} (${liters}L × ${option.pricePerLiterZp.toLocaleString()} ZP/L = ${cost.toLocaleString()} ZP)`,
         }),
       });
 
       const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
       tx.set(txRef, {
         userId: uid,
-        amount: -option.priceZp,
+        amount: -cost,
         type: 'barrel_enhancement',
         description: `배럴 숙성 인핸스먼트 (${enhancementId}, ${barrelId})`,
         createdAt: FieldValue.serverTimestamp(),
       });
 
       const currentValueZp = totalBarrelValueZp(
-        { ...barrel, bonusValueZp: (barrel.bonusValueZp ?? 0) + option.priceZp },
+        { ...barrel, bonusValueZp: (barrel.bonusValueZp ?? 0) + cost },
         pricing,
       );
-      return { success: true, barrelId, enhancementId, currentValueZp };
+      return { success: true, barrelId, enhancementId, cost, currentValueZp };
     });
   }
 
@@ -727,6 +750,7 @@ export class TokenExchangeService {
       const barrel = doc.data() as any;
       return {
         ...barrel,
+        status: effectiveStatus(barrel),
         currentValueZp: totalBarrelValueZp(barrel, pricing),
       };
     });
@@ -755,7 +779,7 @@ export class TokenExchangeService {
       .map((b) => ({
         id: b.id,
         capacity: b.capacity,
-        status: b.status,
+        status: effectiveStatus(b),
         sealStatus: b.sealStatus,
         certNumber: b.certNumber,
         productionDate: b.productionDate ?? null,
@@ -800,7 +824,7 @@ export class TokenExchangeService {
       let endsAging = false;
 
       if (action === 'room_aging') {
-        nextStatus = '위탁 숙성 중 (Room Aging)';
+        nextStatus = ROOM_AGING_STATUS;
         historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
       } else if (action === 'deliver') {
         const currentValueZp = totalBarrelValueZp(barrelData, pricing);

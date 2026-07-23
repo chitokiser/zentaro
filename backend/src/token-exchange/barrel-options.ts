@@ -19,14 +19,14 @@ export const AGING_ENVIRONMENT_DEFAULT: (typeof AGING_ENVIRONMENTS)[number] = 'p
 
 export interface EnhancementOption {
   id: string;
-  priceZp: number;
+  pricePerLiterZp: number;
 }
 
-/** Flat-fee flavor add-ons purchasable any time while a barrel is still aging. */
+/** Flavor add-ons purchasable any time while a barrel is still aging, priced per liter of barrel capacity. */
 export const AGING_ENHANCEMENTS: Record<string, EnhancementOption> = {
-  vanilla_boost: { id: 'vanilla_boost', priceZp: 10000 },
-  deep_oak: { id: 'deep_oak', priceZp: 5000 },
-  caramel_reserve: { id: 'caramel_reserve', priceZp: 10000 },
+  vanilla_boost: { id: 'vanilla_boost', pricePerLiterZp: 10000 },
+  deep_oak: { id: 'deep_oak', pricePerLiterZp: 5000 },
+  caramel_reserve: { id: 'caramel_reserve', pricePerLiterZp: 10000 },
 };
 
 export interface FinishingOption {
