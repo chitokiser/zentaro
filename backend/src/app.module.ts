@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FirebaseModule } from './firebase/firebase.module';
@@ -24,6 +26,9 @@ import { TokenExchangeModule } from './token-exchange/token-exchange.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
     ScheduleModule.forRoot(),
+    // Global baseline rate limit (per IP); tighter limits can be layered onto
+    // individual routes with @Throttle() where needed (e.g. login/register).
+    ThrottlerModule.forRoot([{ ttl: 60000, limit: 60 }]),
     FirebaseModule,
     AuthModule,
     WalletModule,
@@ -42,6 +47,6 @@ import { TokenExchangeModule } from './token-exchange/token-exchange.module';
     TokenExchangeModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

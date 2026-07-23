@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Patch, Post, Put, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { AdminGuard } from './admin.guard';
 import { RequireAdminLevel } from './admin-level.decorator';
@@ -17,11 +18,13 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   @Post('register')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Post('login')
+  @Throttle({ default: { ttl: 60000, limit: 10 } })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
   }
