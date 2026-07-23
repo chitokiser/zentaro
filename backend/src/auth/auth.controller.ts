@@ -37,6 +37,12 @@ export class AuthController {
     return this.authService.getMe(user.uid);
   }
 
+  @Get('mentor-dashboard')
+  @UseGuards(JwtAuthGuard)
+  getMentorDashboard(@CurrentUser() user: CurrentUserPayload) {
+    return this.authService.getMentorDashboard(user.uid);
+  }
+
   @Get('shipping-address')
   @UseGuards(JwtAuthGuard)
   getShippingAddress(@CurrentUser() user: CurrentUserPayload) {

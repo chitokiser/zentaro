@@ -31,6 +31,7 @@ const ZENTARO_TRANSACTION_TYPES = [
   'zentaro_bottle_cap_reward',
   'zentaro_contribution_reward',
   'zp_to_exp_conversion',
+  'mentor_referral_reward',
 ];
 
 const DEFAULT_WALLET = {

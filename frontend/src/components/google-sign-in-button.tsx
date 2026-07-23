@@ -25,8 +25,16 @@ declare global {
   }
 }
 
-export function GoogleSignInButton({ onSuccess }: { onSuccess: () => void }) {
+export function GoogleSignInButton({
+  onSuccess,
+  referrerEmail,
+}: {
+  onSuccess: () => void
+  referrerEmail?: string
+}) {
   const buttonRef = useRef<HTMLDivElement>(null)
+  const referrerEmailRef = useRef(referrerEmail)
+  referrerEmailRef.current = referrerEmail
 
   useEffect(() => {
     if (!GOOGLE_CLIENT_ID) return
@@ -39,7 +47,7 @@ export function GoogleSignInButton({ onSuccess }: { onSuccess: () => void }) {
         cancel_on_tap_outside: true,
         callback: async (response) => {
           try {
-            await loginWithGoogle(response.credential)
+            await loginWithGoogle(response.credential, referrerEmailRef.current)
             onSuccess()
           } catch {
             // surfaced via the parent's error state on next interaction

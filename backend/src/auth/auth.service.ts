@@ -44,6 +44,8 @@ export class AuthService {
       throw new ConflictException('Email already registered');
     }
 
+    const mentor = await this.resolveMentor(dto.referrerEmail, dto.email);
+
     const passwordHash = await bcrypt.hash(dto.password, 10);
     const docRef = await this.usersCol().add({
       email: dto.email,
@@ -53,10 +55,47 @@ export class AuthService {
       missionsCompleted: 0,
       isAdmin: false,
       source: 'zentaro_web',
+      referredBy: mentor?.uid ?? null,
+      referredByEmail: mentor?.email ?? null,
       createdAt: FieldValue.serverTimestamp(),
     });
 
     return this.issueToken(docRef.id, dto.email);
+  }
+
+  /**
+   * Every member must have a mentor: use the referrer email they entered at
+   * signup if it resolves to a real (and different) account, otherwise fall
+   * back to the site's designated admin account (first ADMIN_EMAILS entry).
+   * Returns null only in the bootstrap edge case where that admin account
+   * hasn't registered yet.
+   */
+  private async resolveMentor(
+    referrerEmail: string | undefined,
+    newUserEmail: string,
+  ): Promise<{ uid: string; email: string } | null> {
+    if (referrerEmail && referrerEmail.toLowerCase() !== newUserEmail.toLowerCase()) {
+      const snap = await this.usersCol()
+        .where('email', '==', referrerEmail)
+        .limit(1)
+        .get();
+      if (!snap.empty) {
+        const doc = snap.docs[0];
+        return { uid: doc.id, email: doc.data().email ?? referrerEmail };
+      }
+    }
+
+    const adminEmail = this.config
+      .get<string>('ADMIN_EMAILS', '')
+      .split(',')
+      .map((e) => e.trim())
+      .filter(Boolean)[0];
+    if (!adminEmail) return null;
+
+    const adminSnap = await this.usersCol().where('email', '==', adminEmail).limit(1).get();
+    if (adminSnap.empty) return null;
+    const adminDoc = adminSnap.docs[0];
+    return { uid: adminDoc.id, email: adminDoc.data().email ?? adminEmail };
   }
 
   async login(dto: LoginDto) {
@@ -103,6 +142,8 @@ export class AuthService {
       return this.issueToken(doc.id, payload.email);
     }
 
+    const mentor = await this.resolveMentor(dto.referrerEmail, payload.email);
+
     const docRef = await this.usersCol().add({
       email: payload.email,
       displayName: payload.name ?? payload.email,
@@ -111,6 +152,8 @@ export class AuthService {
       missionsCompleted: 0,
       isAdmin: false,
       source: 'zentaro_web_google',
+      referredBy: mentor?.uid ?? null,
+      referredByEmail: mentor?.email ?? null,
       createdAt: FieldValue.serverTimestamp(),
     });
 
@@ -225,5 +268,42 @@ export class AuthService {
     };
     await this.usersCol().doc(uid).set({ shippingAddress }, { merge: true });
     return shippingAddress;
+  }
+
+  /** Mentor page data: who referred me, who I referred, and total EXP earned from their purchases. */
+  async getMentorDashboard(uid: string) {
+    const selfSnap = await this.usersCol().doc(uid).get();
+    const referredByUid: string | null = selfSnap.data()?.referredBy ?? null;
+
+    let referrer: { uid: string; email: string | null; displayName: string | null } | null = null;
+    if (referredByUid) {
+      const referrerSnap = await this.usersCol().doc(referredByUid).get();
+      if (referrerSnap.exists) {
+        referrer = {
+          uid: referrerSnap.id,
+          email: referrerSnap.data()?.email ?? null,
+          displayName: referrerSnap.data()?.displayName ?? null,
+        };
+      }
+    }
+
+    const referredSnap = await this.usersCol().where('referredBy', '==', uid).get();
+    const referredMembers = referredSnap.docs
+      .map((doc) => ({
+        uid: doc.id,
+        email: doc.data().email ?? null,
+        displayName: doc.data().displayName ?? null,
+        createdAt: doc.data().createdAt ?? null,
+      }))
+      .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+
+    const rewardSnap = await this.db
+      .collection(COLLECTIONS.TRANSACTIONS)
+      .where('userId', '==', uid)
+      .where('type', '==', 'mentor_referral_reward')
+      .get();
+    const totalEarnedExp = rewardSnap.docs.reduce((sum, doc) => sum + (doc.data().amount ?? 0), 0);
+
+    return { referrer, referredMembers, totalEarnedExp };
   }
 }

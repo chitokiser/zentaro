@@ -34,11 +34,11 @@ async function parseErrorMessage(res: Response): Promise<string> {
   }
 }
 
-export async function register(email: string, password: string, displayName: string) {
+export async function register(email: string, password: string, displayName: string, referrerEmail?: string) {
   const res = await fetch(`${API_URL}/auth/register`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password, displayName }),
+    body: JSON.stringify({ email, password, displayName, referrerEmail: referrerEmail || undefined }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   const data = await res.json();
@@ -58,11 +58,11 @@ export async function login(email: string, password: string) {
   return data;
 }
 
-export async function loginWithGoogle(idToken: string) {
+export async function loginWithGoogle(idToken: string, referrerEmail?: string) {
   const res = await fetch(`${API_URL}/auth/google`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ idToken }),
+    body: JSON.stringify({ idToken, referrerEmail: referrerEmail || undefined }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   const data = await res.json();
@@ -546,6 +546,31 @@ export async function updateShippingAddress(input: ShippingAddress): Promise<Shi
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
   });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface MentorInfo {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+}
+
+export interface ReferredMember {
+  uid: string;
+  email: string | null;
+  displayName: string | null;
+  createdAt?: { _seconds: number } | null;
+}
+
+export interface MentorDashboard {
+  referrer: MentorInfo | null;
+  referredMembers: ReferredMember[];
+  totalEarnedExp: number;
+}
+
+export async function fetchMentorDashboard(): Promise<MentorDashboard> {
+  const res = await fetch(`${API_URL}/auth/mentor-dashboard`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }

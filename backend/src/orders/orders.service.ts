@@ -7,6 +7,8 @@ import { CheckoutDto } from './dto/checkout.dto';
 import { OrderStatus } from './dto/update-order-status.dto';
 import { MailService } from '../mail/mail.service';
 
+const MENTOR_REWARD_RATE = 0.05;
+
 @Injectable()
 export class OrdersService {
   constructor(
@@ -163,6 +165,28 @@ export class OrdersService {
           type: 'zentaro_mall_purchase',
           description: `ZENTARO Mall (EXP 결제): ${productNames}`,
           orderId: orderRef.id,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Mentor commission: 5% of the purchased items' list price (not the
+      // discounted amount actually paid), credited as EXP to the buyer's
+      // mentor. Every member has a mentor (self-heals to the admin account
+      // at signup), so this only stays unpaid for pre-mentor-system accounts.
+      const referredBy: string | null = userSnap.data()!.referredBy ?? null;
+      const mentorRewardExp = Math.floor(totalPriceAp * MENTOR_REWARD_RATE);
+      if (referredBy && referredBy !== uid && mentorRewardExp > 0) {
+        const mentorWalletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(referredBy);
+        tx.set(mentorWalletRef, { exp: FieldValue.increment(mentorRewardExp) }, { merge: true });
+
+        const mentorTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+        tx.set(mentorTxRef, {
+          userId: referredBy,
+          amount: mentorRewardExp,
+          type: 'mentor_referral_reward',
+          description: `멘토 리워드 (추천 회원 구매액의 ${MENTOR_REWARD_RATE * 100}%): ${productNames}`,
+          orderId: orderRef.id,
+          referredUserId: uid,
           createdAt: FieldValue.serverTimestamp(),
         });
       }

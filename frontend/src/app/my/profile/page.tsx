@@ -113,6 +113,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [displayName, setDisplayName] = useState("")
+  const [referrerEmail, setReferrerEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
@@ -123,7 +124,7 @@ export default function ProfilePage() {
     setLoading(true)
     try {
       if (mode === "register") {
-        await register(email, password, displayName)
+        await register(email, password, displayName, referrerEmail)
       } else {
         await login(email, password)
       }
@@ -192,6 +193,15 @@ export default function ProfilePage() {
           onChange={(e) => setEmail(e.target.value)}
           required
         />
+        {mode === "register" && (
+          <input
+            className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+            type="email"
+            placeholder={p.referrerEmailPlaceholder}
+            value={referrerEmail}
+            onChange={(e) => setReferrerEmail(e.target.value)}
+          />
+        )}
         <input
           className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
           type="password"
@@ -213,7 +223,10 @@ export default function ProfilePage() {
         <span className="h-px flex-1 bg-border/60" />
       </div>
 
-      <GoogleSignInButton onSuccess={() => setLoggedIn(true)} />
+      <GoogleSignInButton
+        onSuccess={() => setLoggedIn(true)}
+        referrerEmail={mode === "register" ? referrerEmail : undefined}
+      />
     </div>
   )
 }
