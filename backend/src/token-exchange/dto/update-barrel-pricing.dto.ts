@@ -15,4 +15,14 @@ export class UpdateBarrelPricingDto {
   @IsNumber()
   @Min(0)
   annualGrowthRate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pricePerLiterExp?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  pricePerLiterZp?: number;
 }

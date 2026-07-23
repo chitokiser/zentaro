@@ -30,7 +30,13 @@ export default function AdminBarrelsPage() {
   const [busy, setBusy] = useState<string | null>(null)
 
   const [pricing, setPricing] = useState<BarrelPricingConfig | null>(null)
-  const [pricingForm, setPricingForm] = useState({ baseUsdPerLiter: "", usdToZpRate: "", annualGrowthRate: "" })
+  const [pricingForm, setPricingForm] = useState({
+    baseUsdPerLiter: "",
+    usdToZpRate: "",
+    annualGrowthRate: "",
+    pricePerLiterExp: "",
+    pricePerLiterZp: "",
+  })
   const [pricingBusy, setPricingBusy] = useState(false)
   const [pricingMessage, setPricingMessage] = useState<string | null>(null)
 
@@ -52,6 +58,8 @@ export default function AdminBarrelsPage() {
           baseUsdPerLiter: String(config.baseUsdPerLiter),
           usdToZpRate: String(config.usdToZpRate),
           annualGrowthRate: String(Math.round(config.annualGrowthRate * 100)),
+          pricePerLiterExp: String(config.pricePerLiterExp),
+          pricePerLiterZp: String(config.pricePerLiterZp),
         })
       })
       .catch((err) => setError(err instanceof Error ? err.message : "가격 정책을 불러오지 못했습니다."))
@@ -66,7 +74,13 @@ export default function AdminBarrelsPage() {
     const baseUsdPerLiter = Number(pricingForm.baseUsdPerLiter)
     const usdToZpRate = Number(pricingForm.usdToZpRate)
     const annualGrowthPercent = Number(pricingForm.annualGrowthRate)
-    if ([baseUsdPerLiter, usdToZpRate, annualGrowthPercent].some((n) => !Number.isFinite(n) || n < 0)) {
+    const pricePerLiterExp = Number(pricingForm.pricePerLiterExp)
+    const pricePerLiterZp = Number(pricingForm.pricePerLiterZp)
+    if (
+      [baseUsdPerLiter, usdToZpRate, annualGrowthPercent, pricePerLiterExp, pricePerLiterZp].some(
+        (n) => !Number.isFinite(n) || n < 0,
+      )
+    ) {
       alert("모든 값은 0 이상의 숫자여야 합니다.")
       return
     }
@@ -78,6 +92,8 @@ export default function AdminBarrelsPage() {
         baseUsdPerLiter,
         usdToZpRate,
         annualGrowthRate: annualGrowthPercent / 100,
+        pricePerLiterExp,
+        pricePerLiterZp,
       })
       setPricing(updated)
       setPricingMessage("가격 정책이 저장되었습니다. 모든 배럴 시세에 즉시 반영됩니다.")
@@ -204,8 +220,9 @@ export default function AdminBarrelsPage() {
       <div className="rounded-lg border border-border/60 bg-card p-5">
         <h3 className="mb-1 text-sm font-medium">배럴 시세 정책</h3>
         <p className="mb-3 text-xs text-muted-foreground">
-          모든 배럴의 판매 가격은 용량(L) × 리터당 원가 × 화면을 새로고침할 때마다 다시 계산되는 숙성 시간
-          복리 성장분으로 자동 산정됩니다. 오너는 가격을 임의로 지정할 수 없습니다.
+          배럴의 보유 가치(판매/시세)는 용량(L) × 리터당 원가 × 화면을 새로고침할 때마다 다시 계산되는 숙성 시간
+          복리 성장분으로 자동 산정됩니다. 오너는 이 시세를 임의로 지정할 수 없습니다. 아래 &quot;최초 분양가격&quot;은
+          신규 오크통 분양 신청 시 1회 결제되는 리터당 가격입니다.
         </p>
         {pricingMessage ? <p className="mb-2 text-xs text-emerald-500">{pricingMessage}</p> : null}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -236,6 +253,26 @@ export default function AdminBarrelsPage() {
               min={0}
               value={pricingForm.annualGrowthRate}
               onChange={(e) => setPricingForm((f) => ({ ...f, annualGrowthRate: e.target.value }))}
+              className="rounded-md border border-border/60 bg-background px-2 py-1.5 text-sm text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            최초 분양가격 · 리터당 EXP
+            <input
+              type="number"
+              min={0}
+              value={pricingForm.pricePerLiterExp}
+              onChange={(e) => setPricingForm((f) => ({ ...f, pricePerLiterExp: e.target.value }))}
+              className="rounded-md border border-border/60 bg-background px-2 py-1.5 text-sm text-foreground"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+            최초 분양가격 · 리터당 ZP
+            <input
+              type="number"
+              min={0}
+              value={pricingForm.pricePerLiterZp}
+              onChange={(e) => setPricingForm((f) => ({ ...f, pricePerLiterZp: e.target.value }))}
               className="rounded-md border border-border/60 bg-background px-2 py-1.5 text-sm text-foreground"
             />
           </label>

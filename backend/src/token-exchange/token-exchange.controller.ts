@@ -131,7 +131,12 @@ export class TokenExchangeController {
     @Body() dto: SetBarrelEvaluationDto,
     @CurrentUser() user: CurrentUserPayload,
   ) {
-    return this.tokenExchangeService.setBarrelEvaluationAdmin(id, dto.score, dto.comment, user.email);
+    return this.tokenExchangeService.setBarrelEvaluationAdmin(id, dto.score, dto.comment, user.email, {
+      aroma: dto.aroma,
+      palate: dto.palate,
+      finish: dto.finish,
+      barrelQuality: dto.barrelQuality,
+    });
   }
 
   @Get('barrel-pricing-config')

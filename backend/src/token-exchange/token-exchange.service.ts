@@ -5,6 +5,7 @@ import { FieldValue } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
 import { WalletService } from '../wallet/wallet.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
+import { AiWriterService } from '../ai-writer/ai-writer.service';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import {
@@ -49,14 +50,20 @@ export interface BarrelPricingConfig {
   baseUsdPerLiter: number;
   usdToZpRate: number;
   annualGrowthRate: number;
+  /** Initial barrel subscription price per liter, charged once at order time. */
+  pricePerLiterExp: number;
+  pricePerLiterZp: number;
 }
 
 // Defaults per member request: 10 USD/liter (barrel included), 10,000 ZP = 1 USD,
-// 25%/year compounding value growth while aging. All three are admin-adjustable.
+// 25%/year compounding value growth while aging, 200,000 EXP/ZP per liter subscription
+// price. All admin-adjustable.
 const DEFAULT_BARREL_PRICING: BarrelPricingConfig = {
   baseUsdPerLiter: 10,
   usdToZpRate: 10000,
   annualGrowthRate: 0.25,
+  pricePerLiterExp: BARREL_PRICE_PER_LITER_EXP,
+  pricePerLiterZp: BARREL_PRICE_PER_LITER_ZP,
 };
 
 const SECONDS_PER_YEAR = 365 * 86400;
@@ -87,6 +94,17 @@ function computeBarrelValueZp(capacity: string, agingSeconds: number, config: Ba
 /** Blend master's 0-500 taste score maps to the barrel's annual growth rate: base 1.25x + score/100 (1점=1.26x, 100점=2.25x). */
 function annualGrowthRateFromScore(score: number): number {
   return 0.25 + score / 100;
+}
+
+/** Mirrors the frontend's scoreToGrade() tier labels, used to steer the AI tasting-comment prompt. */
+function gradeLabelFromScore(score: number): string {
+  if (score >= 480) return '💎 Diamond Barrel';
+  if (score >= 460) return '🥇 Platinum Barrel';
+  if (score >= 440) return '🟨 Gold Barrel';
+  if (score >= 420) return '⚪ Silver Barrel';
+  if (score >= 400) return '🟫 Bronze Barrel';
+  if (score >= 380) return 'Standard';
+  return 'Khuyến nghị ủ lại hoặc blend thêm';
 }
 
 /**
@@ -130,6 +148,7 @@ export class TokenExchangeService {
   constructor(
     private readonly walletService: WalletService,
     private readonly blockchain: BlockchainService,
+    private readonly aiWriterService: AiWriterService,
     @Inject(FIRESTORE) private readonly db: Firestore,
   ) { }
 
@@ -387,12 +406,14 @@ export class TokenExchangeService {
     if (!liters) {
       throw new BadRequestException('올바르지 않은 배럴 크기입니다.');
     }
-    // 200,000 EXP or 200,000 ZP per liter, same total either way. Paying with EXP
-    // additionally requires 10,000 ZTRO staked per liter; ZP has no staking requirement.
+    // Admin-configurable EXP/ZP price per liter (defaults to 200,000 each), same total either
+    // way. Paying with EXP additionally requires 10,000 ZTRO staked per liter; ZP has no
+    // staking requirement.
+    const pricing = await this.getBarrelPricingConfig();
     const reqs = {
       stakedZtro: liters * BARREL_STAKE_PER_LITER_ZTRO,
-      expCost: liters * BARREL_PRICE_PER_LITER_EXP,
-      zpCost: liters * BARREL_PRICE_PER_LITER_ZP,
+      expCost: liters * pricing.pricePerLiterExp,
+      zpCost: liters * pricing.pricePerLiterZp,
     };
 
     const { address } = await this.walletService.getOrCreateChainWallet(uid);
@@ -501,6 +522,8 @@ export class TokenExchangeService {
       baseUsdPerLiter: data.baseUsdPerLiter ?? DEFAULT_BARREL_PRICING.baseUsdPerLiter,
       usdToZpRate: data.usdToZpRate ?? DEFAULT_BARREL_PRICING.usdToZpRate,
       annualGrowthRate: data.annualGrowthRate ?? DEFAULT_BARREL_PRICING.annualGrowthRate,
+      pricePerLiterExp: data.pricePerLiterExp ?? DEFAULT_BARREL_PRICING.pricePerLiterExp,
+      pricePerLiterZp: data.pricePerLiterZp ?? DEFAULT_BARREL_PRICING.pricePerLiterZp,
     };
   }
 
@@ -704,26 +727,73 @@ export class TokenExchangeService {
     return { success: true, barrelId, finishing: { ...barrel.finishing, startedAt } };
   }
 
-  /** ZenTaro's blend master rates a barrel's aging quality (0-500 taste score + optional note); score drives the barrel's annual growth rate and is shown publicly on the gallery. */
-  async setBarrelEvaluationAdmin(barrelId: string, score: number, comment: string | undefined, adminEmail: string) {
+  /**
+   * ZenTaro's blend master rates a barrel's aging quality (0-500 taste score + optional note); score
+   * drives the barrel's annual growth rate and is shown publicly on the gallery. If a full category
+   * breakdown (aroma/palate/finish/barrelQuality) is given, it overrides the total score (score = sum)
+   * and sharpens the AI-generated tasting comment. If `comment` is left blank, a Vietnamese tasting
+   * note is generated automatically from the score/grade/breakdown via AiWriterService.
+   */
+  async setBarrelEvaluationAdmin(
+    barrelId: string,
+    score: number,
+    comment: string | undefined,
+    adminEmail: string,
+    breakdown?: { aroma?: number; palate?: number; finish?: number; barrelQuality?: number },
+  ) {
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
     const snap = await barrelRef.get();
     if (!snap.exists) {
       throw new BadRequestException('존재하지 않는 배럴입니다.');
     }
     const barrel = snap.data()!;
-    const trimmedComment = comment?.trim() || null;
-    const annualGrowthRate = annualGrowthRateFromScore(score);
+
+    const hasFullBreakdown =
+      breakdown != null &&
+      [breakdown.aroma, breakdown.palate, breakdown.finish, breakdown.barrelQuality].every(
+        (v) => typeof v === 'number',
+      );
+    const effectiveScore = hasFullBreakdown
+      ? (breakdown!.aroma! + breakdown!.palate! + breakdown!.finish! + breakdown!.barrelQuality!)
+      : score;
+    const effectiveBreakdown = hasFullBreakdown
+      ? {
+          aroma: breakdown!.aroma!,
+          palate: breakdown!.palate!,
+          finish: breakdown!.finish!,
+          barrelQuality: breakdown!.barrelQuality!,
+        }
+      : null;
+
+    const annualGrowthRate = annualGrowthRateFromScore(effectiveScore);
+
+    let trimmedComment = comment?.trim() || '';
+    if (!trimmedComment) {
+      const liters = BARREL_LITERS[barrel.capacity] ?? 0;
+      const agingMonths = Math.max(0, Math.round(agingSecondsFromDoc(barrel) / (30 * 86400)));
+      const generated = await this.aiWriterService.generateBarrelTastingComment({
+        capacityLiters: liters,
+        charLevel: barrel.charLevel ?? CHAR_LEVEL_DEFAULT,
+        agingEnvironment: barrel.agingEnvironment ?? AGING_ENVIRONMENT_DEFAULT,
+        agingMonths,
+        totalScore: effectiveScore,
+        grade: gradeLabelFromScore(effectiveScore),
+        breakdown: effectiveBreakdown,
+      });
+      trimmedComment = generated ?? '';
+    }
+    const finalComment = trimmedComment || null;
 
     await barrelRef.update({
-      blendMasterScore: score,
-      blendMasterComment: trimmedComment,
+      blendMasterScore: effectiveScore,
+      blendMasterComment: finalComment,
+      blendMasterBreakdown: effectiveBreakdown,
       customAnnualGrowthRate: annualGrowthRate,
       ownershipHistory: FieldValue.arrayUnion({
         date: new Date().toISOString(),
         ownerId: barrel.userId,
         action: 'blend_master_evaluation',
-        message: `젠타로 블렌드마스터 평가 등록 (${adminEmail}): ${score}/500점 (연 수익률 ${(1 + annualGrowthRate).toFixed(2)}x) ${trimmedComment ?? ''}`.trim(),
+        message: `젠타로 블렌드마스터 평가 등록 (${adminEmail}): ${effectiveScore}/500점 (연 수익률 ${(1 + annualGrowthRate).toFixed(2)}x) ${finalComment ?? ''}`.trim(),
       }),
     });
 
@@ -733,8 +803,8 @@ export class TokenExchangeService {
     return {
       success: true,
       barrelId,
-      blendMasterScore: score,
-      blendMasterComment: trimmedComment,
+      blendMasterScore: effectiveScore,
+      blendMasterComment: finalComment,
       customAnnualGrowthRate: annualGrowthRate,
       currentValueZp,
     };

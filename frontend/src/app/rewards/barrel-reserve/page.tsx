@@ -140,6 +140,9 @@ const FLAVORS = [
 
 const BARREL_LITERS: Record<string, number> = { "5L": 5, "10L": 10, "20L": 20, "40L": 40 }
 
+/** ZTRO staking requirement per liter to pay with EXP; not admin-configurable (only the EXP/ZP price is). */
+const BARREL_STAKE_PER_LITER_ZTRO = 10000
+
 // Mirrors backend BARREL_PREP_SECONDS — the barrel is being filled/prepped for the first 24h
 // after order and isn't aging yet (no growth, no "aging" status) during that window.
 const BARREL_PREP_SECONDS = 24 * 60 * 60
@@ -294,7 +297,6 @@ export default function BarrelReservePage() {
 
     // Interactive Barrel Selection
     const [selectedSize, setSelectedSize] = useState<string>("10L")
-    const currentSpec = BARREL_SPECS.find(spec => spec.size === selectedSize) || BARREL_SPECS[1]
     const [selectedAgingEnvironment, setSelectedAgingEnvironment] = useState<string>("premium_room")
 
     // My Barrels List
@@ -310,6 +312,15 @@ export default function BarrelReservePage() {
     const [publicBarrels, setPublicBarrels] = useState<PublicBarrel[]>([])
     const [galleryLoading, setGalleryLoading] = useState<boolean>(true)
     const [defaultGrowthRate, setDefaultGrowthRate] = useState<number>(0.25)
+    // Admin-configurable initial subscription price per liter (defaults mirror backend DEFAULT_BARREL_PRICING).
+    const [pricePerLiterExp, setPricePerLiterExp] = useState<number>(200000)
+    const [pricePerLiterZp, setPricePerLiterZp] = useState<number>(200000)
+    const currentSpecStatic = BARREL_SPECS.find(spec => spec.size === selectedSize) || BARREL_SPECS[1]
+    const currentSpec = {
+        ...currentSpecStatic,
+        expRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * pricePerLiterExp,
+        ztroRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * BARREL_STAKE_PER_LITER_ZTRO,
+    }
 
     // Live ticking clock, used to compute cumulative aging duration client-side
     const [nowTick, setNowTick] = useState<number>(() => Math.floor(Date.now() / 1000))
@@ -332,6 +343,13 @@ export default function BarrelReservePage() {
     const [evalBusy, setEvalBusy] = useState<boolean>(false)
     const [evalError, setEvalError] = useState<string | null>(null)
     const [showRubric, setShowRubric] = useState<boolean>(false)
+    // Optional detailed breakdown (Aroma/Palate/Finish/Barrel Quality). When used, total score
+    // is auto-computed as their sum, and leaving the comment blank makes the backend AI-generate one.
+    const [useEvalBreakdown, setUseEvalBreakdown] = useState<boolean>(false)
+    const [evalAroma, setEvalAroma] = useState<number>(0)
+    const [evalPalate, setEvalPalate] = useState<number>(0)
+    const [evalFinish, setEvalFinish] = useState<number>(0)
+    const [evalBarrelQuality, setEvalBarrelQuality] = useState<number>(0)
 
     const loadData = useCallback(async () => {
         try {
@@ -362,6 +380,8 @@ export default function BarrelReservePage() {
             const [list, pricing] = await Promise.all([fetchPublicBarrels(), fetchBarrelPricingConfig()])
             setPublicBarrels(list)
             setDefaultGrowthRate(pricing.annualGrowthRate)
+            setPricePerLiterExp(pricing.pricePerLiterExp)
+            setPricePerLiterZp(pricing.pricePerLiterZp)
         } catch (err) {
             console.error("Failed to load public barrel gallery:", err)
         } finally {
@@ -430,6 +450,8 @@ export default function BarrelReservePage() {
         const confirmMessage =
             action === "deliver"
                 ? `Bạn có muốn đăng ký giao hàng tận nhà không? Phí lưu kho Barrel Room ${(deliveryFee ?? 0).toLocaleString()} ZP (${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}% giá trị hiện tại) sẽ bị trừ ngay, phí vận chuyển thực tế thanh toán khi nhận hàng.`
+                : action === "bottle"
+                ? "Bạn có muốn đăng ký đóng chai không? Lưu ý: sau khi đăng ký dịch vụ đóng chai, quyền sở hữu thùng gỗ (oak barrel) sẽ chuyển về ZENTARO — chỉ có rượu đã đóng chai được giao đến khách hàng, thùng gỗ không được giao kèm."
                 : "Bạn có muốn đăng ký dịch vụ bổ sung này không?"
         if (!confirm(confirmMessage)) return
 
@@ -556,6 +578,11 @@ export default function BarrelReservePage() {
         setEvalError(null)
         setEvalScoreInput(pb.blendMasterScore ?? 0)
         setEvalCommentInput(pb.blendMasterComment ?? "")
+        setUseEvalBreakdown(false)
+        setEvalAroma(0)
+        setEvalPalate(0)
+        setEvalFinish(0)
+        setEvalBarrelQuality(0)
         setShowRubric(false)
         setActiveDetailBarrel(pb)
     }
@@ -565,13 +592,18 @@ export default function BarrelReservePage() {
         setEvalBusy(true)
         setEvalError(null)
         try {
-            const result = await setBarrelEvaluationAdmin(activeDetailBarrel.id, evalScoreInput, evalCommentInput)
+            const breakdown = useEvalBreakdown
+                ? { aroma: evalAroma, palate: evalPalate, finish: evalFinish, barrelQuality: evalBarrelQuality }
+                : undefined
+            const result = await setBarrelEvaluationAdmin(activeDetailBarrel.id, evalScoreInput, evalCommentInput, breakdown)
+            setEvalScoreInput(result.blendMasterScore)
+            setEvalCommentInput(result.blendMasterComment ?? "")
             setActiveDetailBarrel((prev) =>
                 prev
                     ? {
                           ...prev,
-                          blendMasterScore: evalScoreInput,
-                          blendMasterComment: evalCommentInput || null,
+                          blendMasterScore: result.blendMasterScore,
+                          blendMasterComment: result.blendMasterComment,
                           customAnnualGrowthRate: result.customAnnualGrowthRate,
                       }
                     : prev,
@@ -788,8 +820,8 @@ export default function BarrelReservePage() {
                                         Order Requirements
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                                        Giá thùng là <span className="notranslate">200.000 EXP</span> hoặc <span className="notranslate">200.000 ZP</span> mỗi lít.
-                                        Để thanh toán bằng <span className="notranslate">EXP</span>, bạn cần stake tối thiểu 10.000 ZTRO mỗi lít; thanh toán bằng ZP không yêu cầu stake và có thể đặt hàng ngay với cùng số tiền.
+                                        Giá thùng là <span className="notranslate">{pricePerLiterExp.toLocaleString()} EXP</span> hoặc <span className="notranslate">{pricePerLiterZp.toLocaleString()} ZP</span> mỗi lít.
+                                        Để thanh toán bằng <span className="notranslate">EXP</span>, bạn cần stake tối thiểu {BARREL_STAKE_PER_LITER_ZTRO.toLocaleString()} ZTRO mỗi lít; thanh toán bằng ZP không yêu cầu stake và có thể đặt hàng ngay với cùng số tiền.
                                     </p>
                                 </div>
                                 <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
@@ -2012,29 +2044,76 @@ export default function BarrelReservePage() {
 
                             {isAdmin && (
                                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
-                                    <span className="text-[11px] font-semibold text-amber-500">블렌드마스터 평가 입력 (관리자)</span>
-                                    <div className="flex items-center gap-2">
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            max={500}
-                                            value={evalScoreInput}
-                                            onChange={(e) =>
-                                                setEvalScoreInput(Math.max(0, Math.min(500, Number(e.target.value) || 0)))
-                                            }
-                                            className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-sm text-foreground"
-                                        />
-                                        <span className="text-[10px] text-muted-foreground">/ 500점</span>
-                                        <span className="text-[11px] text-amber-500 font-semibold">
-                                            → 연 {(1.25 + evalScoreInput / 100).toFixed(2)}x
-                                        </span>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-[11px] font-semibold text-amber-500">블렌드마스터 평가 입력 (관리자)</span>
+                                        <button
+                                            type="button"
+                                            className="text-[10px] text-muted-foreground underline"
+                                            onClick={() => setUseEvalBreakdown((v) => !v)}
+                                        >
+                                            {useEvalBreakdown ? "총점 직접 입력으로 전환" : "세부 항목별 입력 (선택)"}
+                                        </button>
                                     </div>
+
+                                    {useEvalBreakdown ? (
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {([
+                                                ["Hương (Aroma)", 200, evalAroma, setEvalAroma],
+                                                ["Vị (Palate)", 180, evalPalate, setEvalPalate],
+                                                ["Hậu vị (Finish)", 70, evalFinish, setEvalFinish],
+                                                ["Chất lượng thùng", 50, evalBarrelQuality, setEvalBarrelQuality],
+                                            ] as const).map(([label, max, val, setter]) => (
+                                                <label key={label} className="flex flex-col gap-0.5">
+                                                    <span className="text-[10px] text-muted-foreground">{label} (/{max})</span>
+                                                    <input
+                                                        type="number"
+                                                        min={0}
+                                                        max={max}
+                                                        value={val}
+                                                        onChange={(e) =>
+                                                            setter(Math.max(0, Math.min(max, Number(e.target.value) || 0)))
+                                                        }
+                                                        className="w-full rounded-md border border-border/60 bg-background px-2 py-1 text-sm text-foreground"
+                                                    />
+                                                </label>
+                                            ))}
+                                            <div className="col-span-2 flex items-center gap-2 pt-1">
+                                                <span className="text-[11px] text-foreground font-semibold">
+                                                    Tổng: {evalAroma + evalPalate + evalFinish + evalBarrelQuality} / 500
+                                                </span>
+                                                <span className="text-[11px] text-amber-500 font-semibold">
+                                                    → 연 {(1.25 + (evalAroma + evalPalate + evalFinish + evalBarrelQuality) / 100).toFixed(2)}x
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="number"
+                                                min={0}
+                                                max={500}
+                                                value={evalScoreInput}
+                                                onChange={(e) =>
+                                                    setEvalScoreInput(Math.max(0, Math.min(500, Number(e.target.value) || 0)))
+                                                }
+                                                className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-sm text-foreground"
+                                            />
+                                            <span className="text-[10px] text-muted-foreground">/ 500점</span>
+                                            <span className="text-[11px] text-amber-500 font-semibold">
+                                                → 연 {(1.25 + evalScoreInput / 100).toFixed(2)}x
+                                            </span>
+                                        </div>
+                                    )}
+
                                     <textarea
                                         className="w-full min-h-16 rounded-md border border-border/60 bg-background px-2 py-1.5 text-xs text-foreground"
-                                        placeholder="평가 코멘트 (선택)"
+                                        placeholder="평가 코멘트 (비워두면 AI가 베트남어로 자동 생성)"
                                         value={evalCommentInput}
                                         onChange={(e) => setEvalCommentInput(e.target.value)}
                                     />
+                                    <p className="text-[10px] text-muted-foreground">
+                                        코멘트를 비워두고 저장하면 점수(및 세부 항목)를 바탕으로 AI가 베트남어 코멘트를 자동 생성합니다.
+                                    </p>
                                     {evalError ? <p className="text-[11px] text-destructive">{evalError}</p> : null}
                                     <Button
                                         type="button"

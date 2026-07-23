@@ -166,6 +166,41 @@ export class AiWriterService {
     return null;
   }
 
+  async generateBarrelTastingComment(input: {
+    capacityLiters: number;
+    charLevel: string;
+    agingEnvironment: string;
+    agingMonths: number;
+    totalScore: number;
+    grade: string;
+    breakdown?: { aroma: number; palate: number; finish: number; barrelQuality: number } | null;
+  }): Promise<string | null> {
+    if (!this.geminiApiKey && !this.anthropic) return null;
+
+    const breakdownText = input.breakdown
+      ? `Điểm chi tiết: Hương thơm (Aroma) ${input.breakdown.aroma}/200, Vị (Palate) ${input.breakdown.palate}/180, Hậu vị (Finish) ${input.breakdown.finish}/70, Chất lượng thùng (Barrel Quality) ${input.breakdown.barrelQuality}/50.`
+      : '';
+
+    const prompt = `Bạn là Blend Master của ZENTARO Distillery, đang viết một nhận xét thử rượu (tasting note) ngắn gọn bằng tiếng Việt cho một thùng rượu đang được ủ riêng cho một hội viên.
+
+Thông tin thùng:
+- Dung tích: ${input.capacityLiters}L
+- Char Level: ${input.charLevel}
+- Môi trường ủ: ${input.agingEnvironment}
+- Thời gian đã ủ: khoảng ${input.agingMonths} tháng
+- Tổng điểm đánh giá của Blend Master: ${input.totalScore}/500
+- Hạng: ${input.grade}
+${breakdownText}
+
+Viết 2-3 câu nhận xét chuyên nghiệp, tự nhiên, đúng phong cách một Master Blender giàu kinh nghiệm, phản ánh đúng mức độ điểm số và hạng ở trên (điểm càng cao thì nhận xét càng ấn tượng, điểm thấp thì nhận xét nên trung thực nhưng vẫn mang tính xây dựng). Chỉ trả lời bằng đoạn văn nhận xét bằng tiếng Việt, không thêm tiêu đề, không thêm giải thích nào khác, không dùng dấu ngoặc kép bao quanh.`;
+
+    const rawText = this.geminiApiKey
+      ? await this.callGemini(prompt)
+      : await this.callAnthropic(prompt);
+
+    return rawText?.trim() || null;
+  }
+
   private async callGemini(prompt: string): Promise<string | null> {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${this.geminiApiKey}`,

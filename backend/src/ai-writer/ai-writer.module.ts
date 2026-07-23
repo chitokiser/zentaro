@@ -9,5 +9,6 @@ import { AiWriterController } from './ai-writer.controller';
   imports: [AuthModule, PostsModule, CrossPostModule],
   controllers: [AiWriterController],
   providers: [AiWriterService],
+  exports: [AiWriterService],
 })
 export class AiWriterModule {}

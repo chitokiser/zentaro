@@ -1085,6 +1085,8 @@ export interface BarrelPricingConfig {
   baseUsdPerLiter: number;
   usdToZpRate: number;
   annualGrowthRate: number;
+  pricePerLiterExp: number;
+  pricePerLiterZp: number;
 }
 
 export async function submitBarrelOrder(size: string, agingEnvironment?: string): Promise<{ success: boolean; barrelId: string; certNumber: string; paymentMethod: "exp" | "zp"; paidAmount: number }> {
@@ -1219,6 +1221,7 @@ export async function setBarrelEvaluationAdmin(
   barrelId: string,
   score: number,
   comment?: string,
+  breakdown?: { aroma?: number; palate?: number; finish?: number; barrelQuality?: number },
 ): Promise<{
   success: boolean;
   barrelId: string;
@@ -1230,7 +1233,7 @@ export async function setBarrelEvaluationAdmin(
   const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}/evaluation`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ score, comment }),
+    body: JSON.stringify({ score, comment, ...breakdown }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
