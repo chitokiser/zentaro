@@ -30,6 +30,18 @@ function getPostThumbnail(post: AdminPost): { url: string; isVideoFrame: boolean
   return null
 }
 
+function stripHtmlToText(html: string): string {
+  return html
+    .replace(/<[^>]*>/g, "\n")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim()
+}
+
 function textToHtml(text: string): string {
   const escaped = text
     .replace(/&/g, "&amp;")
@@ -49,6 +61,7 @@ export default function AdminWebzinePage() {
   const [busyId, setBusyId] = useState<string | null>(null)
   const [aiBusy, setAiBusy] = useState(false)
   const [aiTag, setAiTag] = useState<string>("")
+  const [copiedId, setCopiedId] = useState<string | null>(null)
 
   const [title, setTitle] = useState("")
   const [videoUrl, setVideoUrl] = useState("")
@@ -196,6 +209,13 @@ export default function AdminWebzinePage() {
     } finally {
       setAiBusy(false)
     }
+  }
+
+  async function handleCopy(post: AdminPost) {
+    const text = `${post.title}\n\n${stripHtmlToText(post.contentHtml)}`
+    await navigator.clipboard.writeText(text)
+    setCopiedId(post.id)
+    setTimeout(() => setCopiedId((cur) => (cur === post.id ? null : cur)), 1500)
   }
 
   async function handleDelete(id: string, title: string) {
@@ -409,6 +429,13 @@ export default function AdminWebzinePage() {
                 ))}
               </div>
               <div className="flex gap-1">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => handleCopy(post)}
+                >
+                  {copiedId === post.id ? "복사됨" : "복사"}
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
