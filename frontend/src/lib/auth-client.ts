@@ -1027,7 +1027,8 @@ export interface BarrelHistoryEntry {
 export interface BarrelFinishing {
   id: string;
   days: number;
-  appliedAt: string;
+  requestedAt: string;
+  startedAt: string | null;
 }
 
 export interface BarrelDocument {
@@ -1048,6 +1049,8 @@ export interface BarrelDocument {
   agingEnvironment?: string;
   enhancements?: string[];
   finishing?: BarrelFinishing | null;
+  blendMasterRating?: number | null;
+  blendMasterComment?: string | null;
   ownershipHistory: BarrelHistoryEntry[];
 }
 
@@ -1066,6 +1069,8 @@ export interface PublicBarrel {
   agingEnvironment?: string;
   enhancements?: string[];
   finishing?: BarrelFinishing | null;
+  blendMasterRating?: number | null;
+  blendMasterComment?: string | null;
   ownerLabel: string;
   ownerId: string;
 }
@@ -1190,6 +1195,29 @@ export async function updateBarrelGrowthRateAdmin(
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ annualGrowthRate }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function startBarrelFinishingAdmin(barrelId: string): Promise<{ success: boolean; barrelId: string; finishing: BarrelFinishing }> {
+  const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}/finishing/start`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setBarrelEvaluationAdmin(
+  barrelId: string,
+  rating: number,
+  comment?: string,
+): Promise<{ success: boolean; barrelId: string; blendMasterRating: number; blendMasterComment: string | null }> {
+  const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}/evaluation`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ rating, comment }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

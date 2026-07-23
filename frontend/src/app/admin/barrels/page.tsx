@@ -9,9 +9,18 @@ import {
   fetchBarrelPricingConfig,
   updateBarrelPricingConfigAdmin,
   updateBarrelGrowthRateAdmin,
+  startBarrelFinishingAdmin,
   type PublicBarrel,
   type BarrelPricingConfig,
 } from "@/lib/auth-client"
+
+const FINISHING_LABEL: Record<string, string> = {
+  coffee: "☕ Coffee Finish",
+  cacao: "🍫 Cacao Finish",
+  vanilla: "🌼 Vanilla Finish",
+  cinnamon: "🌿 Cinnamon Finish",
+  star_anise: "⭐ Star Anise Finish",
+}
 
 const DELIVERED_STATUS = "직접 배송 완료"
 
@@ -27,6 +36,7 @@ export default function AdminBarrelsPage() {
 
   const [growthRateInputs, setGrowthRateInputs] = useState<Record<string, string>>({})
   const [growthRateBusy, setGrowthRateBusy] = useState<string | null>(null)
+  const [finishingBusy, setFinishingBusy] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchPublicBarrels()
@@ -116,6 +126,20 @@ export default function AdminBarrelsPage() {
     }
   }
 
+  async function handleStartFinishing(id: string) {
+    if (!confirm(`배럴 ${id}의 피니시 적용을 지금 시작하시겠습니까? (실제로 오크 스틱을 배럴에 투입하는 시점에만 실행하세요)`)) return
+    setFinishingBusy(id)
+    setError(null)
+    try {
+      await startBarrelFinishingAdmin(id)
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "피니시 적용 시작에 실패했습니다.")
+    } finally {
+      setFinishingBusy(null)
+    }
+  }
+
   async function handleDelete(id: string) {
     if (!confirm(`배럴 ${id} 레코드를 완전히 삭제하시겠습니까? 배송이 완료되어 실물을 인도한 경우에만 사용하세요.`)) return
     setBusy(id)
@@ -132,6 +156,7 @@ export default function AdminBarrelsPage() {
 
   const deliverable = items?.filter((item) => item.status === DELIVERED_STATUS) ?? []
   const inProgress = items?.filter((item) => item.status !== DELIVERED_STATUS) ?? []
+  const pendingFinishing = items?.filter((item) => item.finishing && !item.finishing.startedAt) ?? []
 
   return (
     <div className="flex flex-col gap-6">
@@ -141,6 +166,40 @@ export default function AdminBarrelsPage() {
       </p>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-5">
+        <h3 className="mb-1 text-sm font-medium">피니시 적용 대기 ({pendingFinishing.length})</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          회원이 신청·결제한 피니시 옵션입니다. 실제로 오크 스틱(피니시 재료)을 배럴에 투입한 시점에 &quot;적용 시작&quot;을 눌러주세요.
+        </p>
+        <div className="flex flex-col gap-2">
+          {pendingFinishing.length === 0 ? (
+            <p className="text-xs text-muted-foreground">대기 중인 피니시 신청이 없습니다.</p>
+          ) : null}
+          {pendingFinishing.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border/40 bg-card p-3 text-sm"
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-mono text-xs">{item.id}</span>
+                <Badge variant="outline" className="text-[10px]">{item.capacity}</Badge>
+                <Badge variant="outline" className="text-[10px]">{item.ownerLabel}</Badge>
+                <Badge className="bg-pink-500 text-black border-none text-[10px]">
+                  {FINISHING_LABEL[item.finishing?.id ?? ""] ?? item.finishing?.id} · {item.finishing?.days}일 희망
+                </Badge>
+              </div>
+              <Button
+                size="sm"
+                disabled={finishingBusy === item.id}
+                onClick={() => handleStartFinishing(item.id)}
+              >
+                {finishingBusy === item.id ? "처리 중..." : "적용 시작 (블렌드마스터)"}
+              </Button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
         <h3 className="mb-1 text-sm font-medium">배럴 시세 정책</h3>

@@ -10,6 +10,7 @@ import { UpdateBarrelGrowthRateDto } from './dto/update-barrel-growth-rate.dto';
 import { CreateBarrelOrderDto } from './dto/create-barrel-order.dto';
 import { AddBarrelEnhancementDto } from './dto/add-barrel-enhancement.dto';
 import { ApplyBarrelFinishingDto } from './dto/apply-barrel-finishing.dto';
+import { SetBarrelEvaluationDto } from './dto/set-barrel-evaluation.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -113,6 +114,24 @@ export class TokenExchangeController {
   @RequireAdminLevel(2)
   deleteBarrelAdmin(@Param('id') id: string) {
     return this.tokenExchangeService.deleteBarrelAdmin(id);
+  }
+
+  @Post('admin/barrel/:id/finishing/start')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
+  startBarrelFinishingAdmin(@Param('id') id: string) {
+    return this.tokenExchangeService.startBarrelFinishingAdmin(id);
+  }
+
+  @Post('admin/barrel/:id/evaluation')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(2)
+  setBarrelEvaluationAdmin(
+    @Param('id') id: string,
+    @Body() dto: SetBarrelEvaluationDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.tokenExchangeService.setBarrelEvaluationAdmin(id, dto.rating, dto.comment, user.email);
   }
 
   @Get('barrel-pricing-config')

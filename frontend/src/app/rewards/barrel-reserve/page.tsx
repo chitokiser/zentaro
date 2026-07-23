@@ -18,6 +18,8 @@ import {
     fetchMe,
     addBarrelEnhancement,
     applyBarrelFinishing,
+    setBarrelEvaluationAdmin,
+    fetchBarrelPricingConfig,
     type BarrelDocument,
     type PublicBarrel
 } from "@/lib/auth-client"
@@ -47,7 +49,9 @@ import {
     Thermometer,
     Settings2,
     ArrowRight,
-    Coffee
+    Coffee,
+    Star,
+    Eye
 } from "lucide-react"
 
 interface BarrelSpec {
@@ -203,10 +207,13 @@ export default function BarrelReservePage() {
     const [actionError, setActionError] = useState<string | null>(null)
     const [actionSuccess, setActionSuccess] = useState<string | null>(null)
     const [myUid, setMyUid] = useState<string>("")
+    const [adminLevel, setAdminLevel] = useState<number | null>(null)
+    const isAdmin = adminLevel !== null && adminLevel <= 2
 
     // Public Gallery (other members' barrels)
     const [publicBarrels, setPublicBarrels] = useState<PublicBarrel[]>([])
     const [galleryLoading, setGalleryLoading] = useState<boolean>(true)
+    const [defaultGrowthRate, setDefaultGrowthRate] = useState<number>(0.25)
 
     // Live ticking clock, used to compute cumulative aging duration client-side
     const [nowTick, setNowTick] = useState<number>(() => Math.floor(Date.now() / 1000))
@@ -221,6 +228,13 @@ export default function BarrelReservePage() {
     const [optionsError, setOptionsError] = useState<string | null>(null)
     const [selectedFinishId, setSelectedFinishId] = useState<string>(FINISHING_OPTION_SPECS[0].id)
     const [finishDays, setFinishDays] = useState<number>(FINISHING_OPTION_SPECS[0].minDays)
+
+    // Public gallery detail view: applied options + blend master evaluation (admin can edit inline)
+    const [activeDetailBarrel, setActiveDetailBarrel] = useState<PublicBarrel | null>(null)
+    const [evalRatingInput, setEvalRatingInput] = useState<number>(5)
+    const [evalCommentInput, setEvalCommentInput] = useState<string>("")
+    const [evalBusy, setEvalBusy] = useState<boolean>(false)
+    const [evalError, setEvalError] = useState<string | null>(null)
 
     const loadData = useCallback(async () => {
         try {
@@ -237,6 +251,7 @@ export default function BarrelReservePage() {
 
             const me = await fetchMe()
             setMyUid(me.uid)
+            setAdminLevel(me.adminLevel)
         } catch (err) {
             console.error("Failed to load user and barrel data:", err)
             const msg = err instanceof Error ? err.message : "회원 정보를 불러오지 못했습니다."
@@ -247,8 +262,9 @@ export default function BarrelReservePage() {
     const loadPublicGallery = useCallback(async () => {
         setGalleryLoading(true)
         try {
-            const list = await fetchPublicBarrels()
+            const [list, pricing] = await Promise.all([fetchPublicBarrels(), fetchBarrelPricingConfig()])
             setPublicBarrels(list)
+            setDefaultGrowthRate(pricing.annualGrowthRate)
         } catch (err) {
             console.error("Failed to load public barrel gallery:", err)
         } finally {
@@ -387,9 +403,8 @@ export default function BarrelReservePage() {
 
     const openOptionsModal = (barrel: BarrelDocument) => {
         setOptionsError(null)
-        const firstAvailable = FINISHING_OPTION_SPECS.find((f) => !barrel.finishing) ?? FINISHING_OPTION_SPECS[0]
-        setSelectedFinishId(firstAvailable.id)
-        setFinishDays(firstAvailable.minDays)
+        setSelectedFinishId(FINISHING_OPTION_SPECS[0].id)
+        setFinishDays(FINISHING_OPTION_SPECS[0].minDays)
         setActiveOptionsBarrel(barrel)
     }
 
@@ -421,21 +436,45 @@ export default function BarrelReservePage() {
         if (!option) return
         const liters = BARREL_LITERS[activeOptionsBarrel.capacity] ?? 0
         const cost = liters * option.pricePerLiterZp
-        if (!confirm(`${option.label}을(를) ${finishDays}일간 적용하시겠습니까? ${cost.toLocaleString()} ZP가 즉시 차감되며, 배럴 가치에 그대로 합산됩니다. (배럴당 1회만 적용 가능)`)) return
+        if (!confirm(`${option.label}을(를) ${finishDays}일간 신청하시겠습니까? ${cost.toLocaleString()} ZP가 즉시 차감되어 배럴 가치에 합산되며, 실제 적용 시점은 젠타로 블렌드마스터가 결정합니다. (배럴당 1회만 신청 가능)`)) return
 
         setOptionsBusy(true)
         setOptionsError(null)
         try {
             await applyBarrelFinishing(activeOptionsBarrel.id, selectedFinishId, finishDays)
-            setActionSuccess(`${option.label}이(가) 적용되었습니다.`)
+            setActionSuccess(`${option.label} 신청이 접수되었습니다. 실제 적용은 젠타로 블렌드마스터가 진행합니다.`)
             await loadData()
             setActiveOptionsBarrel((prev) =>
-                prev ? { ...prev, finishing: { id: selectedFinishId, days: finishDays, appliedAt: new Date().toISOString() } } : prev,
+                prev ? { ...prev, finishing: { id: selectedFinishId, days: finishDays, requestedAt: new Date().toISOString(), startedAt: null } } : prev,
             )
         } catch (err) {
-            setOptionsError(err instanceof Error ? err.message : "피니시 적용에 실패했습니다.")
+            setOptionsError(err instanceof Error ? err.message : "피니시 신청에 실패했습니다.")
         } finally {
             setOptionsBusy(false)
+        }
+    }
+
+    const openDetailModal = (pb: PublicBarrel) => {
+        setEvalError(null)
+        setEvalRatingInput(pb.blendMasterRating ?? 5)
+        setEvalCommentInput(pb.blendMasterComment ?? "")
+        setActiveDetailBarrel(pb)
+    }
+
+    const handleSaveEvaluation = async () => {
+        if (!activeDetailBarrel) return
+        setEvalBusy(true)
+        setEvalError(null)
+        try {
+            await setBarrelEvaluationAdmin(activeDetailBarrel.id, evalRatingInput, evalCommentInput)
+            setActiveDetailBarrel((prev) =>
+                prev ? { ...prev, blendMasterRating: evalRatingInput, blendMasterComment: evalCommentInput || null } : prev,
+            )
+            await loadPublicGallery()
+        } catch (err) {
+            setEvalError(err instanceof Error ? err.message : "평가 저장에 실패했습니다.")
+        } finally {
+            setEvalBusy(false)
         }
     }
 
@@ -728,7 +767,7 @@ export default function BarrelReservePage() {
                         <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
                             <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono text-[10px]">③ 병입 전 특별 숙성</Badge>
                             <h4 className="font-display font-semibold text-sm text-foreground">Finishing 옵션</h4>
-                            <p className="text-[11px] text-muted-foreground">병입 전 2주~8주 정도 적용하는 특별 숙성입니다. (배럴당 1회, ZP/L 과금)</p>
+                            <p className="text-[11px] text-muted-foreground">병입 전 2주~8주 정도 적용하는 특별 숙성입니다. (배럴당 1회, 리터당 단가 과금) 신청 후 실제 적용 시점은 젠타로 블렌드마스터가 결정합니다.</p>
                             <div className="space-y-1.5 pt-1">
                                 {FINISHING_OPTION_SPECS.map((f) => (
                                     <div key={f.id} className="text-xs bg-background/60 rounded-lg p-2.5 border border-border/40">
@@ -873,6 +912,7 @@ export default function BarrelReservePage() {
                                                     <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
                                                         {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.icon}{" "}
                                                         {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.label ?? barrel.finishing.id}
+                                                        {" "}{barrel.finishing.startedAt ? "적용중" : "대기중"}
                                                     </Badge>
                                                 )}
                                             </div>
@@ -1062,6 +1102,28 @@ export default function BarrelReservePage() {
                                             <div className="text-[10px] text-center text-muted-foreground">
                                                 현재 시세 <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
                                             </div>
+
+                                            {pb.blendMasterRating ? (
+                                                <div className="flex items-center justify-center gap-0.5">
+                                                    {Array.from({ length: 5 }).map((_, i) => (
+                                                        <Star
+                                                            key={i}
+                                                            className={`w-3 h-3 ${i < (pb.blendMasterRating ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
+                                                        />
+                                                    ))}
+                                                </div>
+                                            ) : null}
+
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="w-full text-[11px] h-8 border-border/60 flex items-center justify-center gap-1"
+                                                onClick={() => openDetailModal(pb)}
+                                            >
+                                                <Eye className="w-3.5 h-3.5 text-amber-500" />
+                                                옵션 · 블렌드마스터 평가 상세보기
+                                            </Button>
 
                                             {pb.forSale ? (
                                                 isMine ? (
@@ -1506,7 +1568,7 @@ export default function BarrelReservePage() {
                                     <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
                                         {FINISHING_OPTION_SPECS.find((f) => f.id === activeCertBarrel.finishing?.id)?.icon}{" "}
                                         {FINISHING_OPTION_SPECS.find((f) => f.id === activeCertBarrel.finishing?.id)?.label ?? activeCertBarrel.finishing.id}
-                                        {" "}({activeCertBarrel.finishing.days}일)
+                                        {" "}({activeCertBarrel.finishing.days}일, {activeCertBarrel.finishing.startedAt ? "적용중" : "대기중"})
                                     </Badge>
                                 )}
                             </div>
@@ -1614,28 +1676,45 @@ export default function BarrelReservePage() {
                                         {FINISHING_OPTION_SPECS.find((f) => f.id === activeOptionsBarrel.finishing?.id)?.icon}{" "}
                                         {FINISHING_OPTION_SPECS.find((f) => f.id === activeOptionsBarrel.finishing?.id)?.label}
                                     </span>
-                                    <span className="text-muted-foreground"> · {activeOptionsBarrel.finishing.days}일 적용됨 (배럴당 1회 한도)</span>
+                                    <span className="text-muted-foreground"> · {activeOptionsBarrel.finishing.days}일 희망 (배럴당 1회 한도)</span>
+                                    <p className="mt-1 text-[11px]">
+                                        {activeOptionsBarrel.finishing.startedAt ? (
+                                            <span className="text-emerald-500 font-semibold">
+                                                젠타로 블렌드마스터 적용 중 (시작일: {new Date(activeOptionsBarrel.finishing.startedAt).toLocaleDateString()})
+                                            </span>
+                                        ) : (
+                                            <span className="text-amber-500 font-semibold">신청 접수됨 · 젠타로 블렌드마스터 적용 대기중</span>
+                                        )}
+                                    </p>
                                 </div>
                             ) : (
                                 <>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                        {FINISHING_OPTION_SPECS.map((f) => (
-                                            <button
-                                                key={f.id}
-                                                type="button"
-                                                onClick={() => {
-                                                    setSelectedFinishId(f.id)
-                                                    setFinishDays(f.minDays)
-                                                }}
-                                                className={`text-left p-2.5 rounded-lg border text-[11px] transition-all ${selectedFinishId === f.id
-                                                    ? "border-amber-500 bg-amber-500/5"
-                                                    : "border-border/60 bg-background/60 hover:border-amber-500/30"
-                                                    }`}
-                                            >
-                                                <span className="font-semibold text-foreground block">{f.icon} {f.label}</span>
-                                                <span className="text-[10px] text-muted-foreground">{f.pricePerLiterZp.toLocaleString()} ZP/L · {f.minDays}~{f.maxDays}일</span>
-                                            </button>
-                                        ))}
+                                        {FINISHING_OPTION_SPECS.map((f) => {
+                                            const liters = BARREL_LITERS[activeOptionsBarrel.capacity] ?? 0
+                                            const totalForThisBarrel = liters * f.pricePerLiterZp
+                                            return (
+                                                <button
+                                                    key={f.id}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSelectedFinishId(f.id)
+                                                        setFinishDays(f.minDays)
+                                                    }}
+                                                    className={`text-left p-2.5 rounded-lg border text-[11px] transition-all ${selectedFinishId === f.id
+                                                        ? "border-amber-500 bg-amber-500/5"
+                                                        : "border-border/60 bg-background/60 hover:border-amber-500/30"
+                                                        }`}
+                                                >
+                                                    <span className="font-semibold text-foreground block">{f.icon} {f.label}</span>
+                                                    <span className="text-amber-500 font-bold block">
+                                                        {totalForThisBarrel.toLocaleString()} ZP
+                                                        <span className="text-muted-foreground font-normal"> ({liters}L × {f.pricePerLiterZp.toLocaleString()} ZP/L)</span>
+                                                    </span>
+                                                    <span className="text-[10px] text-muted-foreground">{f.minDays}~{f.maxDays}일</span>
+                                                </button>
+                                            )
+                                        })}
                                     </div>
                                     {(() => {
                                         const opt = FINISHING_OPTION_SPECS.find((f) => f.id === selectedFinishId)
@@ -1675,6 +1754,113 @@ export default function BarrelReservePage() {
                                         )
                                     })()}
                                 </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Public Gallery Detail View — applied options + Blend Master Evaluation (admin can edit inline) */}
+            {activeDetailBarrel && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-2xl max-w-lg w-full space-y-5 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center border-b border-border/40 pb-3">
+                            <div>
+                                <h3 className="font-display font-semibold text-base text-foreground flex items-center gap-1.5">
+                                    <Award className="w-4.5 h-4.5 text-amber-500" />
+                                    배럴 상세 정보
+                                </h3>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">
+                                    {activeDetailBarrel.id} · {activeDetailBarrel.capacity} · {activeDetailBarrel.ownerLabel}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                className="text-muted-foreground hover:text-foreground text-sm"
+                                onClick={() => setActiveDetailBarrel(null)}
+                            >
+                                닫기 [✕]
+                            </button>
+                        </div>
+
+                        <div className="space-y-2">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">적용된 옵션</h4>
+                            <div className="flex flex-wrap gap-1.5">
+                                <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500">
+                                    {CHAR_LEVEL_LABEL[activeDetailBarrel.charLevel ?? "char3"] ?? activeDetailBarrel.charLevel}
+                                </Badge>
+                                <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground">
+                                    {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === activeDetailBarrel.agingEnvironment)?.label ?? "Premium Barrel Room"}
+                                </Badge>
+                                {(activeDetailBarrel.enhancements ?? []).map((eid) => (
+                                    <Badge key={eid} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">
+                                        {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
+                                    </Badge>
+                                ))}
+                                {activeDetailBarrel.finishing && (
+                                    <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeDetailBarrel.finishing?.id)?.icon}{" "}
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeDetailBarrel.finishing?.id)?.label ?? activeDetailBarrel.finishing.id}
+                                        {" "}({activeDetailBarrel.finishing.startedAt ? "적용중" : "대기중"})
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="space-y-2 border-t border-border/40 pt-4">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">젠타로 블렌드마스터 평가</h4>
+                            <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-0.5">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <Star
+                                                key={i}
+                                                className={`w-4 h-4 ${i < (activeDetailBarrel.blendMasterRating ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
+                                            />
+                                        ))}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                        연 성장 배수 <span className="font-bold text-amber-500">
+                                            {(1 + (activeDetailBarrel.customAnnualGrowthRate ?? defaultGrowthRate)).toFixed(2)}x
+                                        </span> /년
+                                    </span>
+                                </div>
+                                {activeDetailBarrel.blendMasterComment ? (
+                                    <p className="text-xs text-foreground/80 leading-relaxed">{activeDetailBarrel.blendMasterComment}</p>
+                                ) : !isAdmin ? (
+                                    <p className="text-xs text-muted-foreground">아직 등록된 평가 코멘트가 없습니다.</p>
+                                ) : null}
+                            </div>
+
+                            {isAdmin && (
+                                <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
+                                    <span className="text-[11px] font-semibold text-amber-500">블렌드마스터 평가 입력 (관리자)</span>
+                                    <div className="flex items-center gap-1">
+                                        {Array.from({ length: 5 }).map((_, i) => (
+                                            <button key={i} type="button" onClick={() => setEvalRatingInput(i + 1)}>
+                                                <Star
+                                                    className={`w-5 h-5 ${i < evalRatingInput ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
+                                                />
+                                            </button>
+                                        ))}
+                                    </div>
+                                    <textarea
+                                        className="w-full min-h-16 rounded-md border border-border/60 bg-background px-2 py-1.5 text-xs text-foreground"
+                                        placeholder="평가 코멘트 (선택)"
+                                        value={evalCommentInput}
+                                        onChange={(e) => setEvalCommentInput(e.target.value)}
+                                    />
+                                    {evalError ? <p className="text-[11px] text-destructive">{evalError}</p> : null}
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        disabled={evalBusy}
+                                        className="h-7 text-[11px] bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                                        onClick={handleSaveEvaluation}
+                                    >
+                                        {evalBusy ? "저장 중..." : "평가 저장"}
+                                    </Button>
+                                </div>
                             )}
                         </div>
                     </div>

@@ -605,7 +605,7 @@ export class TokenExchangeService {
         throw new BadRequestException('숙성이 종료된 배럴에는 피니시를 적용할 수 없습니다.');
       }
       if (barrel.finishing) {
-        throw new BadRequestException('이미 피니시 옵션이 적용된 배럴입니다.');
+        throw new BadRequestException('이미 피니시 옵션을 신청한 배럴입니다.');
       }
 
       const liters = BARREL_LITERS[barrel.capacity] ?? 0;
@@ -617,7 +617,9 @@ export class TokenExchangeService {
         );
       }
 
-      const finishing = { id: finishId, days, appliedAt: new Date().toISOString() };
+      // Payment is taken on request, but the actual finishing period only starts once
+      // ZenTaro's blend master physically applies it (startBarrelFinishingAdmin).
+      const finishing = { id: finishId, days, requestedAt: new Date().toISOString(), startedAt: null };
       tx.update(userRef, { points: FieldValue.increment(-cost) });
       tx.update(barrelRef, {
         finishing,
@@ -625,8 +627,8 @@ export class TokenExchangeService {
         ownershipHistory: FieldValue.arrayUnion({
           date: new Date().toISOString(),
           ownerId: uid,
-          action: 'finishing_applied',
-          message: `피니시 적용: ${finishId} (${days}일, ${cost.toLocaleString()} ZP)`,
+          action: 'finishing_requested',
+          message: `피니시 신청: ${finishId} (${days}일 희망, ${cost.toLocaleString()} ZP 결제 완료, 젠타로 블렌드마스터 적용 대기중)`,
         }),
       });
 
@@ -635,7 +637,7 @@ export class TokenExchangeService {
         userId: uid,
         amount: -cost,
         type: 'barrel_finishing',
-        description: `배럴 피니시 적용 (${finishId}, ${days}일, ${barrelId})`,
+        description: `배럴 피니시 신청 (${finishId}, ${days}일, ${barrelId})`,
         createdAt: FieldValue.serverTimestamp(),
       });
 
@@ -645,6 +647,57 @@ export class TokenExchangeService {
       );
       return { success: true, barrelId, finishing, currentValueZp };
     });
+  }
+
+  /** ZenTaro's blend master marks a requested finishing as physically started; only then does its period begin. */
+  async startBarrelFinishingAdmin(barrelId: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await barrelRef.get();
+    if (!snap.exists) {
+      throw new BadRequestException('존재하지 않는 배럴입니다.');
+    }
+    const barrel = snap.data()!;
+    if (!barrel.finishing) {
+      throw new BadRequestException('신청된 피니시 옵션이 없습니다.');
+    }
+    if (barrel.finishing.startedAt) {
+      throw new BadRequestException('이미 적용이 시작된 피니시입니다.');
+    }
+
+    const startedAt = new Date().toISOString();
+    await barrelRef.update({
+      'finishing.startedAt': startedAt,
+      ownershipHistory: FieldValue.arrayUnion({
+        date: startedAt,
+        ownerId: barrel.userId,
+        action: 'finishing_started',
+        message: `젠타로 블렌드마스터가 피니시(${barrel.finishing.id}) 적용을 시작했습니다.`,
+      }),
+    });
+    return { success: true, barrelId, finishing: { ...barrel.finishing, startedAt } };
+  }
+
+  /** ZenTaro's blend master rates a barrel's aging quality (1-5 stars + optional note); shown publicly on the gallery. */
+  async setBarrelEvaluationAdmin(barrelId: string, rating: number, comment: string | undefined, adminEmail: string) {
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const snap = await barrelRef.get();
+    if (!snap.exists) {
+      throw new BadRequestException('존재하지 않는 배럴입니다.');
+    }
+    const barrel = snap.data()!;
+    const trimmedComment = comment?.trim() || null;
+
+    await barrelRef.update({
+      blendMasterRating: rating,
+      blendMasterComment: trimmedComment,
+      ownershipHistory: FieldValue.arrayUnion({
+        date: new Date().toISOString(),
+        ownerId: barrel.userId,
+        action: 'blend_master_evaluation',
+        message: `젠타로 블렌드마스터 평가 등록 (${adminEmail}): ${'★'.repeat(rating)} ${trimmedComment ?? ''}`.trim(),
+      }),
+    });
+    return { success: true, barrelId, blendMasterRating: rating, blendMasterComment: trimmedComment };
   }
 
   async listMyBarrels(uid: string) {
@@ -697,6 +750,8 @@ export class TokenExchangeService {
         agingEnvironment: b.agingEnvironment ?? AGING_ENVIRONMENT_DEFAULT,
         enhancements: b.enhancements ?? [],
         finishing: b.finishing ?? null,
+        blendMasterRating: typeof b.blendMasterRating === 'number' ? b.blendMasterRating : null,
+        blendMasterComment: b.blendMasterComment ?? null,
         ownerLabel: maskEmail(emailByUid.get(b.userId)),
         ownerId: b.userId,
       }))
