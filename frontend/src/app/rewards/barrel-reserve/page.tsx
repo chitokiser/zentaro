@@ -74,10 +74,10 @@ const BARREL_SPECS: BarrelSpec[] = [
         label: "5L Oak Barrel",
         capacity: "5 Liters (약 7병 분량)",
         agingPeriod: "6개월 ~ 12개월 권장",
-        recommendedSpirit: "ZENTARO Craft Botanical Gin Base",
-        expRequirement: "50,000 ZTRO 스테이킹 + 500,000 EXP 차감",
+        recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
+        expRequirement: "50,000 ZTRO 스테이킹 + 1,000,000 EXP 차감",
         ztroRequirementValue: 50000,
-        expRequirementValue: 500000,
+        expRequirementValue: 1000000,
         dimensions: "26cm x 18cm x 18cm",
         woodType: "American White Oak (Medium Toasting)",
         description: "홈 바(Home Bar) 및 소가족형 멤버를 위한 실속형 배럴입니다. 오크 풍미가 빠르게 배어나와 비교적 단기간에 고유한 아로마 숙성 과정을 관찰하고 완성할 수 있습니다."
@@ -87,10 +87,10 @@ const BARREL_SPECS: BarrelSpec[] = [
         label: "10L Oak Barrel",
         capacity: "10 Liters (약 14병 분량)",
         agingPeriod: "12개월 ~ 18개월 권장",
-        recommendedSpirit: "ZENTARO Distilled Single Malt New Make",
-        expRequirement: "100,000 ZTRO 스테이킹 + 1,000,000 EXP 차감",
+        recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
+        expRequirement: "100,000 ZTRO 스테이킹 + 2,000,000 EXP 차감",
         ztroRequirementValue: 100000,
-        expRequirementValue: 1000000,
+        expRequirementValue: 2000000,
         dimensions: "34cm x 24cm x 24cm",
         woodType: "Alligator Charred Honey Oak",
         description: "가장 인기 있는 스탠다드 오크 사양입니다. 천연 오크 타닌과 바닐린이 조화롭게 작용하여 향과 맛의 밸런스가 뛰어나며, 프라이빗 룸이나 소형 콜렉션 전시용으로 매우 적합합니다."
@@ -100,10 +100,10 @@ const BARREL_SPECS: BarrelSpec[] = [
         label: "20L Oak Barrel",
         capacity: "20 Liters (약 28병 분량)",
         agingPeriod: "18개월 ~ 24개월 권장",
-        recommendedSpirit: "Premium French Brandy Base",
-        expRequirement: "200,000 ZTRO 스테이킹 + 2,000,000 EXP 차감",
+        recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
+        expRequirement: "200,000 ZTRO 스테이킹 + 4,000,000 EXP 차감",
         ztroRequirementValue: 200000,
-        expRequirementValue: 2000000,
+        expRequirementValue: 4000000,
         dimensions: "42cm x 30cm x 30cm",
         woodType: "European Limousin Oak (Heavy Toasting)",
         description: "진정한 위스키/브랜디 애호가를 위한 본격적인 숙성용 배럴입니다. 적당한 표면적 대비 부피 비율 덕분에 급격한 증발 손실 없이 장기간 숙성하며 풍미를 다채롭게 발달시킬 수 있습니다."
@@ -113,10 +113,10 @@ const BARREL_SPECS: BarrelSpec[] = [
         label: "40L Oak Barrel",
         capacity: "40 Liters (약 56병 분량)",
         agingPeriod: "24개월 ~ 36개월 이상 권장",
-        recommendedSpirit: "ZENTARO Single Grain Bourbon Style Base",
-        expRequirement: "400,000 ZTRO 스테이킹 + 4,000,000 EXP 차감",
+        recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
+        expRequirement: "400,000 ZTRO 스테이킹 + 8,000,000 EXP 차감",
         ztroRequirementValue: 400000,
-        expRequirementValue: 4000000,
+        expRequirementValue: 8000000,
         dimensions: "52cm x 38cm x 38cm",
         woodType: "Ex-Bourbon White Oak Barrel",
         description: "최고의 마스터피스를 추구하는 VVIP 리저브 용량입니다. 최고의 밸런스를 유도하기 위한 중-장기 숙성에 최적화되어 있으며, 젠타로 배럴룸의 가장 안정적인 구역에서 철저하게 관리됩니다."
@@ -125,9 +125,6 @@ const BARREL_SPECS: BarrelSpec[] = [
 
 const BARREL_STORAGE_FEE_RATE = 0.15
 const P2P_TRADE_FEE_RATE = 0.15
-// Fallback purchase path for members lacking the ZTRO stake + EXP requirement:
-// pay 115% of the EXP cost directly in ZP instead.
-const ZP_FALLBACK_RATE = 1.15
 
 const FLAVORS = [
     { name: "Vanilla", desc: "천연 오크의 리그닌 분해에서 오는 달콤하고 부드러운 화이트 아로마" },
@@ -296,15 +293,14 @@ export default function BarrelReservePage() {
         const cost = currentSpec.expRequirementValue
         const ztroNeed = currentSpec.ztroRequirementValue
         const meetsStakeAndExp = stakedZtro >= ztroNeed && expBalance >= cost
-        const zpFallbackCost = Math.ceil(cost * ZP_FALLBACK_RATE)
 
         let confirmMessage: string
         if (meetsStakeAndExp) {
             confirmMessage = `${currentSpec.label} 배럴 예약을 요청하시겠습니까? 신청 시 ${cost.toLocaleString()} EXP가 즉시 차감됩니다.`
-        } else if (zpBalance >= zpFallbackCost) {
-            confirmMessage = `ZTRO 스테이킹 또는 EXP 잔액 요건을 충족하지 못했습니다. 대신 ${zpFallbackCost.toLocaleString()} ZP (EXP가의 ${(ZP_FALLBACK_RATE * 100).toFixed(0)}%)를 결제하고 ${currentSpec.label} 배럴을 주문하시겠습니까?`
+        } else if (zpBalance >= cost) {
+            confirmMessage = `ZTRO 스테이킹 또는 EXP 잔액 요건을 충족하지 못했습니다. 대신 ${cost.toLocaleString()} ZP를 결제하고 ${currentSpec.label} 배럴을 주문하시겠습니까?`
         } else {
-            alert(`주문 자격 요건이 부족합니다.\n\n[방법 1] 최소 ${ztroNeed.toLocaleString()} ZTRO 스테이킹 + ${cost.toLocaleString()} EXP 필요 (현재: ${stakedZtro.toLocaleString()} ZTRO, ${expBalance.toLocaleString()} EXP)\n[방법 2] 대체 결제로 ${zpFallbackCost.toLocaleString()} ZP 필요 (현재 보유: ${zpBalance.toLocaleString()} ZP)`)
+            alert(`주문 자격 요건이 부족합니다.\n\n[방법 1] 최소 ${ztroNeed.toLocaleString()} ZTRO 스테이킹 + ${cost.toLocaleString()} EXP 필요 (현재: ${stakedZtro.toLocaleString()} ZTRO, ${expBalance.toLocaleString()} EXP)\n[방법 2] ZP 결제로 ${cost.toLocaleString()} ZP 필요 (현재 보유: ${zpBalance.toLocaleString()} ZP)`)
             return
         }
 
@@ -689,22 +685,22 @@ export default function BarrelReservePage() {
                                         Order Requirements
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                                        주문 시 토큰 스테이킹 조건을 충족해야 하며, 명시된 회원 전용 <span className="notranslate">EXP</span>가 즉시 차감 소모됩니다.
-                                        ZTRO 스테이킹 또는 <span className="notranslate">EXP</span> 요건을 충족하지 못한 회원은 <span className="notranslate">EXP</span>가의 {(ZP_FALLBACK_RATE * 100).toFixed(0)}%에 해당하는 ZP를 결제하여 대체 주문할 수 있습니다.
+                                        배럴 분양가는 리터당 <span className="notranslate">200,000 EXP</span> 또는 <span className="notranslate">200,000 ZP</span>입니다.
+                                        <span className="notranslate">EXP</span>로 결제하려면 리터당 10,000개 이상의 ZTRO 스테이킹이 필요하며, ZP 결제는 스테이킹 요건 없이 동일한 금액으로 바로 주문할 수 있습니다.
                                     </p>
                                 </div>
                                 <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
-                                    <span className="text-muted-foreground block">필요 스테이킹:</span>
+                                    <span className="text-muted-foreground block">EXP 결제 시 필요 스테이킹:</span>
                                     <span className="text-foreground font-semibold block">
                                         {currentSpec.ztroRequirementValue.toLocaleString()} ZTRO 이상
                                     </span>
-                                    <span className="text-muted-foreground block mt-1">소요 비용:</span>
+                                    <span className="text-muted-foreground block mt-1">소요 비용 (EXP 결제):</span>
                                     <span className="text-amber-500 font-bold block">
                                         {currentSpec.expRequirementValue.toLocaleString()} <span className="notranslate">EXP</span> 즉시 차감
                                     </span>
-                                    <span className="text-muted-foreground block mt-1">또는 (ZTRO/EXP 요건 미충족 시) 대체 결제:</span>
+                                    <span className="text-muted-foreground block mt-1">또는 (스테이킹 요건 없이) ZP 결제:</span>
                                     <span className="text-emerald-500 font-bold block">
-                                        {Math.ceil(currentSpec.expRequirementValue * ZP_FALLBACK_RATE).toLocaleString()} ZP 즉시 차감
+                                        {currentSpec.expRequirementValue.toLocaleString()} ZP 즉시 차감
                                     </span>
                                 </div>
                                 <Button

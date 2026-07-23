@@ -14,6 +14,9 @@ import {
   AGING_ENVIRONMENT_DEFAULT,
   AGING_ENHANCEMENTS,
   FINISHING_OPTIONS,
+  BARREL_PRICE_PER_LITER_EXP,
+  BARREL_PRICE_PER_LITER_ZP,
+  BARREL_STAKE_PER_LITER_ZTRO,
 } from './barrel-options';
 
 function fmtUsdt(wei: bigint): number {
@@ -360,20 +363,17 @@ export class TokenExchangeService {
         ? agingEnvironment
         : AGING_ENVIRONMENT_DEFAULT;
 
-    const BARREL_REQUIREMENTS: Record<string, { stakedZtro: number; expCost: number }> = {
-      '5L': { stakedZtro: 50000, expCost: 500000 },
-      '10L': { stakedZtro: 100000, expCost: 1000000 },
-      '20L': { stakedZtro: 200000, expCost: 2000000 },
-      '40L': { stakedZtro: 400000, expCost: 4000000 },
-    };
-    // Fallback payment path for members who lack the ZTRO stake and/or EXP balance:
-    // pay 115% of the EXP cost directly in ZP instead.
-    const ZP_FALLBACK_RATE = 1.15;
-
-    const reqs = BARREL_REQUIREMENTS[size];
-    if (!reqs) {
+    const liters = BARREL_LITERS[size];
+    if (!liters) {
       throw new BadRequestException('올바르지 않은 배럴 크기입니다.');
     }
+    // 200,000 EXP or 200,000 ZP per liter, same total either way. Paying with EXP
+    // additionally requires 10,000 ZTRO staked per liter; ZP has no staking requirement.
+    const reqs = {
+      stakedZtro: liters * BARREL_STAKE_PER_LITER_ZTRO,
+      expCost: liters * BARREL_PRICE_PER_LITER_EXP,
+      zpCost: liters * BARREL_PRICE_PER_LITER_ZP,
+    };
 
     const { address } = await this.walletService.getOrCreateChainWallet(uid);
     if (!address) {
@@ -391,7 +391,6 @@ export class TokenExchangeService {
     const currentExp = Number(walletData?.exp || 0);
 
     const meetsStakeAndExp = stakedZtro >= reqs.stakedZtro && currentExp >= reqs.expCost;
-    const zpFallbackCost = Math.ceil(reqs.expCost * ZP_FALLBACK_RATE);
 
     let paymentMethod: 'exp' | 'zp';
     if (meetsStakeAndExp) {
@@ -400,9 +399,9 @@ export class TokenExchangeService {
       const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
       const userSnap = await userRef.get();
       const currentPoints = Number(userSnap.data()?.points || 0);
-      if (currentPoints < zpFallbackCost) {
+      if (currentPoints < reqs.zpCost) {
         throw new BadRequestException(
-          `주문 자격 요건이 부족합니다. 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹 + ${reqs.expCost.toLocaleString()} EXP가 필요하거나, 대체 결제로 ${zpFallbackCost.toLocaleString()} ZP가 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO, ${currentExp.toLocaleString()} EXP, ${currentPoints.toLocaleString()} ZP)`,
+          `주문 자격 요건이 부족합니다. 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹 + ${reqs.expCost.toLocaleString()} EXP가 필요하거나, ZP로는 ${reqs.zpCost.toLocaleString()} ZP가 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO, ${currentExp.toLocaleString()} EXP, ${currentPoints.toLocaleString()} ZP)`,
         );
       }
       paymentMethod = 'zp';
@@ -426,12 +425,12 @@ export class TokenExchangeService {
         });
       } else {
         const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
-        tx.update(userRef, { points: FieldValue.increment(-zpFallbackCost) });
+        tx.update(userRef, { points: FieldValue.increment(-reqs.zpCost) });
         tx.set(txRef, {
           userId: uid,
-          amount: -zpFallbackCost,
+          amount: -reqs.zpCost,
           type: 'barrel_order',
-          description: `ZenTaro Barrel Reserve ${size} 배럴 주문 (ZTRO/EXP 요건 미충족으로 EXP가의 ${(ZP_FALLBACK_RATE * 100).toFixed(0)}%인 ZP 대체 결제)`,
+          description: `ZenTaro Barrel Reserve ${size} 배럴 주문 및 ZP 차감`,
           createdAt: FieldValue.serverTimestamp(),
         });
       }
@@ -465,13 +464,13 @@ export class TokenExchangeService {
             action: 'initial_reservation',
             message: paymentMethod === 'exp'
               ? '최초 배럴 예약 및 소유 증명서 발급 완료'
-              : `최초 배럴 예약 및 소유 증명서 발급 완료 (ZP 대체 결제 ${zpFallbackCost.toLocaleString()} ZP)`,
+              : `최초 배럴 예약 및 소유 증명서 발급 완료 (ZP 결제 ${reqs.zpCost.toLocaleString()} ZP)`,
           }
         ]
       });
     });
 
-    return { success: true, barrelId, certNumber, paymentMethod, paidAmount: paymentMethod === 'exp' ? reqs.expCost : zpFallbackCost };
+    return { success: true, barrelId, certNumber, paymentMethod, paidAmount: paymentMethod === 'exp' ? reqs.expCost : reqs.zpCost };
   }
 
   async getBarrelPricingConfig(): Promise<BarrelPricingConfig> {

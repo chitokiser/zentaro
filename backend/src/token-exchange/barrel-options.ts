@@ -5,6 +5,12 @@ export const BARREL_LITERS: Record<string, number> = {
   '40L': 40,
 };
 
+/** Barrel subscription price: 200,000 EXP or 200,000 ZP per liter (same amount either way). */
+export const BARREL_PRICE_PER_LITER_EXP = 200000;
+export const BARREL_PRICE_PER_LITER_ZP = 200000;
+/** Paying with EXP additionally requires this many ZTRO staked per liter (e.g. a 5L barrel needs 50,000 ZTRO staked). */
+export const BARREL_STAKE_PER_LITER_ZTRO = 10000;
+
 /** Only one char level exists today; kept as an id so more can be added later without a migration. */
 export const CHAR_LEVEL_DEFAULT = 'char3';
 
