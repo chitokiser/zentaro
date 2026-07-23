@@ -91,9 +91,9 @@ function computeBarrelValueZp(capacity: string, agingSeconds: number, config: Ba
   return Math.round(baseZp * Math.pow(1 + config.annualGrowthRate, ageYears));
 }
 
-/** Blend master's 0-500 taste score maps to the barrel's annual growth rate: base 1.25x + score/100 (1점=1.26x, 100점=2.25x). */
-function annualGrowthRateFromScore(score: number): number {
-  return 0.25 + score / 100;
+/** Blend master's 0-500 taste score maps to the barrel's annual growth rate: admin-set base rate + score/100 (e.g. base 0.25 → 1점=1.26x, 100점=2.25x, 500점=6.25x). */
+function annualGrowthRateFromScore(score: number, baseRate: number): number {
+  return baseRate + score / 100;
 }
 
 /** Mirrors the frontend's scoreToGrade() tier labels, used to steer the AI tasting-comment prompt. */
@@ -747,6 +747,7 @@ export class TokenExchangeService {
       throw new BadRequestException('존재하지 않는 배럴입니다.');
     }
     const barrel = snap.data()!;
+    const pricing = await this.getBarrelPricingConfig();
 
     const hasFullBreakdown =
       breakdown != null &&
@@ -765,7 +766,7 @@ export class TokenExchangeService {
         }
       : null;
 
-    const annualGrowthRate = annualGrowthRateFromScore(effectiveScore);
+    const annualGrowthRate = annualGrowthRateFromScore(effectiveScore, pricing.annualGrowthRate);
 
     let trimmedComment = comment?.trim() || '';
     if (!trimmedComment) {
@@ -797,7 +798,6 @@ export class TokenExchangeService {
       }),
     });
 
-    const pricing = await this.getBarrelPricingConfig();
     const updatedBarrel = { ...barrel, customAnnualGrowthRate: annualGrowthRate, bonusValueZp: barrel.bonusValueZp ?? 0 };
     const currentValueZp = totalBarrelValueZp(updatedBarrel, pricing);
     return {

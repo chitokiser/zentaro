@@ -2082,7 +2082,7 @@ export default function BarrelReservePage() {
                                                     Tổng: {evalAroma + evalPalate + evalFinish + evalBarrelQuality} / 500
                                                 </span>
                                                 <span className="text-[11px] text-amber-500 font-semibold">
-                                                    → 연 {(1.25 + (evalAroma + evalPalate + evalFinish + evalBarrelQuality) / 100).toFixed(2)}x
+                                                    → 연 {((1 + defaultGrowthRate) + (evalAroma + evalPalate + evalFinish + evalBarrelQuality) / 100).toFixed(2)}x
                                                 </span>
                                             </div>
                                         </div>
@@ -2100,7 +2100,7 @@ export default function BarrelReservePage() {
                                             />
                                             <span className="text-[10px] text-muted-foreground">/ 500점</span>
                                             <span className="text-[11px] text-amber-500 font-semibold">
-                                                → 연 {(1.25 + evalScoreInput / 100).toFixed(2)}x
+                                                → 연 {((1 + defaultGrowthRate) + evalScoreInput / 100).toFixed(2)}x
                                             </span>
                                         </div>
                                     )}
