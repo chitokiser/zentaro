@@ -5,6 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 import { CartProvider } from "@/lib/cart-context";
 import { I18nProvider } from "@/lib/i18n/i18n-context";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 const playfair = Playfair_Display({
   variable: "--font-display",
@@ -66,6 +67,7 @@ export default function RootLayout({
             <SiteHeader />
             <main className="flex-1">{children}</main>
             <SiteFooter />
+            <PwaInstallPrompt />
           </CartProvider>
         </I18nProvider>
       </body>

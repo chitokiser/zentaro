@@ -71,6 +71,13 @@ const ko = {
       "Every Bottle Tells a Story. 프리미엄 크래프트 증류소 ZENTARO가 빚어내는 진, 위스키, 리큐르와 보태니컬의 이야기.",
     rights: "All rights reserved.",
   },
+  pwaInstall: {
+    title: "ZENTARO 앱 설치하기",
+    description: "앱처럼 빠르게 접속하고 홈 화면에서 바로 열어보세요.",
+    iosHint: "공유 버튼을 누르고 \"홈 화면에 추가\"를 선택하세요.",
+    installCta: "설치하기",
+    dismissAria: "닫기",
+  },
   webzine: {
     eyebrow: "서비스",
     title: "ZENTARO 웹진",
@@ -686,6 +693,13 @@ const en: Dict = {
       "Every Bottle Tells a Story. The tale of gin, whisky, liqueur, and botanicals crafted by premium craft distillery ZENTARO.",
     rights: "All rights reserved.",
   },
+  pwaInstall: {
+    title: "Install ZENTARO App",
+    description: "Get faster access and open it right from your home screen.",
+    iosHint: "Tap the Share button, then choose \"Add to Home Screen\".",
+    installCta: "Install",
+    dismissAria: "Close",
+  },
   webzine: {
     eyebrow: "Services",
     title: "ZENTARO Webzine",
@@ -1298,6 +1312,13 @@ const vi: Dict = {
     tagline:
       "Every Bottle Tells a Story. Câu chuyện về gin, whisky, rượu mùi và thảo mộc được chưng cất bởi ZENTARO.",
     rights: "Đã đăng ký bản quyền.",
+  },
+  pwaInstall: {
+    title: "Cài đặt ứng dụng ZENTARO",
+    description: "Truy cập nhanh hơn và mở ngay từ màn hình chính.",
+    iosHint: "Nhấn nút Chia sẻ rồi chọn \"Thêm vào MH chính\".",
+    installCta: "Cài đặt",
+    dismissAria: "Đóng",
   },
   webzine: {
     eyebrow: "Dịch vụ",
