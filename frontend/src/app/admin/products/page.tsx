@@ -64,6 +64,8 @@ export default function AdminProductsPage() {
   const [directDescriptionVi, setDirectDescriptionVi] = useState("")
   const [directImageUrl, setDirectImageUrl] = useState("")
   const [directBadges, setDirectBadges] = useState("")
+  const [directBadgesEn, setDirectBadgesEn] = useState("")
+  const [directBadgesVi, setDirectBadgesVi] = useState("")
   const [directPriceAp, setDirectPriceAp] = useState("")
   const [directCostAp, setDirectCostAp] = useState("")
   const [directSupplierName, setDirectSupplierName] = useState("")
@@ -255,6 +257,12 @@ export default function AdminProductsPage() {
         badges: directBadges
           ? directBadges.split(",").map((b) => b.trim()).filter(Boolean)
           : undefined,
+        badgesEn: directBadgesEn
+          ? directBadgesEn.split(",").map((b) => b.trim()).filter(Boolean)
+          : undefined,
+        badgesVi: directBadgesVi
+          ? directBadgesVi.split(",").map((b) => b.trim()).filter(Boolean)
+          : undefined,
         priceAp,
         costAp,
         supplierName: directSupplierName || undefined,
@@ -280,6 +288,8 @@ export default function AdminProductsPage() {
       setShowTranslations(false)
       setDirectImageUrl("")
       setDirectBadges("")
+      setDirectBadgesEn("")
+      setDirectBadgesVi("")
       setDirectPriceAp("")
       setDirectCostAp("")
       setDirectSupplierName("")
@@ -303,9 +313,20 @@ export default function AdminProductsPage() {
     setDirectNameVi(product.nameVi ?? "")
     setDirectDescriptionEn(product.descriptionEn ?? "")
     setDirectDescriptionVi(product.descriptionVi ?? "")
-    setShowTranslations(Boolean(product.nameEn || product.nameVi || product.descriptionEn || product.descriptionVi))
+    setShowTranslations(
+      Boolean(
+        product.nameEn ||
+          product.nameVi ||
+          product.descriptionEn ||
+          product.descriptionVi ||
+          product.badgesEn?.length ||
+          product.badgesVi?.length,
+      ),
+    )
     setDirectImageUrl(product.imageUrl ?? "")
     setDirectBadges((product.badges ?? []).join(", "))
+    setDirectBadgesEn((product.badgesEn ?? []).join(", "))
+    setDirectBadgesVi((product.badgesVi ?? []).join(", "))
     setDirectPriceAp(String(product.priceAp ?? ""))
     setDirectCostAp(String(product.costAp ?? ""))
     setDirectSupplierName(product.supplierName ?? "")
@@ -329,6 +350,8 @@ export default function AdminProductsPage() {
     setShowTranslations(false)
     setDirectImageUrl("")
     setDirectBadges("")
+    setDirectBadgesEn("")
+    setDirectBadgesVi("")
     setDirectPriceAp("")
     setDirectCostAp("")
     setDirectSupplierName("")
@@ -593,6 +616,12 @@ export default function AdminProductsPage() {
                   value={directDescriptionEn}
                   onChange={(e) => setDirectDescriptionEn(e.target.value)}
                 />
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Badges (English, comma separated)"
+                  value={directBadgesEn}
+                  onChange={(e) => setDirectBadgesEn(e.target.value)}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-semibold text-muted-foreground">Tiếng Việt</span>
@@ -607,6 +636,12 @@ export default function AdminProductsPage() {
                   placeholder="Mô tả (Tiếng Việt)"
                   value={directDescriptionVi}
                   onChange={(e) => setDirectDescriptionVi(e.target.value)}
+                />
+                <input
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="Nhãn (Tiếng Việt, cách nhau bằng dấu phẩy)"
+                  value={directBadgesVi}
+                  onChange={(e) => setDirectBadgesVi(e.target.value)}
                 />
               </div>
             </div>

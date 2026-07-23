@@ -83,6 +83,8 @@ export class ProductsService {
       descriptionEn: dto.descriptionEn ?? null,
       descriptionVi: dto.descriptionVi ?? null,
       badges: dto.badges ?? [],
+      badgesEn: dto.badgesEn ?? [],
+      badgesVi: dto.badgesVi ?? [],
       fulfillmentType: 'direct',
       featured: true,
       supplierName: dto.supplierName ?? null,

@@ -42,6 +42,16 @@ export class CreateDirectProductDto {
   @IsString({ each: true })
   badges?: string[];
 
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  badgesEn?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  badgesVi?: string[];
+
   @IsNumber()
   @Min(0)
   priceAp: number;

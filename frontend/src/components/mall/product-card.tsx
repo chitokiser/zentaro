@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/lib/cart-context"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { localizedText } from "@/lib/i18n/content"
+import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import type { Product } from "@/lib/api"
 
@@ -26,6 +26,7 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: 
   const { locale, t } = useI18n()
   const [added, setAdded] = useState(false)
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
+  const productBadges = localizedList(locale, product.badges, product.badgesEn, product.badgesVi)
 
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
@@ -96,7 +97,7 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: 
           <Badge variant="secondary" className="w-fit text-[10px]">
             {localizedFulfillment(locale, product.fulfillmentType)}
           </Badge>
-          {product.badges?.map((b) => (
+          {productBadges.map((b) => (
             <Badge key={b} variant="outline" className="w-fit border-gold/40 text-[10px]">
               {b}
             </Badge>

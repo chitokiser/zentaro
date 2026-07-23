@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { ProductPurchasePanel } from "@/components/mall/product-purchase-panel"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { localizedText } from "@/lib/i18n/content"
+import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import type { Product } from "@/lib/api"
 
@@ -13,6 +13,7 @@ export function ProductDetailView({ product }: { product: Product }) {
   const { locale } = useI18n()
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
   const productDescription = localizedText(locale, product.description, product.descriptionEn, product.descriptionVi)
+  const productBadges = localizedList(locale, product.badges, product.badgesEn, product.badgesVi)
 
   return (
     <div>
@@ -43,7 +44,7 @@ export function ProductDetailView({ product }: { product: Product }) {
               <Badge variant="secondary">
                 {localizedFulfillment(locale, product.fulfillmentType)}
               </Badge>
-              {product.badges?.map((b) => (
+              {productBadges.map((b) => (
                 <Badge key={b} variant="outline" className="border-gold/40">
                   {b}
                 </Badge>

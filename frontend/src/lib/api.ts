@@ -15,6 +15,8 @@ export interface Product {
   descriptionEn?: string | null;
   descriptionVi?: string | null;
   badges?: string[];
+  badgesEn?: string[];
+  badgesVi?: string[];
 }
 
 const FALLBACK_PRODUCTS: Product[] = [

@@ -22,7 +22,14 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
   const [subCategory, setSubCategory] = useState(editingProduct?.category ?? "")
   const [description, setDescription] = useState(editingProduct?.description ?? "")
   const [showTranslations, setShowTranslations] = useState(
-    Boolean(editingProduct?.nameEn || editingProduct?.nameVi || editingProduct?.descriptionEn || editingProduct?.descriptionVi),
+    Boolean(
+      editingProduct?.nameEn ||
+        editingProduct?.nameVi ||
+        editingProduct?.descriptionEn ||
+        editingProduct?.descriptionVi ||
+        editingProduct?.badgesEn?.length ||
+        editingProduct?.badgesVi?.length,
+    ),
   )
   const [nameEn, setNameEn] = useState(editingProduct?.nameEn ?? "")
   const [nameVi, setNameVi] = useState(editingProduct?.nameVi ?? "")
@@ -30,6 +37,8 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
   const [descriptionVi, setDescriptionVi] = useState(editingProduct?.descriptionVi ?? "")
   const [imageUrl, setImageUrl] = useState(editingProduct?.imageUrl ?? "")
   const [badges, setBadges] = useState((editingProduct?.badges ?? []).join(", "))
+  const [badgesEn, setBadgesEn] = useState((editingProduct?.badgesEn ?? []).join(", "))
+  const [badgesVi, setBadgesVi] = useState((editingProduct?.badgesVi ?? []).join(", "))
   const [priceAp, setPriceAp] = useState(editingProduct ? String(editingProduct.priceAp ?? "") : "")
   const [costAp, setCostAp] = useState(editingProduct ? String(editingProduct.costAp ?? "") : "")
   const [busy, setBusy] = useState(false)
@@ -75,6 +84,8 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
         descriptionVi: descriptionVi.trim() || undefined,
         imageUrl: imageUrl || undefined,
         badges: badges ? badges.split(",").map((b) => b.trim()).filter(Boolean) : undefined,
+        badgesEn: badgesEn ? badgesEn.split(",").map((b) => b.trim()).filter(Boolean) : undefined,
+        badgesVi: badgesVi ? badgesVi.split(",").map((b) => b.trim()).filter(Boolean) : undefined,
         priceAp: priceVal,
         costAp: costVal,
       }
@@ -165,6 +176,12 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
                 value={descriptionEn}
                 onChange={(e) => setDescriptionEn(e.target.value)}
               />
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="Badges (English, comma separated)"
+                value={badgesEn}
+                onChange={(e) => setBadgesEn(e.target.value)}
+              />
             </div>
             <div className="flex flex-col gap-2">
               <span className="text-xs font-semibold text-muted-foreground">Tiếng Việt</span>
@@ -179,6 +196,12 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
                 placeholder="Mô tả (Tiếng Việt)"
                 value={descriptionVi}
                 onChange={(e) => setDescriptionVi(e.target.value)}
+              />
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="Nhãn (Tiếng Việt, cách nhau bằng dấu phẩy)"
+                value={badgesVi}
+                onChange={(e) => setBadgesVi(e.target.value)}
               />
             </div>
           </div>

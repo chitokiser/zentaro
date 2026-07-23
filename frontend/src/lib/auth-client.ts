@@ -306,6 +306,8 @@ export interface AdminProduct {
   descriptionEn?: string | null;
   descriptionVi?: string | null;
   badges?: string[];
+  badgesEn?: string[];
+  badgesVi?: string[];
   priceAp: number;
   costAp?: number;
   fulfillmentType?: FulfillmentType;
@@ -378,6 +380,8 @@ export async function createDirectProduct(input: {
   descriptionVi?: string;
   imageUrl?: string | null;
   badges?: string[];
+  badgesEn?: string[];
+  badgesVi?: string[];
   priceAp: number;
   costAp: number;
   supplierName?: string;
@@ -406,6 +410,8 @@ export async function updateProductAdmin(
     descriptionVi: string;
     imageUrl: string;
     badges: string[];
+    badgesEn: string[];
+    badgesVi: string[];
     priceAp: number;
     costAp: number;
     supplierName: string;
