@@ -74,6 +74,11 @@ function computeBarrelValueZp(capacity: string, agingSeconds: number, config: Ba
   return Math.round(baseZp * Math.pow(1 + config.annualGrowthRate, ageYears));
 }
 
+/** Blend master's 0-500 taste score maps to the barrel's annual growth rate: base 1.25x + score/100 (1점=1.26x, 100점=2.25x). */
+function annualGrowthRateFromScore(score: number): number {
+  return 0.25 + score / 100;
+}
+
 /** Admins can override a specific barrel's annual growth rate; falls back to the global config when unset. */
 function effectivePricingForBarrel(barrel: any, config: BarrelPricingConfig): BarrelPricingConfig {
   const override = barrel?.customAnnualGrowthRate;
@@ -677,8 +682,8 @@ export class TokenExchangeService {
     return { success: true, barrelId, finishing: { ...barrel.finishing, startedAt } };
   }
 
-  /** ZenTaro's blend master rates a barrel's aging quality (1-5 stars + optional note); shown publicly on the gallery. */
-  async setBarrelEvaluationAdmin(barrelId: string, rating: number, comment: string | undefined, adminEmail: string) {
+  /** ZenTaro's blend master rates a barrel's aging quality (0-500 taste score + optional note); score drives the barrel's annual growth rate and is shown publicly on the gallery. */
+  async setBarrelEvaluationAdmin(barrelId: string, score: number, comment: string | undefined, adminEmail: string) {
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
     const snap = await barrelRef.get();
     if (!snap.exists) {
@@ -686,18 +691,31 @@ export class TokenExchangeService {
     }
     const barrel = snap.data()!;
     const trimmedComment = comment?.trim() || null;
+    const annualGrowthRate = annualGrowthRateFromScore(score);
 
     await barrelRef.update({
-      blendMasterRating: rating,
+      blendMasterScore: score,
       blendMasterComment: trimmedComment,
+      customAnnualGrowthRate: annualGrowthRate,
       ownershipHistory: FieldValue.arrayUnion({
         date: new Date().toISOString(),
         ownerId: barrel.userId,
         action: 'blend_master_evaluation',
-        message: `젠타로 블렌드마스터 평가 등록 (${adminEmail}): ${'★'.repeat(rating)} ${trimmedComment ?? ''}`.trim(),
+        message: `젠타로 블렌드마스터 평가 등록 (${adminEmail}): ${score}/500점 (연 수익률 ${(1 + annualGrowthRate).toFixed(2)}x) ${trimmedComment ?? ''}`.trim(),
       }),
     });
-    return { success: true, barrelId, blendMasterRating: rating, blendMasterComment: trimmedComment };
+
+    const pricing = await this.getBarrelPricingConfig();
+    const updatedBarrel = { ...barrel, customAnnualGrowthRate: annualGrowthRate, bonusValueZp: barrel.bonusValueZp ?? 0 };
+    const currentValueZp = totalBarrelValueZp(updatedBarrel, pricing);
+    return {
+      success: true,
+      barrelId,
+      blendMasterScore: score,
+      blendMasterComment: trimmedComment,
+      customAnnualGrowthRate: annualGrowthRate,
+      currentValueZp,
+    };
   }
 
   async listMyBarrels(uid: string) {
@@ -750,7 +768,7 @@ export class TokenExchangeService {
         agingEnvironment: b.agingEnvironment ?? AGING_ENVIRONMENT_DEFAULT,
         enhancements: b.enhancements ?? [],
         finishing: b.finishing ?? null,
-        blendMasterRating: typeof b.blendMasterRating === 'number' ? b.blendMasterRating : null,
+        blendMasterScore: typeof b.blendMasterScore === 'number' ? b.blendMasterScore : null,
         blendMasterComment: b.blendMasterComment ?? null,
         ownerLabel: maskEmail(emailByUid.get(b.userId)),
         ownerId: b.userId,

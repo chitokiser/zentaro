@@ -231,7 +231,7 @@ export default function BarrelReservePage() {
 
     // Public gallery detail view: applied options + blend master evaluation (admin can edit inline)
     const [activeDetailBarrel, setActiveDetailBarrel] = useState<PublicBarrel | null>(null)
-    const [evalRatingInput, setEvalRatingInput] = useState<number>(5)
+    const [evalScoreInput, setEvalScoreInput] = useState<number>(0)
     const [evalCommentInput, setEvalCommentInput] = useState<string>("")
     const [evalBusy, setEvalBusy] = useState<boolean>(false)
     const [evalError, setEvalError] = useState<string | null>(null)
@@ -456,7 +456,7 @@ export default function BarrelReservePage() {
 
     const openDetailModal = (pb: PublicBarrel) => {
         setEvalError(null)
-        setEvalRatingInput(pb.blendMasterRating ?? 5)
+        setEvalScoreInput(pb.blendMasterScore ?? 0)
         setEvalCommentInput(pb.blendMasterComment ?? "")
         setActiveDetailBarrel(pb)
     }
@@ -466,9 +466,16 @@ export default function BarrelReservePage() {
         setEvalBusy(true)
         setEvalError(null)
         try {
-            await setBarrelEvaluationAdmin(activeDetailBarrel.id, evalRatingInput, evalCommentInput)
+            const result = await setBarrelEvaluationAdmin(activeDetailBarrel.id, evalScoreInput, evalCommentInput)
             setActiveDetailBarrel((prev) =>
-                prev ? { ...prev, blendMasterRating: evalRatingInput, blendMasterComment: evalCommentInput || null } : prev,
+                prev
+                    ? {
+                          ...prev,
+                          blendMasterScore: evalScoreInput,
+                          blendMasterComment: evalCommentInput || null,
+                          customAnnualGrowthRate: result.customAnnualGrowthRate,
+                      }
+                    : prev,
             )
             await loadPublicGallery()
         } catch (err) {
@@ -1103,14 +1110,15 @@ export default function BarrelReservePage() {
                                                 현재 시세 <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
                                             </div>
 
-                                            {pb.blendMasterRating ? (
-                                                <div className="flex items-center justify-center gap-0.5">
-                                                    {Array.from({ length: 5 }).map((_, i) => (
-                                                        <Star
-                                                            key={i}
-                                                            className={`w-3 h-3 ${i < (pb.blendMasterRating ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
-                                                        />
-                                                    ))}
+                                            {typeof pb.blendMasterScore === "number" ? (
+                                                <div className="flex items-center justify-center gap-1.5 text-[10px]">
+                                                    <span className="flex items-center gap-0.5 text-amber-500 font-semibold">
+                                                        <Star className="w-3 h-3 fill-amber-500 text-amber-500" />
+                                                        {pb.blendMasterScore}/500
+                                                    </span>
+                                                    <span className="text-muted-foreground">
+                                                        {(1 + (pb.customAnnualGrowthRate ?? defaultGrowthRate)).toFixed(2)}x
+                                                    </span>
                                                 </div>
                                             ) : null}
 
@@ -1811,14 +1819,10 @@ export default function BarrelReservePage() {
                             <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">젠타로 블렌드마스터 평가</h4>
                             <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
                                 <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-0.5">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <Star
-                                                key={i}
-                                                className={`w-4 h-4 ${i < (activeDetailBarrel.blendMasterRating ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
-                                            />
-                                        ))}
-                                    </div>
+                                    <span className="flex items-center gap-1 text-sm font-bold text-amber-500">
+                                        <Star className="w-4 h-4 fill-amber-500 text-amber-500" />
+                                        {activeDetailBarrel.blendMasterScore ?? 0}/500
+                                    </span>
                                     <span className="text-xs text-muted-foreground">
                                         연 성장 배수 <span className="font-bold text-amber-500">
                                             {(1 + (activeDetailBarrel.customAnnualGrowthRate ?? defaultGrowthRate)).toFixed(2)}x
@@ -1835,14 +1839,21 @@ export default function BarrelReservePage() {
                             {isAdmin && (
                                 <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 space-y-2">
                                     <span className="text-[11px] font-semibold text-amber-500">블렌드마스터 평가 입력 (관리자)</span>
-                                    <div className="flex items-center gap-1">
-                                        {Array.from({ length: 5 }).map((_, i) => (
-                                            <button key={i} type="button" onClick={() => setEvalRatingInput(i + 1)}>
-                                                <Star
-                                                    className={`w-5 h-5 ${i < evalRatingInput ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
-                                                />
-                                            </button>
-                                        ))}
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={500}
+                                            value={evalScoreInput}
+                                            onChange={(e) =>
+                                                setEvalScoreInput(Math.max(0, Math.min(500, Number(e.target.value) || 0)))
+                                            }
+                                            className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-sm text-foreground"
+                                        />
+                                        <span className="text-[10px] text-muted-foreground">/ 500점</span>
+                                        <span className="text-[11px] text-amber-500 font-semibold">
+                                            → 연 {(1.25 + evalScoreInput / 100).toFixed(2)}x
+                                        </span>
                                     </div>
                                     <textarea
                                         className="w-full min-h-16 rounded-md border border-border/60 bg-background px-2 py-1.5 text-xs text-foreground"

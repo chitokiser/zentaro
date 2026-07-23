@@ -1055,7 +1055,7 @@ export interface BarrelDocument {
   agingEnvironment?: string;
   enhancements?: string[];
   finishing?: BarrelFinishing | null;
-  blendMasterRating?: number | null;
+  blendMasterScore?: number | null;
   blendMasterComment?: string | null;
   ownershipHistory: BarrelHistoryEntry[];
 }
@@ -1075,7 +1075,7 @@ export interface PublicBarrel {
   agingEnvironment?: string;
   enhancements?: string[];
   finishing?: BarrelFinishing | null;
-  blendMasterRating?: number | null;
+  blendMasterScore?: number | null;
   blendMasterComment?: string | null;
   ownerLabel: string;
   ownerId: string;
@@ -1217,13 +1217,20 @@ export async function startBarrelFinishingAdmin(barrelId: string): Promise<{ suc
 
 export async function setBarrelEvaluationAdmin(
   barrelId: string,
-  rating: number,
+  score: number,
   comment?: string,
-): Promise<{ success: boolean; barrelId: string; blendMasterRating: number; blendMasterComment: string | null }> {
+): Promise<{
+  success: boolean;
+  barrelId: string;
+  blendMasterScore: number;
+  blendMasterComment: string | null;
+  customAnnualGrowthRate: number;
+  currentValueZp: number;
+}> {
   const res = await fetch(`${API_URL}/token-exchange/admin/barrel/${barrelId}/evaluation`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ rating, comment }),
+    body: JSON.stringify({ score, comment }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
