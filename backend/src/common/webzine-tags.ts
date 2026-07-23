@@ -7,6 +7,7 @@ export const WEBZINE_TAGS = [
   '👑 ZenTaro Story',
   '🧘 젠(禪)&불교철학',
   '🎬 젠타로 동영상',
+  '📰 ZenTaro 카드뉴스',
 ] as const;
 
 export type WebzineTag = (typeof WEBZINE_TAGS)[number];

@@ -14,4 +14,9 @@ export class AiWriterController {
   generate(@Body('tag') tag?: string) {
     return this.aiWriterService.generateOne(tag);
   }
+
+  @Post('generate-promo')
+  generatePromo(@Body('topicId') topicId?: string) {
+    return this.aiWriterService.generateSystemPromoOne(topicId);
+  }
 }
