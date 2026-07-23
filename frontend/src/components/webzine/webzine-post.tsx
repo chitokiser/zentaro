@@ -1,6 +1,7 @@
 "use client"
 
 import Image from "next/image"
+import DOMPurify from "isomorphic-dompurify"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -21,10 +22,13 @@ export function WebzinePostView({
   const { t, locale } = useI18n()
   const authorLabel = post.source === "ai" ? "ZENTARO AI" : post.authorName
   const postTitle = locale === "ko" && post.titleKo ? post.titleKo : localizedText(locale, post.title, post.titleEn, post.titleVi)
-  const postContentHtml =
+  const rawContentHtml =
     locale === "ko" && post.contentHtmlKo
       ? post.contentHtmlKo
       : localizedText(locale, post.contentHtml, post.contentHtmlEn, post.contentHtmlVi)
+  // Content comes from admin input or AI generation, neither of which is trusted enough
+  // to render as raw HTML — sanitize before it ever reaches dangerouslySetInnerHTML.
+  const postContentHtml = DOMPurify.sanitize(rawContentHtml)
 
   return (
     <div>
