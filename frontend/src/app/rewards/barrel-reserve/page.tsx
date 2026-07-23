@@ -16,6 +16,8 @@ import {
     cancelBarrelSale,
     buyBarrel,
     fetchMe,
+    addBarrelEnhancement,
+    applyBarrelFinishing,
     type BarrelDocument,
     type PublicBarrel
 } from "@/lib/auth-client"
@@ -40,7 +42,12 @@ import {
     Users,
     Tag,
     ShoppingCart,
-    Timer
+    Timer,
+    Sparkles,
+    Thermometer,
+    Settings2,
+    ArrowRight,
+    Coffee
 } from "lucide-react"
 
 interface BarrelSpec {
@@ -130,6 +137,52 @@ const FLAVORS = [
     { name: "Oak Aroma", desc: "고급 목재 고유의 천연 수액과 숲길을 걷는 듯한 클래식 우디 노트" }
 ]
 
+const BARREL_LITERS: Record<string, number> = { "5L": 5, "10L": 10, "20L": 20, "40L": 40 }
+
+// Mirrors backend/src/token-exchange/barrel-options.ts — ids and prices must stay in sync.
+const CHAR_LEVEL_LABEL: Record<string, string> = {
+    char3: "Char #3 (기본 차링)",
+}
+
+interface AgingEnvironmentOption {
+    id: string
+    label: string
+    desc: string
+}
+const AGING_ENVIRONMENT_OPTIONS: AgingEnvironmentOption[] = [
+    { id: "premium_room", label: "Premium Barrel Room", desc: "18~20°C 항온·항습 프라이빗 숙성고" },
+    { id: "music_432hz", label: "Music Aging 432Hz", desc: "432Hz 포레스트 레조넌스 진동·음향 환경" },
+]
+
+interface EnhancementOption {
+    id: string
+    label: string
+    tagline: string
+    priceZp: number
+}
+const AGING_ENHANCEMENT_OPTIONS: EnhancementOption[] = [
+    { id: "vanilla_boost", label: "Vanilla Boost", tagline: "Oak Spiral 오크 스파이럴 투입", priceZp: 10000 },
+    { id: "deep_oak", label: "Deep Oak", tagline: "Oak Cube 오크 큐브 투입", priceZp: 5000 },
+    { id: "caramel_reserve", label: "Caramel Reserve", tagline: "Medium Toast 미디엄 토스트 각재 투입", priceZp: 10000 },
+]
+
+interface FinishingOptionSpec {
+    id: string
+    icon: string
+    label: string
+    pricePerLiterZp: number
+    minDays: number
+    maxDays: number
+    effect: string
+}
+const FINISHING_OPTION_SPECS: FinishingOptionSpec[] = [
+    { id: "coffee", icon: "☕", label: "Coffee Finish", pricePerLiterZp: 10000, minDays: 30, maxDays: 90, effect: "달랏 커피의 에스프레소, 다크초콜릿, 헤이즐넛 향. 바디감 증가, 긴 여운" },
+    { id: "cacao", icon: "🍫", label: "Cacao Finish", pricePerLiterZp: 10000, minDays: 30, maxDays: 90, effect: "다크초콜릿, 코코아, 로스팅 향. 부드러운 단맛과 고급스러운 피니시" },
+    { id: "vanilla", icon: "🌼", label: "Vanilla Finish", pricePerLiterZp: 10000, minDays: 30, maxDays: 60, effect: "천연 바닐라, 크림, 토피의 부드러운 단맛. 오크 향과 조화" },
+    { id: "cinnamon", icon: "🌿", label: "Cinnamon Finish", pricePerLiterZp: 10000, minDays: 15, maxDays: 45, effect: "베트남 계피 특유의 따뜻한 향, 스파이스, 은은한 달콤함" },
+    { id: "star_anise", icon: "⭐", label: "Star Anise Finish", pricePerLiterZp: 10000, minDays: 15, maxDays: 30, effect: "감초와 허브 느낌, 깔끔한 피니시, 동양적인 개성" },
+]
+
 export default function BarrelReservePage() {
     const [errorProfile, setErrorProfile] = useState<string | null>(null)
 
@@ -142,6 +195,7 @@ export default function BarrelReservePage() {
     // Interactive Barrel Selection
     const [selectedSize, setSelectedSize] = useState<string>("10L")
     const currentSpec = BARREL_SPECS.find(spec => spec.size === selectedSize) || BARREL_SPECS[1]
+    const [selectedAgingEnvironment, setSelectedAgingEnvironment] = useState<string>("premium_room")
 
     // My Barrels List
     const [barrels, setBarrels] = useState<BarrelDocument[]>([])
@@ -160,6 +214,13 @@ export default function BarrelReservePage() {
     // Modals for Cert & QR Viewers
     const [activeCertBarrel, setActiveCertBarrel] = useState<BarrelDocument | null>(null)
     const [activeQrBarrel, setActiveQrBarrel] = useState<BarrelDocument | null>(null)
+
+    // Custom Aging Options modal (enhancements + finishing) for a specific owned barrel
+    const [activeOptionsBarrel, setActiveOptionsBarrel] = useState<BarrelDocument | null>(null)
+    const [optionsBusy, setOptionsBusy] = useState<boolean>(false)
+    const [optionsError, setOptionsError] = useState<string | null>(null)
+    const [selectedFinishId, setSelectedFinishId] = useState<string>(FINISHING_OPTION_SPECS[0].id)
+    const [finishDays, setFinishDays] = useState<number>(FINISHING_OPTION_SPECS[0].minDays)
 
     const loadData = useCallback(async () => {
         try {
@@ -240,7 +301,7 @@ export default function BarrelReservePage() {
         setActionSuccess(null)
 
         try {
-            const result = await submitBarrelOrder(selectedSize)
+            const result = await submitBarrelOrder(selectedSize, selectedAgingEnvironment)
             const paidLabel = result.paymentMethod === "zp"
                 ? `${result.paidAmount.toLocaleString()} ZP 대체 결제`
                 : `${result.paidAmount.toLocaleString()} EXP 차감`
@@ -321,6 +382,60 @@ export default function BarrelReservePage() {
             setActionError(err instanceof Error ? err.message : "구매에 실패했습니다.")
         } finally {
             setActionBusy(false)
+        }
+    }
+
+    const openOptionsModal = (barrel: BarrelDocument) => {
+        setOptionsError(null)
+        const firstAvailable = FINISHING_OPTION_SPECS.find((f) => !barrel.finishing) ?? FINISHING_OPTION_SPECS[0]
+        setSelectedFinishId(firstAvailable.id)
+        setFinishDays(firstAvailable.minDays)
+        setActiveOptionsBarrel(barrel)
+    }
+
+    const handleAddEnhancement = async (enhancementId: string) => {
+        if (!activeOptionsBarrel) return
+        const option = AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === enhancementId)
+        if (!option) return
+        if (!confirm(`${option.label} (${option.tagline})을(를) 추가하시겠습니까? ${option.priceZp.toLocaleString()} ZP가 즉시 차감되며, 배럴 가치에 그대로 합산됩니다.`)) return
+
+        setOptionsBusy(true)
+        setOptionsError(null)
+        try {
+            await addBarrelEnhancement(activeOptionsBarrel.id, enhancementId)
+            setActionSuccess(`${option.label} 인핸스먼트가 추가되었습니다.`)
+            await loadData()
+            setActiveOptionsBarrel((prev) =>
+                prev ? { ...prev, enhancements: [...(prev.enhancements ?? []), enhancementId] } : prev,
+            )
+        } catch (err) {
+            setOptionsError(err instanceof Error ? err.message : "인핸스먼트 추가에 실패했습니다.")
+        } finally {
+            setOptionsBusy(false)
+        }
+    }
+
+    const handleApplyFinishing = async () => {
+        if (!activeOptionsBarrel) return
+        const option = FINISHING_OPTION_SPECS.find((f) => f.id === selectedFinishId)
+        if (!option) return
+        const liters = BARREL_LITERS[activeOptionsBarrel.capacity] ?? 0
+        const cost = liters * option.pricePerLiterZp
+        if (!confirm(`${option.label}을(를) ${finishDays}일간 적용하시겠습니까? ${cost.toLocaleString()} ZP가 즉시 차감되며, 배럴 가치에 그대로 합산됩니다. (배럴당 1회만 적용 가능)`)) return
+
+        setOptionsBusy(true)
+        setOptionsError(null)
+        try {
+            await applyBarrelFinishing(activeOptionsBarrel.id, selectedFinishId, finishDays)
+            setActionSuccess(`${option.label}이(가) 적용되었습니다.`)
+            await loadData()
+            setActiveOptionsBarrel((prev) =>
+                prev ? { ...prev, finishing: { id: selectedFinishId, days: finishDays, appliedAt: new Date().toISOString() } } : prev,
+            )
+        } catch (err) {
+            setOptionsError(err instanceof Error ? err.message : "피니시 적용에 실패했습니다.")
+        } finally {
+            setOptionsBusy(false)
         }
     }
 
@@ -492,6 +607,34 @@ export default function BarrelReservePage() {
                                         <span className="text-sm font-semibold text-foreground">{currentSpec.woodType}</span>
                                     </div>
                                 </div>
+
+                                <div className="pt-3 border-t border-border/40 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono text-[10px]">
+                                            <Sparkles className="w-3 h-3 mr-1" /> Char #3 ⭐ 기본 차링
+                                        </Badge>
+                                        <span className="text-[11px] text-muted-foreground">모든 배럴에 공통 적용되는 기본 차링 사양입니다.</span>
+                                    </div>
+                                    <span className="text-[11px] text-muted-foreground block flex items-center gap-1">
+                                        <Thermometer className="w-3 h-3" /> Aging Environment 숙성 환경 선택
+                                    </span>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {AGING_ENVIRONMENT_OPTIONS.map((env) => (
+                                            <button
+                                                key={env.id}
+                                                type="button"
+                                                onClick={() => setSelectedAgingEnvironment(env.id)}
+                                                className={`text-left p-3 rounded-lg border text-xs transition-all ${selectedAgingEnvironment === env.id
+                                                    ? "border-amber-500 bg-amber-500/5"
+                                                    : "border-border/60 bg-card hover:border-amber-500/30"
+                                                    }`}
+                                            >
+                                                <span className="font-semibold text-foreground block">{env.label}</span>
+                                                <span className="text-[10px] text-muted-foreground">{env.desc}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
                             </div>
 
                             <div className="bg-background/80 rounded-lg p-5 border border-border/40 flex flex-col justify-between space-y-4">
@@ -528,6 +671,97 @@ export default function BarrelReservePage() {
                             </div>
 
                         </div>
+                    </div>
+                </section>
+
+                {/* Custom Aging Options — informational overview of the 3 option categories */}
+                <section className="space-y-6">
+                    <div className="border-b border-border/60 pb-3">
+                        <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                            <Settings2 className="w-5 h-5 text-amber-500" />
+                            Custom Aging Options 커스텀 에이징 옵션
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            가장 ZenTaro다운 나만의 배럴을 만드는 3단계 커스터마이징입니다. 실제 적용은 아래 &quot;내 배럴 컬렉션&quot;의 배럴 옵션 관리에서 진행합니다.
+                        </p>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                        {/* ① Creation Options */}
+                        <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+                            <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono text-[10px]">① 생성 시 선택</Badge>
+                            <h4 className="font-display font-semibold text-sm text-foreground">Barrel Creation Options</h4>
+                            <p className="text-[11px] text-muted-foreground">오크통을 만들 때 선택하는 옵션입니다.</p>
+                            <div className="space-y-2 pt-1">
+                                <div className="text-xs bg-background/60 rounded-lg p-2.5 border border-border/40">
+                                    <span className="font-semibold text-foreground">Char Level</span>
+                                    <span className="ml-1 text-amber-500">Char #3 ⭐ 기본</span>
+                                </div>
+                                <div className="text-xs bg-background/60 rounded-lg p-2.5 border border-border/40">
+                                    <span className="font-semibold text-foreground block mb-1">Aging Environment</span>
+                                    {AGING_ENVIRONMENT_OPTIONS.map((env) => (
+                                        <p key={env.id} className="text-muted-foreground">· {env.label} ({env.desc})</p>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* ② Aging Enhancement */}
+                        <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+                            <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono text-[10px]">② 숙성 중 추가</Badge>
+                            <h4 className="font-display font-semibold text-sm text-foreground">Aging Enhancement</h4>
+                            <p className="text-[11px] text-muted-foreground">숙성 중 언제든 추가할 수 있는 풍미 강화 서비스입니다.</p>
+                            <div className="space-y-1.5 pt-1">
+                                {AGING_ENHANCEMENT_OPTIONS.map((opt) => (
+                                    <div key={opt.id} className="flex items-center justify-between text-xs bg-background/60 rounded-lg p-2.5 border border-border/40">
+                                        <div>
+                                            <span className="font-semibold text-foreground block">{opt.label}</span>
+                                            <span className="text-[10px] text-muted-foreground">{opt.tagline}</span>
+                                        </div>
+                                        <span className="text-amber-500 font-bold whitespace-nowrap">+{opt.priceZp.toLocaleString()} ZP</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* ③ Finishing */}
+                        <div className="rounded-xl border border-border/60 bg-card p-5 space-y-3">
+                            <Badge variant="outline" className="text-amber-500 border-amber-500/30 font-mono text-[10px]">③ 병입 전 특별 숙성</Badge>
+                            <h4 className="font-display font-semibold text-sm text-foreground">Finishing 옵션</h4>
+                            <p className="text-[11px] text-muted-foreground">병입 전 2주~8주 정도 적용하는 특별 숙성입니다. (배럴당 1회, ZP/L 과금)</p>
+                            <div className="space-y-1.5 pt-1">
+                                {FINISHING_OPTION_SPECS.map((f) => (
+                                    <div key={f.id} className="text-xs bg-background/60 rounded-lg p-2.5 border border-border/40">
+                                        <div className="flex items-center justify-between">
+                                            <span className="font-semibold text-foreground">{f.icon} {f.label}</span>
+                                            <span className="text-amber-500 font-bold whitespace-nowrap">{f.pricePerLiterZp.toLocaleString()} ZP/L</span>
+                                        </div>
+                                        <p className="text-[10px] text-muted-foreground mt-0.5">{f.minDays}~{f.maxDays}일 · {f.effect}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* How the flavor stick is made — illustrative process flow */}
+                    <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-5">
+                        <h4 className="font-display font-semibold text-sm text-foreground flex items-center gap-1.5">
+                            <Coffee className="w-4 h-4 text-amber-500" /> 옵션 스틱은 이렇게 만들어집니다 (예: Coffee Finish)
+                        </h4>
+                        <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+                            {["오크 스틱", "달랏 커피 추출액에 침지", "건조", "토스팅", "오크통에 투입"].map((step, idx, arr) => (
+                                <div key={step} className="flex items-center gap-2">
+                                    <span className="rounded-full border border-amber-500/30 bg-card px-3 py-1.5 font-medium text-foreground whitespace-nowrap">
+                                        {step}
+                                    </span>
+                                    {idx < arr.length - 1 && <ArrowRight className="w-3.5 h-3.5 text-amber-500/60 flex-shrink-0" />}
+                                </div>
+                            ))}
+                        </div>
+                        <p className="mt-3 text-[11px] text-muted-foreground leading-relaxed">
+                            그러면 커피향이 아주 은은하게 스며듭니다. 다른 피니시 옵션(Cacao, Vanilla, Cinnamon, Star Anise)도 같은 방식으로 각 재료의 추출액을 오크 스틱에 입혀 완성합니다.
+                            디지털 인증서에는 적용된 옵션이 배지 형태로 표시되며, 옵션 결제 금액은 배럴의 총 가치에 그대로 합산됩니다.
+                        </p>
                     </div>
                 </section>
 
@@ -623,6 +857,26 @@ export default function BarrelReservePage() {
                                                 </div>
                                             </div>
 
+                                            <div className="flex flex-wrap gap-1.5">
+                                                <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500">
+                                                    {CHAR_LEVEL_LABEL[barrel.charLevel ?? "char3"] ?? barrel.charLevel}
+                                                </Badge>
+                                                <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground">
+                                                    {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === barrel.agingEnvironment)?.label ?? "Premium Barrel Room"}
+                                                </Badge>
+                                                {(barrel.enhancements ?? []).map((eid) => (
+                                                    <Badge key={eid} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">
+                                                        {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
+                                                    </Badge>
+                                                ))}
+                                                {barrel.finishing && (
+                                                    <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
+                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.icon}{" "}
+                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.label ?? barrel.finishing.id}
+                                                    </Badge>
+                                                )}
+                                            </div>
+
                                             <div className="flex flex-wrap gap-2 pt-2">
                                                 <Button
                                                     type="button"
@@ -644,6 +898,18 @@ export default function BarrelReservePage() {
                                                     <QrCode className="w-3.5 h-3.5 text-amber-500" />
                                                     QR 실시간 정보
                                                 </Button>
+                                                {!isDone && !barrel.forSale && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="flex items-center gap-1 text-[11px] h-8 border-amber-500/40 text-amber-500 hover:text-amber-400"
+                                                        onClick={() => openOptionsModal(barrel)}
+                                                    >
+                                                        <Settings2 className="w-3.5 h-3.5" />
+                                                        배럴 옵션 관리
+                                                    </Button>
+                                                )}
 
                                                 {!barrel.forSale && barrel.status === "ordered" && (
                                                     <>
@@ -1222,6 +1488,32 @@ export default function BarrelReservePage() {
 
                         <div className="border-t border-amber-500/20 pt-4 mt-4 space-y-2">
                             <span className="text-[10px] text-muted-foreground uppercase block font-sans">
+                                Custom Aging Options
+                            </span>
+                            <div className="flex flex-wrap gap-1.5 font-sans">
+                                <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500">
+                                    {CHAR_LEVEL_LABEL[activeCertBarrel.charLevel ?? "char3"] ?? activeCertBarrel.charLevel}
+                                </Badge>
+                                <Badge variant="outline" className="text-[9px] border-zinc-600 text-zinc-300">
+                                    {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === activeCertBarrel.agingEnvironment)?.label ?? "Premium Barrel Room"}
+                                </Badge>
+                                {(activeCertBarrel.enhancements ?? []).map((eid) => (
+                                    <Badge key={eid} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">
+                                        {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
+                                    </Badge>
+                                ))}
+                                {activeCertBarrel.finishing && (
+                                    <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeCertBarrel.finishing?.id)?.icon}{" "}
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeCertBarrel.finishing?.id)?.label ?? activeCertBarrel.finishing.id}
+                                        {" "}({activeCertBarrel.finishing.days}일)
+                                    </Badge>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="border-t border-amber-500/20 pt-4 mt-4 space-y-2">
+                            <span className="text-[10px] text-muted-foreground uppercase block font-sans">
                                 Ownership History 로그
                             </span>
                             <div className="space-y-2 max-h-36 overflow-y-auto pr-1 text-[10px] text-zinc-400">
@@ -1244,6 +1536,146 @@ export default function BarrelReservePage() {
                             <span className="text-[9px] text-zinc-400 text-right font-sans leading-normal max-w-xs">
                                 QR 인증 코드 발급 완료: {activeCertBarrel.qrKey}
                             </span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Custom Aging Options Modal — enhancements + finishing for one owned barrel */}
+            {activeOptionsBarrel && (
+                <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4">
+                    <div className="bg-card border border-border/60 rounded-2xl p-6 shadow-2xl max-w-lg w-full space-y-5 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center border-b border-border/40 pb-3">
+                            <div>
+                                <h3 className="font-display font-semibold text-base text-foreground flex items-center gap-1.5">
+                                    <Settings2 className="w-4.5 h-4.5 text-amber-500" />
+                                    배럴 옵션 관리
+                                </h3>
+                                <p className="text-[11px] text-muted-foreground mt-0.5 font-mono">{activeOptionsBarrel.id}</p>
+                            </div>
+                            <button
+                                type="button"
+                                className="text-muted-foreground hover:text-foreground text-sm"
+                                onClick={() => setActiveOptionsBarrel(null)}
+                            >
+                                닫기 [✕]
+                            </button>
+                        </div>
+
+                        {optionsError && (
+                            <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-500 text-xs">
+                                {optionsError}
+                            </div>
+                        )}
+
+                        {/* Flavor Upgrade (Aging Enhancement) */}
+                        <div className="space-y-2">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">Flavor Upgrade</h4>
+                            <div className="space-y-2">
+                                {AGING_ENHANCEMENT_OPTIONS.map((opt) => {
+                                    const added = (activeOptionsBarrel.enhancements ?? []).includes(opt.id)
+                                    return (
+                                        <div
+                                            key={opt.id}
+                                            className={`flex items-center justify-between gap-3 rounded-lg border p-3 text-xs ${added ? "border-emerald-500/30 bg-emerald-500/5" : "border-border/60 bg-background/60"
+                                                }`}
+                                        >
+                                            <div>
+                                                <span className="font-semibold text-foreground block">{opt.label}</span>
+                                                <span className="text-[10px] text-muted-foreground">{opt.tagline}</span>
+                                            </div>
+                                            {added ? (
+                                                <Badge className="bg-emerald-500 text-black border-none text-[10px] flex items-center gap-1 whitespace-nowrap">
+                                                    <CheckCircle2 className="w-3 h-3" /> 추가됨
+                                                </Badge>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    disabled={optionsBusy}
+                                                    className="h-7 text-[11px] bg-amber-500 hover:bg-amber-600 text-black font-semibold whitespace-nowrap"
+                                                    onClick={() => handleAddEnhancement(opt.id)}
+                                                >
+                                                    +{opt.priceZp.toLocaleString()} ZP 추가
+                                                </Button>
+                                            )}
+                                        </div>
+                                    )
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Finishing */}
+                        <div className="space-y-2 border-t border-border/40 pt-4">
+                            <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">Finishing 옵션</h4>
+                            {activeOptionsBarrel.finishing ? (
+                                <div className="rounded-lg border border-pink-500/30 bg-pink-500/5 p-3 text-xs">
+                                    <span className="font-semibold text-foreground">
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeOptionsBarrel.finishing?.id)?.icon}{" "}
+                                        {FINISHING_OPTION_SPECS.find((f) => f.id === activeOptionsBarrel.finishing?.id)?.label}
+                                    </span>
+                                    <span className="text-muted-foreground"> · {activeOptionsBarrel.finishing.days}일 적용됨 (배럴당 1회 한도)</span>
+                                </div>
+                            ) : (
+                                <>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                        {FINISHING_OPTION_SPECS.map((f) => (
+                                            <button
+                                                key={f.id}
+                                                type="button"
+                                                onClick={() => {
+                                                    setSelectedFinishId(f.id)
+                                                    setFinishDays(f.minDays)
+                                                }}
+                                                className={`text-left p-2.5 rounded-lg border text-[11px] transition-all ${selectedFinishId === f.id
+                                                    ? "border-amber-500 bg-amber-500/5"
+                                                    : "border-border/60 bg-background/60 hover:border-amber-500/30"
+                                                    }`}
+                                            >
+                                                <span className="font-semibold text-foreground block">{f.icon} {f.label}</span>
+                                                <span className="text-[10px] text-muted-foreground">{f.pricePerLiterZp.toLocaleString()} ZP/L · {f.minDays}~{f.maxDays}일</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                    {(() => {
+                                        const opt = FINISHING_OPTION_SPECS.find((f) => f.id === selectedFinishId)
+                                        if (!opt) return null
+                                        const liters = BARREL_LITERS[activeOptionsBarrel.capacity] ?? 0
+                                        const cost = liters * opt.pricePerLiterZp
+                                        return (
+                                            <div className="rounded-lg border border-border/40 bg-background/60 p-3 space-y-2">
+                                                <p className="text-[11px] text-muted-foreground">{opt.effect}</p>
+                                                <label className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                                                    적용 기간 (일)
+                                                    <input
+                                                        type="number"
+                                                        min={opt.minDays}
+                                                        max={opt.maxDays}
+                                                        value={finishDays}
+                                                        onChange={(e) => setFinishDays(Number(e.target.value))}
+                                                        className="w-20 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
+                                                    />
+                                                    <span>({opt.minDays}~{opt.maxDays}일 범위)</span>
+                                                </label>
+                                                <div className="flex items-center justify-between pt-1">
+                                                    <span className="text-xs text-muted-foreground">
+                                                        예상 비용: <span className="text-amber-500 font-bold">{cost.toLocaleString()} ZP</span> ({liters}L 기준)
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled={optionsBusy || finishDays < opt.minDays || finishDays > opt.maxDays}
+                                                        className="h-7 text-[11px] bg-amber-500 hover:bg-amber-600 text-black font-semibold"
+                                                        onClick={handleApplyFinishing}
+                                                    >
+                                                        피니시 적용
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        )
+                                    })()}
+                                </>
+                            )}
                         </div>
                     </div>
                 </div>

@@ -7,6 +7,14 @@ import { WalletService } from '../wallet/wallet.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
+import {
+  BARREL_LITERS,
+  CHAR_LEVEL_DEFAULT,
+  AGING_ENVIRONMENTS,
+  AGING_ENVIRONMENT_DEFAULT,
+  AGING_ENHANCEMENTS,
+  FINISHING_OPTIONS,
+} from './barrel-options';
 
 function fmtUsdt(wei: bigint): number {
   return Number(ethers.formatUnits(wei, 18));
@@ -29,13 +37,6 @@ function maskEmail(email: string | null | undefined): string {
   const visible = local.slice(0, 2);
   return `${visible}${'*'.repeat(Math.max(local.length - 2, 2))}@${domain}`;
 }
-
-const BARREL_LITERS: Record<string, number> = {
-  '5L': 5,
-  '10L': 10,
-  '20L': 20,
-  '40L': 40,
-};
 
 export interface BarrelPricingConfig {
   baseUsdPerLiter: number;
@@ -80,6 +81,20 @@ function effectivePricingForBarrel(barrel: any, config: BarrelPricingConfig): Ba
     return { ...config, annualGrowthRate: override };
   }
   return config;
+}
+
+/**
+ * Live valuation plus flat-fee bonus value from purchased aging enhancements
+ * and finishing options (each ZP spent on those is added 1:1 to the barrel's
+ * tracked worth, on top of the normal compounding curve).
+ */
+function totalBarrelValueZp(barrel: any, config: BarrelPricingConfig): number {
+  const compounded = computeBarrelValueZp(
+    barrel.capacity,
+    agingSecondsFromDoc(barrel),
+    effectivePricingForBarrel(barrel, config),
+  );
+  return compounded + (typeof barrel.bonusValueZp === 'number' ? barrel.bonusValueZp : 0);
 }
 
 @Injectable()
@@ -334,7 +349,12 @@ export class TokenExchangeService {
     }
   }
 
-  async createBarrelOrder(uid: string, size: string) {
+  async createBarrelOrder(uid: string, size: string, agingEnvironment?: string) {
+    const resolvedAgingEnvironment =
+      agingEnvironment && (AGING_ENVIRONMENTS as readonly string[]).includes(agingEnvironment)
+        ? agingEnvironment
+        : AGING_ENVIRONMENT_DEFAULT;
+
     const BARREL_REQUIREMENTS: Record<string, { stakedZtro: number; expCost: number }> = {
       '5L': { stakedZtro: 50000, expCost: 500000 },
       '10L': { stakedZtro: 100000, expCost: 1000000 },
@@ -427,6 +447,11 @@ export class TokenExchangeService {
         sealStatus: 'SECURED',
         certNumber,
         qrKey,
+        charLevel: CHAR_LEVEL_DEFAULT,
+        agingEnvironment: resolvedAgingEnvironment,
+        enhancements: [],
+        finishing: null,
+        bonusValueZp: 0,
         ownershipHistory: [
           {
             date: new Date().toISOString(),
@@ -480,12 +505,146 @@ export class TokenExchangeService {
 
     const pricing = await this.getBarrelPricingConfig();
     const barrel = { ...(snap.data() as any), customAnnualGrowthRate: annualGrowthRate };
-    const currentValueZp = computeBarrelValueZp(
-      barrel.capacity,
-      agingSecondsFromDoc(barrel),
-      effectivePricingForBarrel(barrel, pricing),
-    );
+    const currentValueZp = totalBarrelValueZp(barrel, pricing);
     return { success: true, barrelId, customAnnualGrowthRate: annualGrowthRate, currentValueZp };
+  }
+
+  /** Adds a flat-fee flavor add-on any time while the barrel is still aging; each enhancement is one-time-only per barrel. */
+  async addBarrelEnhancement(uid: string, barrelId: string, enhancementId: string) {
+    const option = AGING_ENHANCEMENTS[enhancementId];
+    if (!option) {
+      throw new BadRequestException('존재하지 않는 인핸스먼트 옵션입니다.');
+    }
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const pricing = await this.getBarrelPricingConfig();
+
+    return this.db.runTransaction(async (tx) => {
+      const [barrelSnap, userSnap] = await Promise.all([tx.get(barrelRef), tx.get(userRef)]);
+      if (!barrelSnap.exists) {
+        throw new BadRequestException('존재하지 않는 배럴입니다.');
+      }
+      const barrel = barrelSnap.data()!;
+      if (barrel.userId !== uid) {
+        throw new BadRequestException('해당 배럴의 소유권 권한이 없습니다.');
+      }
+      if (barrel.forSale) {
+        throw new BadRequestException('판매 등록 중인 배럴은 옵션을 추가할 수 없습니다.');
+      }
+      if (barrel.agingEndedAt) {
+        throw new BadRequestException('숙성이 종료된 배럴에는 인핸스먼트를 추가할 수 없습니다.');
+      }
+      const enhancements: string[] = barrel.enhancements ?? [];
+      if (enhancements.includes(enhancementId)) {
+        throw new BadRequestException('이미 추가된 인핸스먼트 옵션입니다.');
+      }
+
+      const currentPoints: number = userSnap.data()?.points ?? 0;
+      if (currentPoints < option.priceZp) {
+        throw new BadRequestException(
+          `${option.priceZp.toLocaleString()} ZP가 필요합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
+        );
+      }
+
+      tx.update(userRef, { points: FieldValue.increment(-option.priceZp) });
+      tx.update(barrelRef, {
+        enhancements: FieldValue.arrayUnion(enhancementId),
+        bonusValueZp: FieldValue.increment(option.priceZp),
+        ownershipHistory: FieldValue.arrayUnion({
+          date: new Date().toISOString(),
+          ownerId: uid,
+          action: 'enhancement_added',
+          message: `숙성 인핸스먼트 추가: ${enhancementId} (${option.priceZp.toLocaleString()} ZP)`,
+        }),
+      });
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount: -option.priceZp,
+        type: 'barrel_enhancement',
+        description: `배럴 숙성 인핸스먼트 (${enhancementId}, ${barrelId})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      const currentValueZp = totalBarrelValueZp(
+        { ...barrel, bonusValueZp: (barrel.bonusValueZp ?? 0) + option.priceZp },
+        pricing,
+      );
+      return { success: true, barrelId, enhancementId, currentValueZp };
+    });
+  }
+
+  /** Applies a single pre-bottling finishing pass, priced per liter of barrel capacity; only one finishing per barrel. */
+  async applyBarrelFinishing(uid: string, barrelId: string, finishId: string, days: number) {
+    const option = FINISHING_OPTIONS[finishId];
+    if (!option) {
+      throw new BadRequestException('존재하지 않는 피니시 옵션입니다.');
+    }
+    if (!Number.isFinite(days) || days < option.minDays || days > option.maxDays) {
+      throw new BadRequestException(`피니시 기간은 ${option.minDays}일 ~ ${option.maxDays}일 사이여야 합니다.`);
+    }
+
+    const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const pricing = await this.getBarrelPricingConfig();
+
+    return this.db.runTransaction(async (tx) => {
+      const [barrelSnap, userSnap] = await Promise.all([tx.get(barrelRef), tx.get(userRef)]);
+      if (!barrelSnap.exists) {
+        throw new BadRequestException('존재하지 않는 배럴입니다.');
+      }
+      const barrel = barrelSnap.data()!;
+      if (barrel.userId !== uid) {
+        throw new BadRequestException('해당 배럴의 소유권 권한이 없습니다.');
+      }
+      if (barrel.forSale) {
+        throw new BadRequestException('판매 등록 중인 배럴은 피니시를 적용할 수 없습니다.');
+      }
+      if (barrel.agingEndedAt) {
+        throw new BadRequestException('숙성이 종료된 배럴에는 피니시를 적용할 수 없습니다.');
+      }
+      if (barrel.finishing) {
+        throw new BadRequestException('이미 피니시 옵션이 적용된 배럴입니다.');
+      }
+
+      const liters = BARREL_LITERS[barrel.capacity] ?? 0;
+      const cost = liters * option.pricePerLiterZp;
+      const currentPoints: number = userSnap.data()?.points ?? 0;
+      if (currentPoints < cost) {
+        throw new BadRequestException(
+          `${cost.toLocaleString()} ZP가 필요합니다. (보유: ${currentPoints.toLocaleString()} ZP)`,
+        );
+      }
+
+      const finishing = { id: finishId, days, appliedAt: new Date().toISOString() };
+      tx.update(userRef, { points: FieldValue.increment(-cost) });
+      tx.update(barrelRef, {
+        finishing,
+        bonusValueZp: FieldValue.increment(cost),
+        ownershipHistory: FieldValue.arrayUnion({
+          date: new Date().toISOString(),
+          ownerId: uid,
+          action: 'finishing_applied',
+          message: `피니시 적용: ${finishId} (${days}일, ${cost.toLocaleString()} ZP)`,
+        }),
+      });
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount: -cost,
+        type: 'barrel_finishing',
+        description: `배럴 피니시 적용 (${finishId}, ${days}일, ${barrelId})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      const currentValueZp = totalBarrelValueZp(
+        { ...barrel, bonusValueZp: (barrel.bonusValueZp ?? 0) + cost },
+        pricing,
+      );
+      return { success: true, barrelId, finishing, currentValueZp };
+    });
   }
 
   async listMyBarrels(uid: string) {
@@ -498,11 +657,7 @@ export class TokenExchangeService {
       const barrel = doc.data() as any;
       return {
         ...barrel,
-        currentValueZp: computeBarrelValueZp(
-          barrel.capacity,
-          agingSecondsFromDoc(barrel),
-          effectivePricingForBarrel(barrel, pricing),
-        ),
+        currentValueZp: totalBarrelValueZp(barrel, pricing),
       };
     });
     return list.sort((a: any, b: any) => {
@@ -536,12 +691,12 @@ export class TokenExchangeService {
         productionDate: b.productionDate ?? null,
         agingEndedAt: b.agingEndedAt ?? null,
         forSale: b.forSale ?? false,
-        currentValueZp: computeBarrelValueZp(
-          b.capacity,
-          agingSecondsFromDoc(b),
-          effectivePricingForBarrel(b, pricing),
-        ),
+        currentValueZp: totalBarrelValueZp(b, pricing),
         customAnnualGrowthRate: typeof b.customAnnualGrowthRate === 'number' ? b.customAnnualGrowthRate : null,
+        charLevel: b.charLevel ?? CHAR_LEVEL_DEFAULT,
+        agingEnvironment: b.agingEnvironment ?? AGING_ENVIRONMENT_DEFAULT,
+        enhancements: b.enhancements ?? [],
+        finishing: b.finishing ?? null,
         ownerLabel: maskEmail(emailByUid.get(b.userId)),
         ownerId: b.userId,
       }))
@@ -576,11 +731,7 @@ export class TokenExchangeService {
         nextStatus = '위탁 숙성 중 (Room Aging)';
         historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
       } else if (action === 'deliver') {
-        const currentValueZp = computeBarrelValueZp(
-          barrelData.capacity,
-          agingSecondsFromDoc(barrelData),
-          effectivePricingForBarrel(barrelData, pricing),
-        );
+        const currentValueZp = totalBarrelValueZp(barrelData, pricing);
         const fee = Math.round(currentValueZp * BARREL_STORAGE_FEE_RATE);
         const userSnap = await tx.get(userRef);
         const currentPoints: number = userSnap.data()?.points ?? 0;
@@ -653,11 +804,7 @@ export class TokenExchangeService {
     }
     await barrelRef.update({ forSale: true, salePriceZp: null });
     const pricing = await this.getBarrelPricingConfig();
-    const currentValueZp = computeBarrelValueZp(
-      barrel.capacity,
-      agingSecondsFromDoc(barrel),
-      effectivePricingForBarrel(barrel, pricing),
-    );
+    const currentValueZp = totalBarrelValueZp(barrel, pricing);
     return { success: true, forSale: true, currentValueZp };
   }
 
@@ -694,11 +841,7 @@ export class TokenExchangeService {
 
       const sellerUid = barrel.userId;
       // Priced live at the moment of purchase — never a stale stored value.
-      const price = computeBarrelValueZp(
-        barrel.capacity,
-        agingSecondsFromDoc(barrel),
-        effectivePricingForBarrel(barrel, pricing),
-      );
+      const price = totalBarrelValueZp(barrel, pricing);
       const fee = Math.round(price * P2P_TRADE_FEE_RATE);
       const sellerReceives = price - fee;
 

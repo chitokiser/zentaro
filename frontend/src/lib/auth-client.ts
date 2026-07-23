@@ -1024,6 +1024,12 @@ export interface BarrelHistoryEntry {
   message?: string;
 }
 
+export interface BarrelFinishing {
+  id: string;
+  days: number;
+  appliedAt: string;
+}
+
 export interface BarrelDocument {
   id: string;
   userId: string;
@@ -1038,6 +1044,10 @@ export interface BarrelDocument {
   sealStatus: string;
   certNumber: string;
   qrKey: string;
+  charLevel?: string;
+  agingEnvironment?: string;
+  enhancements?: string[];
+  finishing?: BarrelFinishing | null;
   ownershipHistory: BarrelHistoryEntry[];
 }
 
@@ -1052,6 +1062,10 @@ export interface PublicBarrel {
   forSale: boolean;
   currentValueZp: number;
   customAnnualGrowthRate: number | null;
+  charLevel?: string;
+  agingEnvironment?: string;
+  enhancements?: string[];
+  finishing?: BarrelFinishing | null;
   ownerLabel: string;
   ownerId: string;
 }
@@ -1062,11 +1076,31 @@ export interface BarrelPricingConfig {
   annualGrowthRate: number;
 }
 
-export async function submitBarrelOrder(size: string): Promise<{ success: boolean; barrelId: string; certNumber: string; paymentMethod: "exp" | "zp"; paidAmount: number }> {
+export async function submitBarrelOrder(size: string, agingEnvironment?: string): Promise<{ success: boolean; barrelId: string; certNumber: string; paymentMethod: "exp" | "zp"; paidAmount: number }> {
   const res = await fetch(`${API_URL}/token-exchange/barrel/order`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ size }),
+    body: JSON.stringify({ size, agingEnvironment }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function addBarrelEnhancement(barrelId: string, enhancementId: string): Promise<{ success: boolean; currentValueZp: number }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/enhancement`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ enhancementId }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function applyBarrelFinishing(barrelId: string, finishId: string, days: number): Promise<{ success: boolean; currentValueZp: number }> {
+  const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/finishing`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ finishId, days }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

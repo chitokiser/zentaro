@@ -7,6 +7,9 @@ import { BuyZtroDto } from './dto/buy-ztro.dto';
 import { AmountDto } from './dto/amount.dto';
 import { UpdateBarrelPricingDto } from './dto/update-barrel-pricing.dto';
 import { UpdateBarrelGrowthRateDto } from './dto/update-barrel-growth-rate.dto';
+import { CreateBarrelOrderDto } from './dto/create-barrel-order.dto';
+import { AddBarrelEnhancementDto } from './dto/add-barrel-enhancement.dto';
+import { ApplyBarrelFinishingDto } from './dto/apply-barrel-finishing.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -53,8 +56,8 @@ export class TokenExchangeController {
   }
 
   @Post('barrel/order')
-  createBarrelOrder(@CurrentUser() user: CurrentUserPayload, @Body() dto: { size: string }) {
-    return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size);
+  createBarrelOrder(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateBarrelOrderDto) {
+    return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size, dto.agingEnvironment);
   }
 
   @Get('barrel/my')
@@ -85,6 +88,24 @@ export class TokenExchangeController {
   @Post('barrel/:id/buy')
   buyBarrel(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.tokenExchangeService.buyBarrel(user.uid, id);
+  }
+
+  @Post('barrel/:id/enhancement')
+  addBarrelEnhancement(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: AddBarrelEnhancementDto,
+  ) {
+    return this.tokenExchangeService.addBarrelEnhancement(user.uid, id, dto.enhancementId);
+  }
+
+  @Post('barrel/:id/finishing')
+  applyBarrelFinishing(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: ApplyBarrelFinishingDto,
+  ) {
+    return this.tokenExchangeService.applyBarrelFinishing(user.uid, id, dto.finishId, dto.days);
   }
 
   @Delete('admin/barrel/:id')

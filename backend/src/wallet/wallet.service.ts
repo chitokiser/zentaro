@@ -27,6 +27,8 @@ const ZENTARO_TRANSACTION_TYPES = [
   'barrel_delivery_fee',
   'barrel_resale',
   'barrel_resale_fee',
+  'barrel_enhancement',
+  'barrel_finishing',
   'zentaro_mall_purchase',
   'zentaro_bottle_cap_reward',
   'zentaro_contribution_reward',
