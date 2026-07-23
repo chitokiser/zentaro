@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import Link from "next/link"
 import { MessageCircle, Camera, Send, PlayCircle } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -29,9 +30,13 @@ export function SiteFooter() {
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-8 md:flex-row md:items-start md:justify-between">
           <div>
-            <span className="font-display text-lg font-semibold tracking-[0.2em] text-primary">
-              ZENTARO
-            </span>
+            <Image
+              src="/images/brand/logo.png"
+              alt="ZENTARO"
+              width={240}
+              height={160}
+              className="h-10 w-auto"
+            />
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">
               {t.footer.tagline}
             </p>
