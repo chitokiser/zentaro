@@ -11,6 +11,8 @@ import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 const USDT_TO_ZP_RATE = 10000;
 /** Ignore on-chain dust below this (avoids sweeping/crediting for a few wei of rounding noise). */
 const MIN_USDT_DEPOSIT = 0.01;
+/** Platform fee withheld on every ZP -> USDT withdrawal. */
+const USDT_WITHDRAWAL_FEE_RATE = 0.03;
 
 export interface WalletView {
   ap: number;
@@ -40,6 +42,7 @@ const ZENTARO_TRANSACTION_TYPES = [
   'zentaro_contribution_reward',
   'zp_to_exp_conversion',
   'mentor_referral_reward',
+  'usdt_withdrawal',
 ];
 
 const DEFAULT_WALLET = {
@@ -203,6 +206,68 @@ export class WalletService {
     });
 
     return { success: true, usdtAmount, zpCredited: zpAmount, txHash: receipt.hash as string };
+  }
+
+  /**
+   * Converts ZP back into USDT, withholding a 3% platform fee, and pays the net amount
+   * out on-chain from the treasury to the member's own custodial wallet. ZP is deducted
+   * first (inside a transaction, so concurrent requests can't double-withdraw); if the
+   * on-chain payout then fails, the ZP is refunded since the member never received
+   * anything. Every withdrawal is logged to TRANSACTIONS (type 'usdt_withdrawal') so it
+   * shows up in the admin transactions ledger.
+   */
+  async withdrawUsdt(uid: string, zpAmount: number) {
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+
+    await this.db.runTransaction(async (tx) => {
+      const userSnap = await tx.get(userRef);
+      if (!userSnap.exists) {
+        throw new NotFoundException('User not found');
+      }
+      const currentPoints: number = userSnap.data()?.points ?? 0;
+      if (currentPoints < zpAmount) {
+        throw new BadRequestException(
+          `ZP 잔액이 부족합니다. (필요: ${zpAmount.toLocaleString()} ZP, 보유: ${currentPoints.toLocaleString()} ZP)`,
+        );
+      }
+      tx.update(userRef, { points: FieldValue.increment(-zpAmount) });
+    });
+
+    const grossUsdt = zpAmount / USDT_TO_ZP_RATE;
+    const feeUsdt = grossUsdt * USDT_WITHDRAWAL_FEE_RATE;
+    const netUsdt = grossUsdt - feeUsdt;
+
+    try {
+      const { address } = await this.getOrCreateChainWallet(uid);
+      const treasurySigner = this.blockchain.getTreasurySigner();
+      const usdt = this.blockchain.getUsdtContract(treasurySigner);
+      const netUsdtWei = ethers.parseUnits(netUsdt.toFixed(6), 18);
+
+      const tx = await usdt.transfer(address, netUsdtWei);
+      const receipt = await tx.wait();
+
+      const ledgerRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      await ledgerRef.set({
+        userId: uid,
+        amount: -zpAmount,
+        type: 'usdt_withdrawal',
+        description: `USDT 환전 출금: ${zpAmount.toLocaleString()} ZP → ${grossUsdt.toFixed(4)} USDT (수수료 3% = ${feeUsdt.toFixed(4)} USDT 차감) → 실지급 ${netUsdt.toFixed(4)} USDT (tx: ${receipt.hash})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        success: true,
+        zpDeducted: zpAmount,
+        grossUsdt,
+        feeUsdt,
+        netUsdt,
+        txHash: receipt.hash as string,
+      };
+    } catch (err) {
+      // Payout never arrived — refund the ZP so the member isn't charged for nothing.
+      await userRef.update({ points: FieldValue.increment(zpAmount) });
+      throw err;
+    }
   }
 
   async createDepositRequest(

@@ -17,6 +17,7 @@ const TYPE_LABEL: Record<string, string> = {
   zentaro_mall_purchase: "몰 구매 (ZP/EXP 결제)",
   zentaro_bottle_cap_reward: "병뚜껑 리워드",
   zentaro_contribution_reward: "현물출자 리워드",
+  usdt_withdrawal: "USDT 환전 출금 (수수료 3%)",
 }
 
 const REFRESH_INTERVAL_MS = 10000

@@ -130,6 +130,11 @@ export class BlockchainService {
     return this.relayer.address;
   }
 
+  /** Signer for the treasury/relayer wallet — used to pay out USDT withdrawals. */
+  getTreasurySigner(): ethers.Wallet {
+    return this.relayer;
+  }
+
   /**
    * Wraps a decrypted private key in a signer. Caller must not persist or log the key
    * or this signer — it's scoped to a single request's on-chain calls.

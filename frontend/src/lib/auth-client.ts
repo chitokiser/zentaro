@@ -992,6 +992,23 @@ export async function depositUsdt(): Promise<{ success: boolean; usdtAmount: num
   return res.json();
 }
 
+export async function withdrawUsdt(zpAmount: number): Promise<{
+  success: boolean;
+  zpDeducted: number;
+  grossUsdt: number;
+  feeUsdt: number;
+  netUsdt: number;
+  txHash: string;
+}> {
+  const res = await fetch(`${API_URL}/wallet/withdraw-usdt`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ zpAmount }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function fetchMyDeposits(): Promise<DepositRequest[]> {
   const res = await fetch(`${API_URL}/wallet/deposits`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 interface WalletData {
@@ -44,6 +44,12 @@ export default function WalletPage() {
   const [usdtBusy, setUsdtBusy] = useState(false)
   const [usdtError, setUsdtError] = useState<string | null>(null)
   const [usdtSuccess, setUsdtSuccess] = useState<string | null>(null)
+
+  // USDT withdrawal (ZP -> USDT, 3% fee)
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(10000)
+  const [withdrawBusy, setWithdrawBusy] = useState(false)
+  const [withdrawError, setWithdrawError] = useState<string | null>(null)
+  const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     loadWalletData()
@@ -171,6 +177,31 @@ export default function WalletPage() {
     }
   }
 
+  const handleUsdtWithdraw = async () => {
+    if (!wallet) return
+    if (!Number.isInteger(withdrawAmount) || withdrawAmount < 10000) {
+      setWithdrawError(w.usdtWithdrawMinAlert)
+      return
+    }
+    if (withdrawAmount > wallet.ap) {
+      setWithdrawError(w.usdtWithdrawInsufficientAlert)
+      return
+    }
+    setWithdrawBusy(true)
+    setWithdrawError(null)
+    setWithdrawSuccess(null)
+    try {
+      const result = await withdrawUsdt(withdrawAmount)
+      setWithdrawSuccess(`${w.usdtWithdrawSuccessPrefix}${withdrawAmount.toLocaleString()}${w.usdtWithdrawSuccessMiddle}${result.netUsdt.toFixed(4)}${w.usdtWithdrawSuccessSuffix}`)
+      loadWalletData()
+      loadDepositHistory()
+    } catch (err) {
+      setWithdrawError(err instanceof Error ? err.message : w.usdtWithdrawErrorGeneric)
+    } finally {
+      setWithdrawBusy(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
@@ -283,6 +314,40 @@ export default function WalletPage() {
           className="self-start bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
         >
           {usdtBusy ? w.usdtDepositing : w.usdtDepositButton}
+        </button>
+      </div>
+
+      {/* USDT withdrawal (ZP -> USDT, 3% fee) */}
+      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="font-display text-sm font-semibold text-foreground notranslate">{w.usdtWithdrawSectionTitle}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{w.usdtWithdrawSectionDescription}</p>
+        </div>
+        {withdrawError ? <p className="text-xs text-destructive">{withdrawError}</p> : null}
+        {withdrawSuccess ? <p className="text-xs text-emerald-500">{withdrawSuccess}</p> : null}
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">{w.usdtWithdrawAmountLabel}</span>
+            <input
+              type="number"
+              min={10000}
+              step={1000}
+              value={withdrawAmount}
+              onChange={(e) => setWithdrawAmount(Number(e.target.value))}
+              className="w-40 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </label>
+          <span className="text-xs text-muted-foreground">
+            {w.usdtWithdrawEstimateLabel} <span className="text-primary font-semibold notranslate">{((withdrawAmount / 10000) * 0.97).toFixed(4)} USDT</span>
+          </span>
+        </div>
+        <button
+          type="button"
+          disabled={withdrawBusy}
+          onClick={handleUsdtWithdraw}
+          className="self-start bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {withdrawBusy ? w.usdtWithdrawing : w.usdtWithdrawButton}
         </button>
       </div>
 

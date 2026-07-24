@@ -6,6 +6,7 @@ import { WalletService } from './wallet.service';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 import { AdjustExpDto } from './dto/adjust-exp.dto';
 import { ConvertZpToExpDto } from './dto/convert-zp-to-exp.dto';
+import { WithdrawUsdtDto } from './dto/withdraw-usdt.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -30,6 +31,11 @@ export class WalletController {
   @Post('deposit-usdt')
   depositUsdt(@CurrentUser() user: CurrentUserPayload) {
     return this.walletService.depositUsdt(user.uid, user.email);
+  }
+
+  @Post('withdraw-usdt')
+  withdrawUsdt(@CurrentUser() user: CurrentUserPayload, @Body() dto: WithdrawUsdtDto) {
+    return this.walletService.withdrawUsdt(user.uid, dto.zpAmount);
   }
 
   @Get('deposits')
