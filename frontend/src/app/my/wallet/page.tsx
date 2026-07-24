@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 interface WalletData {
@@ -39,6 +39,11 @@ export default function WalletPage() {
   const [convertBusy, setConvertBusy] = useState(false)
   const [convertError, setConvertError] = useState<string | null>(null)
   const [convertSuccess, setConvertSuccess] = useState<string | null>(null)
+
+  // USDT auto top-up
+  const [usdtBusy, setUsdtBusy] = useState(false)
+  const [usdtError, setUsdtError] = useState<string | null>(null)
+  const [usdtSuccess, setUsdtSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     loadWalletData()
@@ -150,6 +155,22 @@ export default function WalletPage() {
     }
   }
 
+  const handleUsdtDeposit = async () => {
+    setUsdtBusy(true)
+    setUsdtError(null)
+    setUsdtSuccess(null)
+    try {
+      const result = await depositUsdt()
+      setUsdtSuccess(`${w.usdtSuccessPrefix}${result.usdtAmount}${w.usdtSuccessMiddle}${result.zpCredited.toLocaleString()}${w.usdtSuccessSuffix}`)
+      loadWalletData()
+      loadDepositHistory()
+    } catch (err) {
+      setUsdtError(err instanceof Error ? err.message : w.usdtErrorGeneric)
+    } finally {
+      setUsdtBusy(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
@@ -245,6 +266,24 @@ export default function WalletPage() {
         ) : (
           <p className="mt-1 text-xs text-muted-foreground">{w.loading}</p>
         )}
+      </div>
+
+      {/* USDT auto top-up */}
+      <div className="rounded-lg border border-primary/30 bg-card p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="font-display text-sm font-semibold text-foreground notranslate">{w.usdtSectionTitle}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{w.usdtSectionDescription}</p>
+        </div>
+        {usdtError ? <p className="text-xs text-destructive">{usdtError}</p> : null}
+        {usdtSuccess ? <p className="text-xs text-emerald-500">{usdtSuccess}</p> : null}
+        <button
+          type="button"
+          disabled={usdtBusy}
+          onClick={handleUsdtDeposit}
+          className="self-start bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {usdtBusy ? w.usdtDepositing : w.usdtDepositButton}
+        </button>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -423,7 +462,9 @@ export default function WalletPage() {
                     <td className="py-2.5">
                       {req.currency === "VND"
                         ? `${Math.round((req.zpAmount / 10000) * 25420.5).toLocaleString()} VND`
-                        : `${Math.round((req.zpAmount / 10000) * 1395.2).toLocaleString()} KRW`
+                        : req.currency === "KRW"
+                        ? `${Math.round((req.zpAmount / 10000) * 1395.2).toLocaleString()} KRW`
+                        : `${req.usdtAmount ?? (req.zpAmount / 10000)} USDT`
                       }
                     </td>
                     <td className="py-2.5">{req.currency}</td>

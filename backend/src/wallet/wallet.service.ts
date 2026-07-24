@@ -1,10 +1,16 @@
 import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
+import { ethers } from 'ethers';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
+
+/** 1 USDT = 10,000 ZP, matching the site's other USD-pegged conversions. */
+const USDT_TO_ZP_RATE = 10000;
+/** Ignore on-chain dust below this (avoids sweeping/crediting for a few wei of rounding noise). */
+const MIN_USDT_DEPOSIT = 0.01;
 
 export interface WalletView {
   ap: number;
@@ -135,6 +141,68 @@ export class WalletService {
     const encPrivateKey = snap.data()!.encPrivateKey as string;
     const privateKey = this.blockchain.decryptPrivateKey(encPrivateKey);
     return { address, privateKey };
+  }
+
+  /**
+   * Fully automatic USDT top-up: checks the member's own custodial wallet (opBNB) for a
+   * USDT balance, sweeps the entire balance to the company treasury address, and credits
+   * ZP at a fixed 1 USDT = 10,000 ZP rate — no admin approval step, unlike the VND/KRW
+   * manual bank-transfer flow. The on-chain sweep is irreversible, so the ZP credit +
+   * deposit record are written immediately after it confirms, using the tx hash to keep
+   * an auditable link between the on-chain transfer and the off-chain ZP grant.
+   */
+  async depositUsdt(uid: string, email: string) {
+    const { address, privateKey } = await this.getDecryptedPrivateKey(uid);
+    await this.blockchain.ensureGas(address);
+    const signer = this.blockchain.getUserSigner(privateKey);
+    const usdt = this.blockchain.getUsdtContract(signer);
+
+    const balanceWei: bigint = await usdt.balanceOf(address);
+    const usdtAmount = Number(ethers.formatUnits(balanceWei, 18));
+    if (usdtAmount < MIN_USDT_DEPOSIT) {
+      throw new BadRequestException(
+        `입금된 USDT가 없습니다. 위 지갑 주소로 USDT(opBNB, BEP-20)를 먼저 전송해주세요.`,
+      );
+    }
+
+    const treasuryAddress = this.blockchain.getTreasuryAddress();
+    const tx = await usdt.transfer(treasuryAddress, balanceWei);
+    const receipt = await tx.wait();
+
+    const zpAmount = Math.round(usdtAmount * USDT_TO_ZP_RATE);
+
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    await this.db.runTransaction(async (fsTx) => {
+      fsTx.update(userRef, { points: FieldValue.increment(zpAmount) });
+
+      const depositRef = this.db.collection(COLLECTIONS.ZENTARO_DEPOSITS).doc();
+      fsTx.set(depositRef, {
+        userId: uid,
+        email,
+        zpAmount,
+        depositorName: email,
+        currency: 'USDT',
+        usdtAmount,
+        txHash: receipt.hash,
+        method: 'onchain_auto',
+        refCode: `USDT-${Date.now()}`,
+        status: 'approved',
+        createdAt: FieldValue.serverTimestamp(),
+        reviewedAt: FieldValue.serverTimestamp(),
+        rejectReason: null,
+      });
+
+      const ledgerRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      fsTx.set(ledgerRef, {
+        userId: uid,
+        amount: zpAmount,
+        type: 'points_charge',
+        description: `USDT 자동 충전 (${usdtAmount} USDT, tx: ${receipt.hash})`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    return { success: true, usdtAmount, zpCredited: zpAmount, txHash: receipt.hash as string };
   }
 
   async createDepositRequest(

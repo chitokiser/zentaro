@@ -125,6 +125,11 @@ export class BlockchainService {
     return { address: wallet.address, privateKey: wallet.privateKey };
   }
 
+  /** Company-controlled address (also the gas relayer) — destination for swept USDT deposits. */
+  getTreasuryAddress(): string {
+    return this.relayer.address;
+  }
+
   /**
    * Wraps a decrypted private key in a signer. Caller must not persist or log the key
    * or this signer — it's scoped to a single request's on-chain calls.

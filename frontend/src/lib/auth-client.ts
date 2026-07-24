@@ -960,7 +960,9 @@ export interface DepositRequest {
   email: string;
   zpAmount: number;
   depositorName: string;
-  currency: 'VND' | 'KRW';
+  currency: 'VND' | 'KRW' | 'USDT';
+  usdtAmount?: number;
+  txHash?: string;
   refCode: string;
   status: 'pending' | 'approved' | 'rejected';
   rejectReason: string | null;
@@ -976,6 +978,15 @@ export async function submitDepositRequest(input: {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function depositUsdt(): Promise<{ success: boolean; usdtAmount: number; zpCredited: number; txHash: string }> {
+  const res = await fetch(`${API_URL}/wallet/deposit-usdt`, {
+    method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

@@ -27,6 +27,11 @@ export class WalletController {
     return this.walletService.createDepositRequest(user.uid, user.email, dto);
   }
 
+  @Post('deposit-usdt')
+  depositUsdt(@CurrentUser() user: CurrentUserPayload) {
+    return this.walletService.depositUsdt(user.uid, user.email);
+  }
+
   @Get('deposits')
   listMyDeposits(@CurrentUser() user: CurrentUserPayload) {
     return this.walletService.listMyDeposits(user.uid);
