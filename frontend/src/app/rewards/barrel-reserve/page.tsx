@@ -975,19 +975,19 @@ export default function BarrelReservePage() {
                                             key={barrel.id}
                                             className="rounded-xl border border-border/60 bg-card p-5 space-y-4 hover:border-amber-500/30 transition-all duration-300"
                                         >
-                                            <div className="flex justify-between items-start gap-3">
-                                                <div className="flex gap-3">
+                                            <div className="flex flex-wrap justify-between items-start gap-3">
+                                                <div className="flex gap-3 min-w-0">
                                                     <BarrelVisual
                                                         capacity={barrel.capacity}
                                                         progress={progress}
                                                         isAging={isAging}
                                                         isDone={isDone}
                                                     />
-                                                    <div>
+                                                    <div className="min-w-0">
                                                         <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
                                                             {barrel.id}
                                                         </Badge>
-                                                        <h4 className="font-display font-bold text-base text-foreground mt-1">
+                                                        <h4 className="font-display font-bold text-base text-foreground mt-1 break-words">
                                                             {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
                                                         </h4>
                                                         {barrel.forSale && (
@@ -998,7 +998,7 @@ export default function BarrelReservePage() {
                                                         )}
                                                     </div>
                                                 </div>
-                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold whitespace-nowrap">
+                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold whitespace-nowrap shrink-0">
                                                     {barrel.status === "ordered" ? "Chờ lưu kho (Ordered)" : statusLabelVi(barrel.status)}
                                                 </Badge>
                                             </div>
