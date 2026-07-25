@@ -130,49 +130,98 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         id: "zentaro-st",
         image: "/images/products/zentaro_st.png",
         category: {
-            ko: "스페셜 에디션 스파이시 진",
-            en: "Special Edition Spicy Gin",
-            vi: "Phiên bản rượu Spicy Gin đặc biệt",
+            ko: "프리미엄 딸기 리큐르",
+            en: "Premium Strawberry Liqueur",
+            vi: "Rượu mùi dâu tây cao cấp",
         },
         tagline: {
-            ko: "베트남 고산지대 야생 팔각(Star Anise)의 이국적인 아로마",
-            en: "Unveiling the mystery of Vietnamese highlands with intense wild Star Anise",
-            vi: "Sắc hương nhiệt đới kỳ lạ bùng nổ từ Đại Hồi rừng Tây Bắc",
+            ko: "무색무취의 젠타로 스피릿에 신선한 딸기 원액을 더해 탄생한 과실 리큐르",
+            en: "Premium strawberry liqueur crafted by infusing pure strawberry extract into odorless and tasteless Zentaro spirits",
+            vi: "Rượu mùi dâu tây ngọt ngào được chiết xuất trên nền rượu tinh khiết",
         },
         specs: {
-            abv: "45%",
+            abv: "15%",
             volume: "500ml",
             reward: "20,000 EXP",
         },
         desc: {
-            ko: "세계 최고 품질의 팔각(Star Anise)이 자생하는 베트남 랑선(Lang Son) 지방의 최고급 원료와 주니퍼 베리를 독창 비율로 컴파일한 크래프트 진입니다. 특유의 달콤하면서도 매콤한 한방 스파이시 아로마를 강화하여 오크통에서 단기 에이징하여 바디감을 극대화했습니다. 니트(Neat)나 시그니처 칵테일 제조 시 비교를 거부하는 압도적인 개성을 연출합니다.",
-            en: "An audacious craft gin highlighting premium Star Anise wild-harvested from Lang Son hills, blended with primary juniper base. Lightly wood-cask aged to fuse sweet-spicy aromatic licorice tones with oak tannins, offering an intense flavor profile that dominates signature cocktails.",
-            vi: "Dòng Gin phá cách tôn vinh hương vị độc bản của hoa Hồi rừng tự nhiên từ Lạng Sơn cùng quả bách xù chín mọng. Ủ nhẹ trong thùng gỗ sồi để tạo liên kết phức hợp giữa vị cay hồi ngọt ngào, tinh dầu thơm rực rỡ và tannin gỗ ấm áp.",
+            ko: "불순물과 특유의 취기를 완벽하게 제거하여 맑고 깨끗한 무색무취의 프리미엄 젠타로 스피릿을 기주로 삼아, 엄선된 100% 천연 딸기 원액을 저온으로 천천히 슬로 침출해 빚어낸 프리미엄 딸기 리큐르입니다. 한 모금 머금는 순간, 산뜻하고 상큼한 딸기 본연의 감미로운 참맛이 입안 가득 화사하게 감돌며 인공 향료나 인공 색소를 첨가하지 않아 과실 본연의 루비색 뉘앙스가 띄는 맑고 깔끔한 피니시를 선사합니다.",
+            en: "Built with ultra-pure, odorless and tasteless premium Zentaro spirit as its foundation, this premium liqueur infuses 100% natural, hand-selected strawberry concentrate at low temperatures. It delivers the vibrant, jammy sweetness of ripe strawberries immediately on the palate. Made completely free of artificial flavorings or synthetic colorings, it holds a clean crystal ruby appearance and a refreshing, natural dessert-like finish.",
+            vi: "Sử dụng rượu nền (spirit) tinh khiết đã lọc khử mùi hoàn toàn của Zentaro làm cốt rượu, kết hợp ngâm ủ nước ép dâu tây tự nhiên chín ngọt. Lớp màu đỏ ruby tự nhiên tuyệt đẹp không hóa chất phẩm màu, mang đến hương vị dâu chua ngọt căng mọng đậm đà.",
         },
         features: {
             ko: [
-                "베트남 북부 랑선 고사지대 특산 팔각(Star Anise) 핵심 침용",
-                "오크통(Oak Cask) 단기 추가 피니싱으로 황금빛 뉘앙스 구현",
-                "달콤하고 스파이시한 보태니컬 캐릭터가 선사하는 웅장한 아로마",
-                "병뚜껑 반납 심사 통과 시 20,000 EXP 포인트 적립",
+                "100% 천연 딸기 원액 저온 슬로 침출 기법(Slow Maceration)",
+                "불순물과 잡향을 모두 걸러낸 깔끔한 무색무취의 젠타로 전용 기주 사용",
+                "인공 보존제, 화학 감미료, 인공 타르 색소 무첨가 원칙 준수",
+                "병뚜껑 반납 심사 완료 시 20,000 EXP 포인트 적립 연계",
             ],
             en: [
-                "Focused maceration of premium Lạng Sơn wild-grown Star Anise",
-                "Finished in oak casks to capture beautiful complexity and amber hue",
-                "Spectacular bold sweet-spicy aromatic profile",
+                "100% natural strawberry concentrate via low temperature slow maceration",
+                "Odorless and tasteless premium base spirit for pure fruit expressiveness",
+                "Strict chemical-free manufacturing with no artificial colors or additives",
                 "Claim 20,000 EXP rewards upon bottle cap verification",
             ],
             vi: [
-                "Chiết xuất sâu từ Đại hồi rừng vùng cao Lạng Sơn",
-                "Ủ hoàn thiện ngắn trong thùng sồi tạo ánh vàng rực lôi cuốn",
-                "Hương vị cay nồng ngọt ngào, ấm nóng bùng nổ khứu giác",
-                "Đổi nắp chai nhận 20.000 EXP thưởng khi kiểm duyệt",
+                "Chiết xuất chậm từ 100% trái dâu tây tươi tự nhiên chín mọng",
+                "Sử dụng rượu nền lọc tinh khiết không màu không mùi cao cấp",
+                "Nói không với phẩm màu nhân tạo và chất bảo quản hoá học",
+                "Đổi nắp chai nhận ngay 20.000 EXP thưởng khi kiểm duyệt",
             ],
         },
         ingredients: {
-            ko: "야생 팔각(Star Anise), 주니퍼 베리, 정향, 진저, 로즈마리, 레몬진저",
-            en: "Wild Star Anise, Juniper berries, Cloves, Ginger, Rosemary, Lemon zest",
-            vi: "Hoa Hồi rừng, Quả bách xù, Đinh hương, Gừng tươi, Hương thảo, Vỏ chanh",
+            ko: "젠타로 스피릿 (쌀 기주), 천연 딸기 원액 100%, 천연 당분, 정제수",
+            en: "Zentaro base spirit, 100% natural strawberry extract, natural sugar cane, purified water",
+            vi: "Rượu nền tinh khiết, nước ép dâu tây nguyên chất 100%, đường mía tự nhiên, nước tinh khiết",
+        },
+    },
+    {
+        id: "zentaro-an",
+        image: "/images/products/zentaro_an2.png",
+        category: {
+            ko: "프리미엄 압생트",
+            en: "Premium Absinthe",
+            vi: "Rượu Absinthe cao cấp",
+        },
+        tagline: {
+            ko: "베트남 와일드 웜우드(쑥)와 고산지대 허브로 빚어낸 녹색의 요정",
+            en: "The Green Fairy crafted with Vietnamese wild wormwood and alpine herbs",
+            vi: "Nàng tiên xanh chưng cất từ ngải cứu hoang dã và thảo mộc Tây Bắc",
+        },
+        specs: {
+            abv: "55% / 68%",
+            volume: "500ml",
+            reward: "40,000 EXP",
+        },
+        desc: {
+            ko: "예술가들의 영감의 원천이었던 '녹색 요정(Green Fairy)' 압생트를 젠타로의 독창적인 관점으로 재해석한 전통 크래프트 스피릿입니다. 라이(Rye) 스피릿 기주에 베트남 야생 쑥(Wormwood/Ngải Cứu)과 향긋한 아니스, 펜넬 등의 약초를 정교하게 우려낸 뒤 추가 증류를 거쳐 압생트 특유의 투명한 연록빛 색감과 깊고 복합적인 리코리스 향취를 고스란히 담아냈습니다. 물을 서서히 떨어뜨릴 때 번지는 매혹적인 오팔색 탁화 현상(Louche Effect)을 감상할 수 있습니다.",
+            en: "Reimagined through ZenTaro's lens, this 'Green Fairy' craft Absinthe uses wild Vietnamese wormwood (Ngải Cứu) alongside aromatic anise and fennel seed infused into a rich rye spirit base. Followed by meticulous double distillation, it preserves the bright natural pale-green color and deep, complex herbal wormwood finish. Adding iced water drop by drop yields the magical opalescent louche effect.",
+            vi: "Tái hiện huyền thoại 'Nàng tiên xanh' (Green Fairy) dưới lăng kính nghệ thuật của ZenTaro. Sự kết hợp giữa ngải cứu hoang dã Tây Bắc (Ngải Cứu), tiểu hồi hương và hương thảo mộc tự nhiên ngâm ủ trong rượu nền. Trải qua chưng cất kép giữ trọn sắc xanh trong veo tự nhiên cùng hiệu ứng vẩn đục (louche) huyền ảo khi thêm nước đá.",
+        },
+        features: {
+            ko: [
+                "베트남 북부 야생 천연 쑥(Wormwood) 핵심 침제 기법 적용",
+                "인위적인 인공 색소가 전혀 없는 천연 허브 기반의 에메랄드 그린 색조",
+                "냉수 희석 시 풍부한 에센셜 오일 방출로 극상의 Louche 탁화 감상 가능",
+                "병뚜껑 QR 반납 심사 통과 시 40,000 EXP 포인트 즉시 적립",
+            ],
+            en: [
+                "Wild high-altitude Vietnamese wormwood (Ngải cứu) maceration",
+                "Natural emerald hue extracted purely from botanical chlorophyll (zero artificial dye)",
+                "Rich essential oils release creating the legendary cloudy louche effect when diluted",
+                "Claim 40,000 EXP rewards upon bottle cap verification",
+            ],
+            vi: [
+                "Ngâm ủ từ lá ngải cứu tự nhiên thu hoạch trên đỉnh núi Hoàng Liên Sơn",
+                "Màu xanh ngọc lục bảo tự nhiên chiết xuất từ diệp lục thảo mộc (không màu nhân tạo)",
+                "Tinh dầu tự nhiên đậm đặc tạo hiệu ứng vẩn đục sương mù tuyệt đẹp khi pha nước lạnh",
+                "Đội nắp chai quy đổi 40.000 EXP thưởng khi kiểm duyệt thành công",
+            ],
+        },
+        ingredients: {
+            ko: "베트남 야생 쑥(Wormwood), 스타아니스, 펜넬 씨앗, 멜리사, 히솝, 라이 스피릿 기주",
+            en: "Vietnamese wild wormwood, Star anise, Fennel seed, Lemon balm, Hyssop, Rye spirit base",
+            vi: "Lá ngải cứu Tây Bắc, đại hồi, tiểu hồi, tía tô đất, thần sa cát, rượu nền tinh khiết",
         },
     },
     {
@@ -262,8 +311,8 @@ export default function ProductsPromotionalPage() {
                             key={prod.id}
                             onClick={() => setActiveTab(prod.id)}
                             className={`rounded-full px-6 py-3 text-sm font-semibold transition-all duration-300 border ${activeTab === prod.id
-                                    ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105"
-                                    : "bg-card hover:bg-secondary text-muted-foreground border-border hover:text-foreground"
+                                ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20 scale-105"
+                                : "bg-card hover:bg-secondary text-muted-foreground border-border hover:text-foreground"
                                 }`}
                         >
                             {prod.category[locale]}
@@ -302,8 +351,10 @@ export default function ProductsPromotionalPage() {
                                     : selectedProduct.id.includes("origin")
                                         ? "ZENTARO ORIGIN SOJU"
                                         : selectedProduct.id.includes("st")
-                                            ? "ZENTARO STAR ANISE GIN"
-                                            : "ZENTARO OAK BARREL"}
+                                            ? "ZENTARO STRAWBERRY LIQUEUR"
+                                            : selectedProduct.id.includes("an")
+                                                ? "ZENTARO CRAFT ABSINTHE"
+                                                : "ZENTARO OAK BARREL"}
                             </h2>
                             <p className="mt-3 text-lg font-medium text-amber-500 dark:text-amber-400">
                                 &ldquo;{selectedProduct.tagline[locale]}&rdquo;
