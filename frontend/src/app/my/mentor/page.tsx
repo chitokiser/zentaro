@@ -99,6 +99,54 @@ export default function MentorPage() {
           )}
         </div>
       </div>
+
+      {/* Mentees' Purchases Ledger */}
+      <div className="rounded-lg border border-border/60 bg-card p-5">
+        <div className="flex items-center justify-between border-b border-border/40 pb-3">
+          <h3 className="font-display text-base font-medium">멘티 구매 및 리워드 장부 (Ledger)</h3>
+          <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+            실시간 적립 장부
+          </span>
+        </div>
+        <div className="mt-4 flex flex-col gap-3">
+          {!data.referredPurchases || data.referredPurchases.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">아직 기록된 멘티의 구매 내역이 없습니다.</p>
+          ) : (
+            data.referredPurchases.map((purchase) => (
+              <div
+                key={purchase.id}
+                className="flex flex-col gap-2 rounded-md border border-border/40 bg-background/30 p-4 sm:flex-row sm:items-center sm:justify-between hover:border-primary/30 transition-colors"
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                      구매 회원:
+                    </span>
+                    <span className="text-sm font-medium">{purchase.referredUserEmail ?? "알 수 없음"}</span>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${purchase.rewardLevel === 2
+                        ? "bg-amber-500/10 text-amber-500 border border-amber-500/20"
+                        : "bg-blue-500/10 text-blue-500 border border-blue-500/20"
+                      }`}>
+                      {purchase.rewardLevel === 2 ? "총판 리워드 (2단계)" : "대리점 리워드 (1단계)"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">{purchase.description}</p>
+                </div>
+                <div className="flex flex-col items-start sm:items-end gap-1 min-w-[120px]">
+                  <span className="text-sm font-semibold text-emerald-500">
+                    +{purchase.amount.toLocaleString()} EXP
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {purchase.createdAt
+                      ? new Date(purchase.createdAt._seconds * 1000).toLocaleString()
+                      : ""}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   )
 }

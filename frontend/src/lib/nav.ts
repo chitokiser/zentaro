@@ -29,6 +29,7 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
         { label: t.nav.aboutItems.projects, href: "/about/research-lab#projects" },
         { label: t.nav.aboutItems.botanicalLibrary, href: "/about/research-lab#botanical-library" },
         { label: t.nav.aboutItems.lab, href: "/about/research-lab#lab" },
+        { label: t.nav.aboutItems.products, href: "/about/products" },
         { label: t.nav.aboutItems.business, href: "/about/business" },
       ],
     },

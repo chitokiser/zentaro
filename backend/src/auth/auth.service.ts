@@ -304,6 +304,22 @@ export class AuthService {
       .get();
     const totalEarnedExp = rewardSnap.docs.reduce((sum, doc) => sum + (doc.data().amount ?? 0), 0);
 
-    return { referrer, referredMembers, totalEarnedExp };
+    const referredPurchases = rewardSnap.docs
+      .map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          amount: data.amount ?? 0,
+          description: data.description ?? '',
+          referredUserEmail: data.referredUserEmail ?? null,
+          referredUserId: data.referredUserId ?? null,
+          purchaseAmountAp: data.purchaseAmountAp ?? 0,
+          rewardLevel: data.rewardLevel ?? 1,
+          createdAt: data.createdAt ?? null,
+        };
+      })
+      .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+
+    return { referrer, referredMembers, totalEarnedExp, referredPurchases };
   }
 }

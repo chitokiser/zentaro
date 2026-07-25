@@ -11,7 +11,6 @@ const CATEGORY_TRANSLATIONS: Record<string, { en: string; vi: string }> = {
   "럼(Rum)": { en: "Rum", vi: "Rum" },
   "보드카": { en: "Vodka", vi: "Vodka" },
   "증류식 소주": { en: "Distilled Soju", vi: "Soju chưng cất" },
-  "전통주": { en: "Traditional Liquor", vi: "Rượu truyền thống" },
   "베트남 전통주": { en: "Vietnamese Traditional Liquor", vi: "Rượu truyền thống Việt Nam" },
   "허브식품": { en: "Herb Food", vi: "Thực phẩm thảo mộc" },
   "위스키 용품": { en: "Whisky Accessories", vi: "Phụ kiện Whisky" },
@@ -72,12 +71,6 @@ const CATEGORY_TRANSLATIONS: Record<string, { en: string; vi: string }> = {
   "안동소주 계열": { en: "Andong Soju Line", vi: "Dòng Soju Andong" },
   "전통 명주": { en: "Traditional Masterpiece Liquor", vi: "Rượu truyền thống danh tiếng" },
   "프리미엄 대기업 소주": { en: "Premium Corporate Soju", vi: "Soju cao cấp thương hiệu lớn" },
-
-  // 전통주
-  "막걸리": { en: "Makgeolli", vi: "Makgeolli" },
-  "약주": { en: "Yakju", vi: "Yakju" },
-  "청주": { en: "Cheongju", vi: "Cheongju" },
-  "과실주": { en: "Fruit Wine", vi: "Rượu trái cây" },
 
   // 베트남 전통주
   "증류식 쌀술": { en: "Distilled Rice Liquor", vi: "Rượu gạo chưng cất" },

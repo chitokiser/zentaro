@@ -24,11 +24,11 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
   const [showTranslations, setShowTranslations] = useState(
     Boolean(
       editingProduct?.nameEn ||
-        editingProduct?.nameVi ||
-        editingProduct?.descriptionEn ||
-        editingProduct?.descriptionVi ||
-        editingProduct?.badgesEn?.length ||
-        editingProduct?.badgesVi?.length,
+      editingProduct?.nameVi ||
+      editingProduct?.descriptionEn ||
+      editingProduct?.descriptionVi ||
+      editingProduct?.badgesEn?.length ||
+      editingProduct?.badgesVi?.length,
     ),
   )
   const [nameEn, setNameEn] = useState(editingProduct?.nameEn ?? "")
@@ -41,6 +41,13 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
   const [badgesVi, setBadgesVi] = useState((editingProduct?.badgesVi ?? []).join(", "))
   const [priceAp, setPriceAp] = useState(editingProduct ? String(editingProduct.priceAp ?? "") : "")
   const [costAp, setCostAp] = useState(editingProduct ? String(editingProduct.costAp ?? "") : "")
+  const [mentorRewardEnabled, setMentorRewardEnabled] = useState(editingProduct?.mentorRewardEnabled ?? false)
+  const [level1MentorRate, setLevel1MentorRate] = useState(
+    editingProduct?.level1MentorRate !== undefined ? String(editingProduct.level1MentorRate) : "5"
+  )
+  const [level2MentorRate, setLevel2MentorRate] = useState(
+    editingProduct?.level2MentorRate !== undefined ? String(editingProduct.level2MentorRate) : "5"
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -88,6 +95,9 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
         badgesVi: badgesVi ? badgesVi.split(",").map((b) => b.trim()).filter(Boolean) : undefined,
         priceAp: priceVal,
         costAp: costVal,
+        mentorRewardEnabled,
+        level1MentorRate: Number(level1MentorRate),
+        level2MentorRate: Number(level2MentorRate),
       }
       if (editingProduct) {
         await updateProductAdmin(editingProduct.id, payload)
@@ -236,6 +246,52 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
           onChange={(e) => setCostAp(e.target.value)}
           required
         />
+        {/* Mentor MLM Reward Config */}
+        <div className="border border-border/40 bg-background/50 rounded-md p-3 sm:col-span-2 flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="mentorRewardEnabled"
+              checked={mentorRewardEnabled}
+              onChange={(e) => setMentorRewardEnabled(e.target.checked)}
+              className="h-4 w-4 rounded border-border/60 bg-background text-primary"
+            />
+            <label htmlFor="mentorRewardEnabled" className="text-sm font-medium text-foreground cursor-pointer select-none">
+              대리점(1단계 멘토) & 총판(2단계 상위 멘토) 리워드 활성화
+            </label>
+          </div>
+
+          {mentorRewardEnabled && (
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">대리점(1단계 멘토) 수수료율 (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="기본값: 5%"
+                  value={level1MentorRate}
+                  onChange={(e) => setLevel1MentorRate(e.target.value)}
+                  required={mentorRewardEnabled}
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">총판(2단계 상위 멘토) 수수료율 (%)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                  placeholder="기본값: 5%"
+                  value={level2MentorRate}
+                  onChange={(e) => setLevel2MentorRate(e.target.value)}
+                  required={mentorRewardEnabled}
+                />
+              </div>
+            </div>
+          )}
+        </div>
         <div className="flex gap-2 sm:col-span-2">
           <Button type="submit" disabled={busy} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
             {busy ? "저장 중..." : editingProduct ? "수정 저장" : "상품 등록"}

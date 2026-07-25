@@ -22,6 +22,7 @@ const ko = {
       botanicalLibrary: "Botanical Library",
       lab: "실험실",
       business: "사업부 소개",
+      products: "우리 제품 소개",
     },
     service: { label: "서비스" },
     serviceItems: {
@@ -674,6 +675,7 @@ const en: Dict = {
       botanicalLibrary: "Botanical Library",
       lab: "Laboratory",
       business: "Business Divisions",
+      products: "Our Products Showcase",
     },
     service: { label: "Services" },
     serviceItems: {
@@ -1324,6 +1326,7 @@ const vi: Dict = {
       botanicalLibrary: "Botanical Library",
       lab: "Phòng thí nghiệm",
       business: "Giới thiệu các mảng kinh doanh",
+      products: "Giới thiệu sản phẩm",
     },
     service: { label: "Dịch vụ" },
     serviceItems: {

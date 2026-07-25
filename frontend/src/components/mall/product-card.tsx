@@ -10,6 +10,7 @@ import { useCart } from "@/lib/cart-context"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
+import { updateProductAdmin } from "@/lib/auth-client"
 import type { Product } from "@/lib/api"
 
 interface ProductCardProps {
@@ -18,9 +19,10 @@ interface ProductCardProps {
   onEdit?: () => void
   onDelete?: () => void
   deleteBusy?: boolean
+  onRefresh?: () => void
 }
 
-export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: ProductCardProps) {
+export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy, onRefresh }: ProductCardProps) {
   const router = useRouter()
   const { addItem } = useCart()
   const { locale, t } = useI18n()
@@ -28,10 +30,30 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: 
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
   const productBadges = localizedList(locale, product.badges, product.badgesEn, product.badgesVi)
 
+  const [editablePrice, setEditablePrice] = useState(String(product.priceAp))
+  const [editableCost, setEditableCost] = useState(String(product.costAp ?? product.priceAp))
+  const [saveBusy, setSaveBusy] = useState(false)
+
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
   const isDropshipping = (product.fulfillmentType ?? "dropshipping") === "dropshipping"
   const maxExp = isDropshipping ? Math.floor(margin * 0.8) : 0
+
+  async function handleSaveInline() {
+    setSaveBusy(true)
+    try {
+      await updateProductAdmin(product.id, {
+        priceAp: Number(editablePrice),
+        costAp: Number(editableCost),
+      })
+      alert("가격이 저장되었습니다.")
+      if (onRefresh) onRefresh()
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "가격 업데이트에 실패했습니다.")
+    } finally {
+      setSaveBusy(false)
+    }
+  }
 
   function cartItem() {
     return {
@@ -106,7 +128,41 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy }: 
         <Link href={`/mall/${product.id}`} className="text-sm font-medium text-foreground hover:text-primary">
           {productName}
         </Link>
-        <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
+        {isAdmin ? (
+          <div className="flex flex-col gap-1.5 border border-primary/20 bg-background/50 rounded-md p-2 my-1 text-xs">
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[10px] text-muted-foreground font-medium">공급가 (ZP):</span>
+              <input
+                type="number"
+                value={editableCost}
+                onChange={(e) => setEditableCost(e.target.value)}
+                className="w-20 rounded border border-border/60 bg-background px-1.5 py-0.5 text-center text-xs"
+              />
+            </div>
+            <div className="flex items-center justify-between gap-1">
+              <span className="text-[10px] text-muted-foreground font-medium">판매가 (ZP):</span>
+              <input
+                type="number"
+                value={editablePrice}
+                onChange={(e) => setEditablePrice(e.target.value)}
+                className="w-20 rounded border border-border/60 bg-background px-1.5 py-0.5 text-center text-xs font-semibold text-primary"
+              />
+            </div>
+            {(Number(editableCost) !== (product.costAp ?? product.priceAp) || Number(editablePrice) !== product.priceAp) && (
+              <Button
+                size="sm"
+                variant="default"
+                disabled={saveBusy}
+                className="w-full mt-1 py-0.5 h-6 text-[10px] bg-primary text-primary-foreground hover:bg-primary/90"
+                onClick={handleSaveInline}
+              >
+                {saveBusy ? "저장 중..." : "가격 저장"}
+              </Button>
+            )}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
+        )}
         {maxExp > 0 ? (
           <span className="text-[11px] text-primary">
             {t.mall.maxExpPrefix}{maxExp.toLocaleString()} <span className="notranslate">EXP</span>{t.mall.maxExpSuffix}

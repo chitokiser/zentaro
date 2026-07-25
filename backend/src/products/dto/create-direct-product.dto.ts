@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, MinLength } from 'class-validator';
+import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, MinLength, IsBoolean } from 'class-validator';
 import { MALL_MAIN_CATEGORIES } from '../../common/mall-categories';
 
 export class CreateDirectProductDto {
@@ -72,4 +72,18 @@ export class CreateDirectProductDto {
   @IsNumber()
   @Min(0)
   supplierCostKrw?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  mentorRewardEnabled?: boolean;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  level1MentorRate?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  level2MentorRate?: number;
 }

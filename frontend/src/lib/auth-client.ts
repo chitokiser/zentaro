@@ -334,6 +334,9 @@ export interface AdminProduct {
   supplierName?: string | null;
   supplierContact?: string | null;
   supplierCostKrw?: number | null;
+  mentorRewardEnabled?: boolean;
+  level1MentorRate?: number;
+  level2MentorRate?: number;
 }
 
 export async function searchCjProducts(keyword: string, pageNum = 1) {
@@ -586,10 +589,22 @@ export interface ReferredMember {
   createdAt?: { _seconds: number } | null;
 }
 
+export interface ReferredPurchase {
+  id: string;
+  amount: number;
+  description: string;
+  referredUserEmail: string | null;
+  referredUserId: string | null;
+  purchaseAmountAp: number;
+  rewardLevel: number;
+  createdAt?: { _seconds: number } | null;
+}
+
 export interface MentorDashboard {
   referrer: MentorInfo | null;
   referredMembers: ReferredMember[];
   totalEarnedExp: number;
+  referredPurchases?: ReferredPurchase[];
 }
 
 export async function fetchMentorDashboard(): Promise<MentorDashboard> {

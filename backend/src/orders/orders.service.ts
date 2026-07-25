@@ -14,7 +14,7 @@ export class OrdersService {
   constructor(
     @Inject(FIRESTORE) private readonly db: Firestore,
     private readonly mailService: MailService,
-  ) {}
+  ) { }
 
   private ordersCol() {
     return this.db.collection(COLLECTIONS.ZENTARO_ORDERS);
@@ -47,20 +47,46 @@ export class OrdersService {
       this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(item.productId),
     );
 
-    const result = await this.db.runTransaction(async (tx) => {
-      const [userSnap, walletSnap, ...productSnaps] = await Promise.all([
-        tx.get(userRef),
-        tx.get(walletRef),
-        ...productRefs.map((ref) => tx.get(ref)),
-      ]);
 
+
+    const result = await this.db.runTransaction(async (tx) => {
+      // 1. Read user document first to find mentor (referredBy)
+      const userSnap = await tx.get(userRef);
       if (!userSnap.exists) {
         throw new NotFoundException('User not found');
       }
 
+      const referredBy = userSnap.data()?.referredBy as string | undefined;
+      let mentorSnap: any = null;
+      let mentor2Snap: any = null;
+
+      // 2. Read Level 1 Mentor (대리점) document
+      if (referredBy) {
+        const mentorRef = this.db.collection(COLLECTIONS.USERS).doc(referredBy);
+        mentorSnap = await tx.get(mentorRef);
+        if (mentorSnap && mentorSnap.exists) {
+          const referredBy2 = mentorSnap.data()?.referredBy as string | undefined;
+          // 3. Read Level 2 Mentor (총판) document
+          if (referredBy2) {
+            const mentor2Ref = this.db.collection(COLLECTIONS.USERS).doc(referredBy2);
+            mentor2Snap = await tx.get(mentor2Ref);
+          }
+        }
+      }
+
+      // 4. Read user wallet and products in parallel (completes all required reads before writes)
+      const [walletSnap, ...productSnaps] = await Promise.all([
+        tx.get(walletRef),
+        ...productRefs.map((ref) => tx.get(ref)),
+      ]);
+
       let totalPriceAp = 0;
       let totalCostAp = 0;
       let totalExpCap = 0;
+      let totalLevel1RewardExp = 0;
+      let totalLevel2RewardExp = 0;
+      const rewardedItemsList: string[] = [];
+
       const lineItems: Array<{
         productId: string;
         quantity: number;
@@ -85,6 +111,19 @@ export class OrdersService {
         totalPriceAp += priceAp * item.quantity;
         totalCostAp += costAp * item.quantity;
         totalExpCap += lineMaxExp * item.quantity;
+
+        // Mentor Reward Calculation per item
+        if (product.mentorRewardEnabled) {
+          const rate1 = product.level1MentorRate !== undefined ? product.level1MentorRate : 5;
+          const rate2 = product.level2MentorRate !== undefined ? product.level2MentorRate : 5;
+
+          const itemReward1 = Math.floor(item.quantity * priceAp * (rate1 / 100));
+          const itemReward2 = Math.floor(item.quantity * priceAp * (rate2 / 100));
+
+          totalLevel1RewardExp += itemReward1;
+          totalLevel2RewardExp += itemReward2;
+          rewardedItemsList.push(`${product.name} x${item.quantity}`);
+        }
 
         lineItems.push({
           productId: item.productId,
@@ -112,6 +151,7 @@ export class OrdersService {
         throw new BadRequestException('Insufficient ZP balance');
       }
 
+      // --- ALL READS MUST BE BEFORE WRITES ---
       tx.update(userRef, { points: FieldValue.increment(-apToPay) });
       if (expToUse > 0) {
         tx.set(walletRef, { exp: FieldValue.increment(-expToUse) }, { merge: true });
@@ -120,9 +160,7 @@ export class OrdersService {
         tx.set(userRef, { shippingAddress }, { merge: true });
       }
 
-      // Distribute the EXP/AP split proportionally per line so per-item
-      // figures stay meaningful for the sales ledger, without re-deriving
-      // per-line caps (the aggregate cap above is what's actually enforced).
+      // Distribute the EXP/AP split proportionally per line
       let expRemaining = expToUse;
       const items = lineItems.map((line, idx) => {
         const lineTotal = line.priceAp * line.quantity;
@@ -169,24 +207,43 @@ export class OrdersService {
         });
       }
 
-      // Mentor commission: 5% of the purchased items' list price (not the
-      // discounted amount actually paid), credited as EXP to the buyer's
-      // mentor. Every member has a mentor (self-heals to the admin account
-      // at signup), so this only stays unpaid for pre-mentor-system accounts.
-      const referredBy: string | null = userSnap.data()!.referredBy ?? null;
-      const mentorRewardExp = Math.floor(totalPriceAp * MENTOR_REWARD_RATE);
-      if (referredBy && referredBy !== uid && mentorRewardExp > 0) {
+      // Level 1 Mentor (대리점) Reward
+      if (referredBy && referredBy !== uid && totalLevel1RewardExp > 0 && mentorSnap && mentorSnap.exists) {
         const mentorWalletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(referredBy);
-        tx.set(mentorWalletRef, { exp: FieldValue.increment(mentorRewardExp) }, { merge: true });
+        tx.set(mentorWalletRef, { exp: FieldValue.increment(totalLevel1RewardExp) }, { merge: true });
 
         const mentorTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
         tx.set(mentorTxRef, {
           userId: referredBy,
-          amount: mentorRewardExp,
+          amount: totalLevel1RewardExp,
           type: 'mentor_referral_reward',
-          description: `멘토 리워드 (추천 회원 구매액의 ${MENTOR_REWARD_RATE * 100}%): ${productNames}`,
+          description: `대리점 멘토 리워드 (멘티 구매 보너스): ${rewardedItemsList.join(', ')} (구매자: ${userSnap.data()!.email}, 총 구매액: ${totalPriceAp.toLocaleString()} ZP)`,
           orderId: orderRef.id,
           referredUserId: uid,
+          referredUserEmail: userSnap.data()!.email ?? null,
+          purchaseAmountAp: totalPriceAp,
+          rewardLevel: 1,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      }
+
+      // Level 2 Mentor (총판) Reward
+      const referredBy2 = mentor2Snap?.id ?? null;
+      if (referredBy2 && referredBy2 !== uid && totalLevel2RewardExp > 0 && mentor2Snap && mentor2Snap.exists) {
+        const mentor2WalletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(referredBy2);
+        tx.set(mentor2WalletRef, { exp: FieldValue.increment(totalLevel2RewardExp) }, { merge: true });
+
+        const mentor2TxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+        tx.set(mentor2TxRef, {
+          userId: referredBy2,
+          amount: totalLevel2RewardExp,
+          type: 'mentor_referral_reward',
+          description: `총판 멘토 리워드 (2단계 멘티 구매 보너스): ${rewardedItemsList.join(', ')} (구매자: ${userSnap.data()!.email}, 총 구매액: ${totalPriceAp.toLocaleString()} ZP)`,
+          orderId: orderRef.id,
+          referredUserId: uid,
+          referredUserEmail: userSnap.data()!.email ?? null,
+          purchaseAmountAp: totalPriceAp,
+          rewardLevel: 2,
           createdAt: FieldValue.serverTimestamp(),
         });
       }

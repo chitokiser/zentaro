@@ -22,7 +22,7 @@ function stripAdminFields<T extends Record<string, unknown>>(product: T): T {
 
 @Injectable()
 export class ProductsService {
-  constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
+  constructor(@Inject(FIRESTORE) private readonly db: Firestore) { }
 
   async getFeatured(mainCategory?: string) {
     // Filtering by mainCategory at the Firestore level (rather than fetching
@@ -90,6 +90,9 @@ export class ProductsService {
       supplierName: dto.supplierName ?? null,
       supplierContact: dto.supplierContact ?? null,
       supplierCostKrw: dto.supplierCostKrw ?? null,
+      mentorRewardEnabled: dto.mentorRewardEnabled ?? false,
+      level1MentorRate: dto.level1MentorRate ?? 5,
+      level2MentorRate: dto.level2MentorRate ?? 5,
       createdAt: FieldValue.serverTimestamp(),
     });
     return { id: docRef.id };
