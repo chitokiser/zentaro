@@ -17,6 +17,7 @@ const USDT_WITHDRAWAL_FEE_RATE = 0.03;
 export interface WalletView {
   ap: number;
   exp: number;
+  level: number;
   timeToken: number;
   jumpToken: number;
   rewardPoint: number;
@@ -43,10 +44,19 @@ const ZENTARO_TRANSACTION_TYPES = [
   'zp_to_exp_conversion',
   'mentor_referral_reward',
   'usdt_withdrawal',
+  'exp_level_up',
 ];
+
+/** Level-up cost formula: currentLevel^2 * 10000 EXP, deducted on level-up. */
+const LEVEL_UP_EXP_MULTIPLIER = 10000;
+
+function expCostForLevel(level: number): number {
+  return level * level * LEVEL_UP_EXP_MULTIPLIER;
+}
 
 const DEFAULT_WALLET = {
   exp: 0,
+  level: 1,
   timeToken: 0,
   jumpToken: 0,
   rewardPoint: 0,
@@ -87,6 +97,7 @@ export class WalletService {
     return {
       ap: user.points ?? 0,
       exp: wallet.exp ?? 0,
+      level: wallet.level ?? 1,
       timeToken: wallet.timeToken ?? 0,
       jumpToken: wallet.jumpToken ?? 0,
       rewardPoint: wallet.rewardPoint ?? 0,
@@ -465,6 +476,48 @@ export class WalletService {
       });
 
       return { uid, exp: nextExp };
+    });
+  }
+
+  /** Spends EXP to raise the member's level. Cost to leave level N is N^2 * 10000 EXP. */
+  async levelUp(uid: string) {
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+
+    return this.db.runTransaction(async (tx) => {
+      const walletSnap = await tx.get(walletRef);
+      const walletData = walletSnap.exists ? walletSnap.data()! : DEFAULT_WALLET;
+      const currentLevel = walletData.level ?? 1;
+      const currentExp = walletData.exp ?? 0;
+      const cost = expCostForLevel(currentLevel);
+
+      if (currentExp < cost) {
+        throw new BadRequestException(
+          `레벨업에 EXP가 부족합니다. (필요 ${cost.toLocaleString()} EXP, 보유 ${currentExp.toLocaleString()} EXP)`,
+        );
+      }
+
+      const nextLevel = currentLevel + 1;
+      tx.set(
+        walletRef,
+        { level: nextLevel, exp: FieldValue.increment(-cost) },
+        { merge: true },
+      );
+
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount: -cost,
+        type: 'exp_level_up',
+        description: `EXP 레벨업 (Lv.${currentLevel} → Lv.${nextLevel}, -${cost.toLocaleString()} EXP)`,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      return {
+        level: nextLevel,
+        exp: currentExp - cost,
+        cost,
+        nextLevelCost: expCostForLevel(nextLevel),
+      };
     });
   }
 

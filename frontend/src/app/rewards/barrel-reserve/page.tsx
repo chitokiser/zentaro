@@ -451,8 +451,8 @@ export default function BarrelReservePage() {
             action === "deliver"
                 ? `Bạn có muốn đăng ký giao hàng tận nhà không? Phí lưu kho Barrel Room ${(deliveryFee ?? 0).toLocaleString()} ZP (${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}% giá trị hiện tại) sẽ bị trừ ngay, phí vận chuyển thực tế thanh toán khi nhận hàng.`
                 : action === "bottle"
-                ? "Bạn có muốn đăng ký đóng chai không? Lưu ý: sau khi đăng ký dịch vụ đóng chai, quyền sở hữu thùng gỗ (oak barrel) sẽ chuyển về ZENTARO — chỉ có rượu đã đóng chai được giao đến khách hàng, thùng gỗ không được giao kèm."
-                : "Bạn có muốn đăng ký dịch vụ bổ sung này không?"
+                    ? "Bạn có muốn đăng ký đóng chai không? Lưu ý: sau khi đăng ký dịch vụ đóng chai, quyền sở hữu thùng gỗ (oak barrel) sẽ chuyển về ZENTARO — chỉ có rượu đã đóng chai được giao đến khách hàng, thùng gỗ không được giao kèm."
+                    : "Bạn có muốn đăng ký dịch vụ bổ sung này không?"
         if (!confirm(confirmMessage)) return
 
         setActionBusy(true)
@@ -504,6 +504,10 @@ export default function BarrelReservePage() {
     }
 
     const handleBuyBarrel = async (barrel: PublicBarrel) => {
+        if (!myUid) {
+            alert("Vui lòng đăng nhập để mua thùng.")
+            return
+        }
         if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZp.toLocaleString()} ZP để mua thùng này (${barrel.id}) không? Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
         setActionBusy(true)
         setActionError(null)
@@ -601,11 +605,11 @@ export default function BarrelReservePage() {
             setActiveDetailBarrel((prev) =>
                 prev
                     ? {
-                          ...prev,
-                          blendMasterScore: result.blendMasterScore,
-                          blendMasterComment: result.blendMasterComment,
-                          customAnnualGrowthRate: result.customAnnualGrowthRate,
-                      }
+                        ...prev,
+                        blendMasterScore: result.blendMasterScore,
+                        blendMasterComment: result.blendMasterComment,
+                        customAnnualGrowthRate: result.customAnnualGrowthRate,
+                    }
                     : prev,
             )
             await loadPublicGallery()
@@ -943,376 +947,380 @@ export default function BarrelReservePage() {
                 </section>
 
                 {/* My Barrel Collection Section */}
-                {errorProfile !== "로그인이 필요합니다." && (
-                    <section className="space-y-6">
-                        <div className="border-b border-border/60 pb-3">
-                            <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
-                                <Award className="w-5 h-5 text-amber-500" />
-                                Bộ sưu tập thùng của tôi (My Barrel Collection)
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Danh sách thùng gỗ sồi riêng tư mà bạn đang sở hữu. Hãy xem chứng nhận và thực hiện các dịch vụ nhập/xuất kho ngay tại đây.
-                            </p>
+                <section className="space-y-6">
+                    <div className="border-b border-border/60 pb-3">
+                        <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                            <Award className="w-5 h-5 text-amber-500" />
+                            Bộ sưu tập thùng của tôi (My Barrel Collection)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Danh sách thùng gỗ sồi riêng tư mà bạn đang sở hữu. Hãy xem chứng nhận và thực hiện các dịch vụ nhập/xuất kho ngay tại đây.
+                        </p>
+                    </div>
+
+                    {errorProfile === "로그인이 필요합니다." ? (
+                        <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                            Vui lòng{" "}
+                            <Link href="/my/profile" className="text-amber-500 underline underline-offset-4 font-bold mx-1">
+                                đăng nhập
+                            </Link>{" "}
+                            để xem danh sách thùng gỗ sồi của bạn.
                         </div>
-
-                        {barrels.length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-                                Bạn chưa sở hữu thùng nào. Hãy đăng ký thùng đầu tiên theo điều kiện ở trên!
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                {barrels.map((barrel) => {
-                                    const spec = BARREL_SPECS.find(s => s.size === barrel.capacity)
-                                    const isDone = barrel.status === "직접 배송 완료" || barrel.status === "병입 완료 및 출고"
-                                    const isAging = !isDone
-                                    const agingSeconds = agingSecondsFor(barrel.productionDate, barrel.agingEndedAt)
-                                    const target = AGING_TARGET_SECONDS[barrel.capacity] ?? 365 * 86400
-                                    const progress = agingSeconds / target
-                                    const deliveryFee = Math.round(barrel.currentValueZp * BARREL_STORAGE_FEE_RATE)
-
-                                    return (
-                                        <div
-                                            key={barrel.id}
-                                            className="rounded-xl border border-border/60 bg-card p-5 space-y-4 hover:border-amber-500/30 transition-all duration-300"
-                                        >
-                                            <div className="flex flex-wrap justify-between items-start gap-3">
-                                                <div className="flex gap-3 min-w-0">
-                                                    <BarrelVisual
-                                                        capacity={barrel.capacity}
-                                                        progress={progress}
-                                                        isAging={isAging}
-                                                        isDone={isDone}
-                                                    />
-                                                    <div className="min-w-0">
-                                                        <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
-                                                            {barrel.id}
-                                                        </Badge>
-                                                        <h4 className="font-display font-bold text-base text-foreground mt-1 break-words">
-                                                            {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
-                                                        </h4>
-                                                        {barrel.forSale && (
-                                                            <Badge className="mt-1.5 bg-emerald-500 text-black border-none text-[10px] uppercase font-bold flex items-center gap-1 w-fit">
-                                                                <Tag className="w-3 h-3" />
-                                                                Đang bán · {barrel.currentValueZp.toLocaleString()} ZP
-                                                            </Badge>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold whitespace-nowrap shrink-0">
-                                                    {barrel.status === "ordered" ? "Chờ lưu kho (Ordered)" : statusLabelVi(barrel.status)}
-                                                </Badge>
-                                            </div>
-
-                                            <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-border/40 py-3 my-2">
-                                                <div>
-                                                    <span className="text-muted-foreground block">Tình trạng niêm phong</span>
-                                                    <span className="font-semibold text-emerald-500">{barrel.sealStatus}</span>
-                                                </div>
-                                                <div className="col-span-2 sm:col-span-1">
-                                                    <span className="text-muted-foreground flex items-center gap-1">
-                                                        <Timer className="w-3 h-3" /> Thời gian ủ tích lũy {isAging && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-                                                    </span>
-                                                    <span className="font-mono font-semibold text-foreground text-[11px]">
-                                                        {formatAgingDuration(agingSeconds)}
-                                                    </span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-muted-foreground block">Số chứng nhận số</span>
-                                                    <span className="font-mono text-foreground">{barrel.certNumber}</span>
-                                                </div>
-                                                <div>
-                                                    <span className="text-muted-foreground block">Ngày bắt đầu</span>
-                                                    <span className="font-mono text-foreground">
-                                                        {barrel.productionDate ? new Date(barrel.productionDate._seconds * 1000).toLocaleDateString() : "-"}
-                                                    </span>
-                                                </div>
-                                                <div className="col-span-2 sm:col-span-1">
-                                                    <span className="text-muted-foreground block">Giá thị trường hiện tại (tự động tính)</span>
-                                                    <span className="font-mono font-bold text-amber-500">
-                                                        {barrel.currentValueZp.toLocaleString()} ZP
-                                                    </span>
-                                                </div>
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-1.5">
-                                                <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500">
-                                                    {CHAR_LEVEL_LABEL[barrel.charLevel ?? "char3"] ?? barrel.charLevel}
-                                                </Badge>
-                                                <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground">
-                                                    {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === barrel.agingEnvironment)?.label ?? "Premium Barrel Room"}
-                                                </Badge>
-                                                {(barrel.enhancements ?? []).map((eid) => (
-                                                    <Badge key={eid} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">
-                                                        {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
-                                                    </Badge>
-                                                ))}
-                                                {barrel.finishing && (
-                                                    <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
-                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.icon}{" "}
-                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.label ?? barrel.finishing.id}
-                                                        {" "}{barrel.finishing.startedAt ? "đang áp dụng" : "đang chờ"}
-                                                    </Badge>
-                                                )}
-                                            </div>
-
-                                            <div className="flex flex-wrap gap-2 pt-2">
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
-                                                    onClick={() => setActiveCertBarrel(barrel)}
-                                                >
-                                                    <FileText className="w-3.5 h-3.5 text-amber-500" />
-                                                    Chứng nhận số
-                                                </Button>
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
-                                                    onClick={() => setActiveQrBarrel(barrel)}
-                                                >
-                                                    <QrCode className="w-3.5 h-3.5 text-amber-500" />
-                                                    Thông tin QR thời gian thực
-                                                </Button>
-                                                {!isDone && !barrel.forSale && (
-                                                    <Button
-                                                        type="button"
-                                                        variant="outline"
-                                                        size="sm"
-                                                        className="flex items-center gap-1 text-[11px] h-8 border-amber-500/40 text-amber-500 hover:text-amber-400"
-                                                        onClick={() => openOptionsModal(barrel)}
-                                                    >
-                                                        <Settings2 className="w-3.5 h-3.5" />
-                                                        Quản lý tùy chọn thùng
-                                                    </Button>
-                                                )}
-
-                                                {!barrel.forSale && barrel.status === "ordered" && (
-                                                    <>
-                                                        <Button
-                                                            type="button"
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            className="text-[11px] h-8 font-semibold"
-                                                            onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
-                                                        >
-                                                            Đăng ký giao tận nơi (phí lưu kho {deliveryFee.toLocaleString()} ZP)
-                                                        </Button>
-                                                    </>
-                                                )}
-
-                                                {!barrel.forSale && barrel.status.includes("숙성 중") && (
-                                                    <>
-                                                        <Button
-                                                            type="button"
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            className="text-[11px] h-8 font-semibold"
-                                                            onClick={() => handleBarrelAction(barrel.id, "bottle")}
-                                                        >
-                                                            Đăng ký đóng chai
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="text-[11px] h-8 border-border/60 text-zinc-300"
-                                                            onClick={() => handleBarrelAction(barrel.id, "extend_aging")}
-                                                        >
-                                                            Gia hạn ủ
-                                                        </Button>
-                                                        <Button
-                                                            type="button"
-                                                            variant="secondary"
-                                                            size="sm"
-                                                            className="text-[11px] h-8 font-semibold"
-                                                            onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
-                                                        >
-                                                            Đăng ký giao tận nơi (phí lưu kho {deliveryFee.toLocaleString()} ZP)
-                                                        </Button>
-                                                    </>
-                                                )}
-
-                                                {!isDone && (
-                                                    barrel.forSale ? (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="text-[11px] h-8 border-red-500/40 text-red-400 hover:text-red-300"
-                                                            onClick={() => handleCancelSale(barrel.id)}
-                                                        >
-                                                            Hủy đăng bán
-                                                        </Button>
-                                                    ) : (
-                                                        <Button
-                                                            type="button"
-                                                            variant="outline"
-                                                            size="sm"
-                                                            className="flex items-center gap-1 text-[11px] h-8 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
-                                                            disabled={actionBusy}
-                                                            onClick={() => handleListForSale(barrel.id, barrel.currentValueZp)}
-                                                        >
-                                                            <Tag className="w-3.5 h-3.5" />
-                                                            Đăng bán theo giá thị trường
-                                                        </Button>
-                                                    )
-                                                )}
-                                            </div>
-                                        </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </section>
-                )}
-
-                {/* Public Barrel Gallery — visible to all members, incl. marketplace listings */}
-                {errorProfile !== "로그인이 필요합니다." && (
-                    <section className="space-y-6">
-                        <div className="border-b border-border/60 pb-3">
-                            <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
-                                <Users className="w-5 h-5 text-amber-500" />
-                                Bộ sưu tập thùng toàn hội viên (Public Collection)
-                            </h3>
-                            <p className="text-xs text-muted-foreground mt-1">
-                                Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng ZP.
-                            </p>
+                    ) : barrels.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                            Bạn chưa sở hữu thùng nào. Hãy đăng ký thùng đầu tiên theo điều kiện ở trên!
                         </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {barrels.map((barrel) => {
+                                const spec = BARREL_SPECS.find(s => s.size === barrel.capacity)
+                                const isDone = barrel.status === "직접 배송 완료" || barrel.status === "병입 완료 및 출고"
+                                const isAging = !isDone
+                                const agingSeconds = agingSecondsFor(barrel.productionDate, barrel.agingEndedAt)
+                                const target = AGING_TARGET_SECONDS[barrel.capacity] ?? 365 * 86400
+                                const progress = agingSeconds / target
+                                const deliveryFee = Math.round(barrel.currentValueZp * BARREL_STORAGE_FEE_RATE)
 
-                        {galleryLoading ? (
-                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-                                Đang tải...
-                            </div>
-                        ) : publicBarrels.length === 0 ? (
-                            <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
-                                Chưa có thùng nào được đăng ký.
-                            </div>
-                        ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                {publicBarrels.map((pb) => {
-                                    const isDone = pb.status === "직접 배송 완료" || pb.status === "병입 완료 및 출고"
-                                    const isAging = !isDone
-                                    const agingSeconds = agingSecondsFor(pb.productionDate, pb.agingEndedAt)
-                                    const target = AGING_TARGET_SECONDS[pb.capacity] ?? 365 * 86400
-                                    const progress = agingSeconds / target
-                                    const isMine = pb.ownerId === myUid
-
-                                    return (
-                                        <div
-                                            key={pb.id}
-                                            className="rounded-xl border border-border/60 bg-card p-4 space-y-3 hover:border-amber-500/30 transition-all duration-300"
-                                        >
-                                            <div className="flex items-start gap-3">
+                                return (
+                                    <div
+                                        key={barrel.id}
+                                        className="rounded-xl border border-border/60 bg-card p-5 space-y-4 hover:border-amber-500/30 transition-all duration-300"
+                                    >
+                                        <div className="flex flex-wrap justify-between items-start gap-3">
+                                            <div className="flex gap-3 min-w-0">
                                                 <BarrelVisual
-                                                    capacity={pb.capacity}
+                                                    capacity={barrel.capacity}
                                                     progress={progress}
                                                     isAging={isAging}
                                                     isDone={isDone}
                                                 />
-                                                <div className="min-w-0 flex-1">
-                                                    <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[9px]">
-                                                        {pb.id}
+                                                <div className="min-w-0">
+                                                    <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[10px]">
+                                                        {barrel.id}
                                                     </Badge>
-                                                    <p className="text-xs font-semibold text-foreground mt-1 truncate">
-                                                        {pb.ownerLabel} {isMine && <span className="text-amber-500">(Tôi)</span>}
-                                                    </p>
-                                                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                                                        Đang ủ {formatAgingDuration(agingSeconds)}
-                                                    </p>
-                                                    <Badge className="mt-1 bg-amber-500/90 text-black border-none text-[9px] font-bold">
-                                                        {pb.status === "ordered" ? "Chờ lưu kho" : statusLabelVi(pb.status)}
-                                                    </Badge>
+                                                    <h4 className="font-display font-bold text-base text-foreground mt-1 break-words">
+                                                        {barrel.capacity} Premium Oak ({spec?.woodType.split(" (")[0] || ""})
+                                                    </h4>
+                                                    {barrel.forSale && (
+                                                        <Badge className="mt-1.5 bg-emerald-500 text-black border-none text-[10px] uppercase font-bold flex items-center gap-1 w-fit">
+                                                            <Tag className="w-3 h-3" />
+                                                            Đang bán · {barrel.currentValueZp.toLocaleString()} ZP
+                                                        </Badge>
+                                                    )}
                                                 </div>
                                             </div>
+                                            <Badge className="bg-amber-500 text-black border-none text-[10px] uppercase font-bold whitespace-nowrap shrink-0">
+                                                {barrel.status === "ordered" ? "Chờ lưu kho (Ordered)" : statusLabelVi(barrel.status)}
+                                            </Badge>
+                                        </div>
 
-                                            <div className="text-[10px] text-center text-muted-foreground">
-                                                Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
+                                        <div className="grid grid-cols-2 gap-2 text-xs border-t border-b border-border/40 py-3 my-2">
+                                            <div>
+                                                <span className="text-muted-foreground block">Tình trạng niêm phong</span>
+                                                <span className="font-semibold text-emerald-500">{barrel.sealStatus}</span>
                                             </div>
-
-                                            {typeof pb.blendMasterScore === "number" ? (
-                                                <div className="flex flex-col items-center gap-0.5">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <div className="flex items-center gap-0.5">
-                                                            {Array.from({ length: 5 }).map((_, i) => (
-                                                                <Star
-                                                                    key={i}
-                                                                    className={`w-3 h-3 ${i < scoreToStarCount(pb.blendMasterScore ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
-                                                                />
-                                                            ))}
-                                                        </div>
-                                                        <span className="text-[10px] text-muted-foreground">
-                                                            {(1 + (pb.customAnnualGrowthRate ?? defaultGrowthRate)).toFixed(2)}x
-                                                        </span>
-                                                    </div>
-                                                    <span className="text-[9px] text-amber-500/90 font-semibold">
-                                                        {scoreToGrade(pb.blendMasterScore)}
-                                                    </span>
-                                                </div>
-                                            ) : null}
-
-                                            <div className="flex flex-wrap justify-center gap-1">
-                                                <Badge variant="outline" className="text-[8px] border-amber-500/30 text-amber-500">
-                                                    {CHAR_LEVEL_LABEL[pb.charLevel ?? "char3"] ?? pb.charLevel}
-                                                </Badge>
-                                                <Badge variant="outline" className="text-[8px] border-border/60 text-muted-foreground">
-                                                    {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === pb.agingEnvironment)?.label ?? "Premium Barrel Room"}
-                                                </Badge>
-                                                {(pb.enhancements ?? []).map((eid) => (
-                                                    <Badge key={eid} variant="outline" className="text-[8px] border-emerald-500/30 text-emerald-500">
-                                                        {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
-                                                    </Badge>
-                                                ))}
-                                                {pb.finishing && (
-                                                    <Badge variant="outline" className="text-[8px] border-pink-500/30 text-pink-400">
-                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === pb.finishing?.id)?.icon}{" "}
-                                                        {FINISHING_OPTION_SPECS.find((f) => f.id === pb.finishing?.id)?.label ?? pb.finishing.id}
-                                                    </Badge>
-                                                )}
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <span className="text-muted-foreground flex items-center gap-1">
+                                                    <Timer className="w-3 h-3" /> Thời gian ủ tích lũy {isAging && <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+                                                </span>
+                                                <span className="font-mono font-semibold text-foreground text-[11px]">
+                                                    {formatAgingDuration(agingSeconds)}
+                                                </span>
                                             </div>
+                                            <div>
+                                                <span className="text-muted-foreground block">Số chứng nhận số</span>
+                                                <span className="font-mono text-foreground">{barrel.certNumber}</span>
+                                            </div>
+                                            <div>
+                                                <span className="text-muted-foreground block">Ngày bắt đầu</span>
+                                                <span className="font-mono text-foreground">
+                                                    {barrel.productionDate ? new Date(barrel.productionDate._seconds * 1000).toLocaleDateString() : "-"}
+                                                </span>
+                                            </div>
+                                            <div className="col-span-2 sm:col-span-1">
+                                                <span className="text-muted-foreground block">Giá thị trường hiện tại (tự động tính)</span>
+                                                <span className="font-mono font-bold text-amber-500">
+                                                    {barrel.currentValueZp.toLocaleString()} ZP
+                                                </span>
+                                            </div>
+                                        </div>
 
+                                        <div className="flex flex-wrap gap-1.5">
+                                            <Badge variant="outline" className="text-[9px] border-amber-500/30 text-amber-500">
+                                                {CHAR_LEVEL_LABEL[barrel.charLevel ?? "char3"] ?? barrel.charLevel}
+                                            </Badge>
+                                            <Badge variant="outline" className="text-[9px] border-border/60 text-muted-foreground">
+                                                {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === barrel.agingEnvironment)?.label ?? "Premium Barrel Room"}
+                                            </Badge>
+                                            {(barrel.enhancements ?? []).map((eid) => (
+                                                <Badge key={eid} variant="outline" className="text-[9px] border-emerald-500/30 text-emerald-500">
+                                                    {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
+                                                </Badge>
+                                            ))}
+                                            {barrel.finishing && (
+                                                <Badge variant="outline" className="text-[9px] border-pink-500/30 text-pink-400">
+                                                    {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.icon}{" "}
+                                                    {FINISHING_OPTION_SPECS.find((f) => f.id === barrel.finishing?.id)?.label ?? barrel.finishing.id}
+                                                    {" "}{barrel.finishing.startedAt ? "đang áp dụng" : "đang chờ"}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 pt-2">
                                             <Button
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                className="w-full text-[11px] h-8 border-border/60 flex items-center justify-center gap-1"
-                                                onClick={() => openDetailModal(pb)}
+                                                className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
+                                                onClick={() => setActiveCertBarrel(barrel)}
                                             >
-                                                <Eye className="w-3.5 h-3.5 text-amber-500" />
-                                                Xem chi tiết tùy chọn · đánh giá Blend Master
+                                                <FileText className="w-3.5 h-3.5 text-amber-500" />
+                                                Chứng nhận số
                                             </Button>
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                className="flex items-center gap-1 text-[11px] h-8 bg-zinc-900 border-border/60 text-zinc-300 hover:text-white"
+                                                onClick={() => setActiveQrBarrel(barrel)}
+                                            >
+                                                <QrCode className="w-3.5 h-3.5 text-amber-500" />
+                                                Thông tin QR thời gian thực
+                                            </Button>
+                                            {!isDone && !barrel.forSale && (
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="flex items-center gap-1 text-[11px] h-8 border-amber-500/40 text-amber-500 hover:text-amber-400"
+                                                    onClick={() => openOptionsModal(barrel)}
+                                                >
+                                                    <Settings2 className="w-3.5 h-3.5" />
+                                                    Quản lý tùy chọn thùng
+                                                </Button>
+                                            )}
 
-                                            {pb.forSale ? (
-                                                isMine ? (
-                                                    <div className="text-[10px] text-emerald-400 border border-emerald-500/20 rounded px-2 py-1.5 text-center">
-                                                        Thùng của tôi · Đang bán
-                                                    </div>
+                                            {!barrel.forSale && barrel.status === "ordered" && (
+                                                <>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="text-[11px] h-8 font-semibold"
+                                                        onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
+                                                    >
+                                                        Đăng ký giao tận nơi (phí lưu kho {deliveryFee.toLocaleString()} ZP)
+                                                    </Button>
+                                                </>
+                                            )}
+
+                                            {!barrel.forSale && barrel.status.includes("숙성 중") && (
+                                                <>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="text-[11px] h-8 font-semibold"
+                                                        onClick={() => handleBarrelAction(barrel.id, "bottle")}
+                                                    >
+                                                        Đăng ký đóng chai
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-[11px] h-8 border-border/60 text-zinc-300"
+                                                        onClick={() => handleBarrelAction(barrel.id, "extend_aging")}
+                                                    >
+                                                        Gia hạn ủ
+                                                    </Button>
+                                                    <Button
+                                                        type="button"
+                                                        variant="secondary"
+                                                        size="sm"
+                                                        className="text-[11px] h-8 font-semibold"
+                                                        onClick={() => handleBarrelAction(barrel.id, "deliver", deliveryFee)}
+                                                    >
+                                                        Đăng ký giao tận nơi (phí lưu kho {deliveryFee.toLocaleString()} ZP)
+                                                    </Button>
+                                                </>
+                                            )}
+
+                                            {!isDone && (
+                                                barrel.forSale ? (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        className="text-[11px] h-8 border-red-500/40 text-red-400 hover:text-red-300"
+                                                        onClick={() => handleCancelSale(barrel.id)}
+                                                    >
+                                                        Hủy đăng bán
+                                                    </Button>
                                                 ) : (
                                                     <Button
                                                         type="button"
+                                                        variant="outline"
                                                         size="sm"
-                                                        className="w-full text-[11px] h-8 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold flex items-center justify-center gap-1"
+                                                        className="flex items-center gap-1 text-[11px] h-8 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
                                                         disabled={actionBusy}
-                                                        onClick={() => handleBuyBarrel(pb)}
+                                                        onClick={() => handleListForSale(barrel.id, barrel.currentValueZp)}
                                                     >
-                                                        <ShoppingCart className="w-3.5 h-3.5" />
-                                                        Mua ngay
+                                                        <Tag className="w-3.5 h-3.5" />
+                                                        Đăng bán theo giá thị trường
                                                     </Button>
                                                 )
-                                            ) : (
-                                                <div className="text-[10px] text-muted-foreground text-center py-1.5">
-                                                    Không bán
-                                                </div>
                                             )}
                                         </div>
-                                    )
-                                })}
-                            </div>
-                        )}
-                    </section>
-                )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </section>
+
+                {/* Public Barrel Gallery — visible to all members, incl. marketplace listings */}
+                <section className="space-y-6">
+                    <div className="border-b border-border/60 pb-3">
+                        <h3 className="font-display text-xl font-semibold flex items-center gap-2 text-foreground">
+                            <Users className="w-5 h-5 text-amber-500" />
+                            Bộ sưu tập thùng toàn hội viên (Public Collection)
+                        </h3>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng ZP.
+                        </p>
+                    </div>
+
+                    {galleryLoading ? (
+                        <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                            Đang tải...
+                        </div>
+                    ) : publicBarrels.length === 0 ? (
+                        <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
+                            Chưa có thùng nào được đăng ký.
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                            {publicBarrels.map((pb) => {
+                                const isDone = pb.status === "직접 배송 완료" || pb.status === "병입 완료 및 출고"
+                                const isAging = !isDone
+                                const agingSeconds = agingSecondsFor(pb.productionDate, pb.agingEndedAt)
+                                const target = AGING_TARGET_SECONDS[pb.capacity] ?? 365 * 86400
+                                const progress = agingSeconds / target
+                                const isMine = pb.ownerId === myUid
+
+                                return (
+                                    <div
+                                        key={pb.id}
+                                        className="rounded-xl border border-border/60 bg-card p-4 space-y-3 hover:border-amber-500/30 transition-all duration-300"
+                                    >
+                                        <div className="flex items-start gap-3">
+                                            <BarrelVisual
+                                                capacity={pb.capacity}
+                                                progress={progress}
+                                                isAging={isAging}
+                                                isDone={isDone}
+                                            />
+                                            <div className="min-w-0 flex-1">
+                                                <Badge variant="outline" className="text-amber-500 border-amber-500/20 font-mono text-[9px]">
+                                                    {pb.id}
+                                                </Badge>
+                                                <p className="text-xs font-semibold text-foreground mt-1 truncate">
+                                                    {pb.ownerLabel} {isMine && <span className="text-amber-500">(Tôi)</span>}
+                                                </p>
+                                                <p className="text-[10px] text-muted-foreground mt-0.5">
+                                                    Đang ủ {formatAgingDuration(agingSeconds)}
+                                                </p>
+                                                <Badge className="mt-1 bg-amber-500/90 text-black border-none text-[9px] font-bold">
+                                                    {pb.status === "ordered" ? "Chờ lưu kho" : statusLabelVi(pb.status)}
+                                                </Badge>
+                                            </div>
+                                        </div>
+
+                                        <div className="text-[10px] text-center text-muted-foreground">
+                                            Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
+                                        </div>
+
+                                        {typeof pb.blendMasterScore === "number" ? (
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <div className="flex items-center gap-0.5">
+                                                        {Array.from({ length: 5 }).map((_, i) => (
+                                                            <Star
+                                                                key={i}
+                                                                className={`w-3 h-3 ${i < scoreToStarCount(pb.blendMasterScore ?? 0) ? "fill-amber-500 text-amber-500" : "text-zinc-700"}`}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                    <span className="text-[10px] text-muted-foreground">
+                                                        {(1 + (pb.customAnnualGrowthRate ?? defaultGrowthRate)).toFixed(2)}x
+                                                    </span>
+                                                </div>
+                                                <span className="text-[9px] text-amber-500/90 font-semibold">
+                                                    {scoreToGrade(pb.blendMasterScore)}
+                                                </span>
+                                            </div>
+                                        ) : null}
+
+                                        <div className="flex flex-wrap justify-center gap-1">
+                                            <Badge variant="outline" className="text-[8px] border-amber-500/30 text-amber-500">
+                                                {CHAR_LEVEL_LABEL[pb.charLevel ?? "char3"] ?? pb.charLevel}
+                                            </Badge>
+                                            <Badge variant="outline" className="text-[8px] border-border/60 text-muted-foreground">
+                                                {AGING_ENVIRONMENT_OPTIONS.find((e) => e.id === pb.agingEnvironment)?.label ?? "Premium Barrel Room"}
+                                            </Badge>
+                                            {(pb.enhancements ?? []).map((eid) => (
+                                                <Badge key={eid} variant="outline" className="text-[8px] border-emerald-500/30 text-emerald-500">
+                                                    {AGING_ENHANCEMENT_OPTIONS.find((e) => e.id === eid)?.label ?? eid}
+                                                </Badge>
+                                            ))}
+                                            {pb.finishing && (
+                                                <Badge variant="outline" className="text-[8px] border-pink-500/30 text-pink-400">
+                                                    {FINISHING_OPTION_SPECS.find((f) => f.id === pb.finishing?.id)?.icon}{" "}
+                                                    {FINISHING_OPTION_SPECS.find((f) => f.id === pb.finishing?.id)?.label ?? pb.finishing.id}
+                                                </Badge>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            className="w-full text-[11px] h-8 border-border/60 flex items-center justify-center gap-1"
+                                            onClick={() => openDetailModal(pb)}
+                                        >
+                                            <Eye className="w-3.5 h-3.5 text-amber-500" />
+                                            Xem chi tiết tùy chọn · đánh giá Blend Master
+                                        </Button>
+
+                                        {pb.forSale ? (
+                                            isMine ? (
+                                                <div className="text-[10px] text-emerald-400 border border-emerald-500/20 rounded px-2 py-1.5 text-center">
+                                                    Thùng của tôi · Đang bán
+                                                </div>
+                                            ) : (
+                                                <Button
+                                                    type="button"
+                                                    size="sm"
+                                                    className="w-full text-[11px] h-8 bg-emerald-500 hover:bg-emerald-600 text-black font-semibold flex items-center justify-center gap-1"
+                                                    disabled={actionBusy}
+                                                    onClick={() => handleBuyBarrel(pb)}
+                                                >
+                                                    <ShoppingCart className="w-3.5 h-3.5" />
+                                                    Mua ngay
+                                                </Button>
+                                            )
+                                        ) : (
+                                            <div className="text-[10px] text-muted-foreground text-center py-1.5">
+                                                Không bán
+                                            </div>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
+                    )}
+                </section>
 
                 {/* Order Process Section */}
                 <section className="space-y-6">

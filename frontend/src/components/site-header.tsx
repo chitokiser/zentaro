@@ -206,7 +206,7 @@ export function SiteHeader() {
                   {t.header.cart}
                 </Link>
                 {wallet ? (
-                  <div className="flex items-center justify-between gap-2 rounded-md border border-border/60 bg-secondary/40 px-3 py-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-border/60 bg-secondary/40 px-3 py-2 text-xs">
                     <span className="text-muted-foreground">
                       {t.header.point} <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
                     </span>

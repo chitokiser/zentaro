@@ -2,17 +2,22 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, levelUp, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 interface WalletData {
   ap: number
   exp: number
+  level: number
   timeToken: number
   jumpToken: number
   rewardPoint: number
   tickets: string[]
   nfts: string[]
+}
+
+function expCostForLevel(level: number): number {
+  return level * level * 10000
 }
 
 export default function WalletPage() {
@@ -50,6 +55,11 @@ export default function WalletPage() {
   const [withdrawBusy, setWithdrawBusy] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null)
+
+  // EXP level-up
+  const [levelUpBusy, setLevelUpBusy] = useState(false)
+  const [levelUpError, setLevelUpError] = useState<string | null>(null)
+  const [levelUpSuccess, setLevelUpSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     loadWalletData()
@@ -202,6 +212,22 @@ export default function WalletPage() {
     }
   }
 
+  const handleLevelUp = async () => {
+    if (!wallet) return
+    setLevelUpBusy(true)
+    setLevelUpError(null)
+    setLevelUpSuccess(null)
+    try {
+      const result = await levelUp()
+      setLevelUpSuccess(`${w.levelUpSuccessPrefix}${result.level}${w.levelUpSuccessSuffix}`)
+      loadWalletData()
+    } catch (err) {
+      setLevelUpError(err instanceof Error ? err.message : w.levelUpErrorGeneric)
+    } finally {
+      setLevelUpBusy(false)
+    }
+  }
+
   if (error) {
     return (
       <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
@@ -246,6 +272,36 @@ export default function WalletPage() {
           <p className="mt-1 font-display text-2xl font-semibold text-primary">
             {dashboard ? dashboard.staked.toLocaleString() : "0"}
           </p>
+        </div>
+      </div>
+
+      {/* EXP level-up */}
+      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="font-display text-sm font-semibold text-foreground">{w.levelSectionTitle}</h3>
+            <p className="mt-1 text-xs text-muted-foreground">{w.levelSectionDescription}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <span className="text-[10px] text-muted-foreground block">{w.levelCurrentLabel}</span>
+            <span className="font-display text-2xl font-bold text-amber-500">Lv.{wallet.level}</span>
+          </div>
+        </div>
+        {levelUpError ? <p className="text-xs text-destructive">{levelUpError}</p> : null}
+        {levelUpSuccess ? <p className="text-xs text-emerald-500">{levelUpSuccess}</p> : null}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <span className="text-xs text-muted-foreground">
+            {w.levelUpCostPrefix}
+            <span className="font-semibold text-foreground notranslate">{expCostForLevel(wallet.level).toLocaleString()} EXP</span>
+          </span>
+          <button
+            type="button"
+            disabled={levelUpBusy || wallet.exp < expCostForLevel(wallet.level)}
+            onClick={handleLevelUp}
+            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
+          >
+            {levelUpBusy ? w.levelUpBusyButton : w.levelUpButton}
+          </button>
         </div>
       </div>
 

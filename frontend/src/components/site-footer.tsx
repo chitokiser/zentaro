@@ -6,10 +6,10 @@ import { MessageCircle, Camera, Send, PlayCircle } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 const SOCIAL_LINKS = [
-  { label: "YouTube", href: "https://youtube.com", icon: PlayCircle },
-  { label: "Instagram", href: "https://instagram.com", icon: Camera },
+  { label: "YouTube", href: "https://www.youtube.com/@WilliamCater-d8h", icon: PlayCircle },
+  { label: "Instagram", href: "https://www.instagram.com/jung1922a/", icon: Camera },
   { label: "Telegram", href: "https://t.me", icon: Send },
-  { label: "Facebook", href: "https://facebook.com", icon: MessageCircle },
+  { label: "Facebook", href: "https://www.facebook.com/profile.php?id=61591465442279", icon: MessageCircle },
 ]
 
 export function SiteFooter() {

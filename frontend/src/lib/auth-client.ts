@@ -93,6 +93,7 @@ export async function fetchMe(): Promise<Me> {
 export interface Wallet {
   ap: number;
   exp: number;
+  level: number;
   timeToken: number;
   jumpToken: number;
   rewardPoint: number;
@@ -102,6 +103,22 @@ export interface Wallet {
 
 export async function fetchWallet(): Promise<Wallet> {
   const res = await fetch(`${API_URL}/wallet`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface LevelUpResult {
+  level: number;
+  exp: number;
+  cost: number;
+  nextLevelCost: number;
+}
+
+export async function levelUp(): Promise<LevelUpResult> {
+  const res = await fetch(`${API_URL}/wallet/level-up`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }

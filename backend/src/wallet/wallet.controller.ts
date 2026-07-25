@@ -38,6 +38,11 @@ export class WalletController {
     return this.walletService.withdrawUsdt(user.uid, dto.zpAmount);
   }
 
+  @Post('level-up')
+  levelUp(@CurrentUser() user: CurrentUserPayload) {
+    return this.walletService.levelUp(user.uid);
+  }
+
   @Get('deposits')
   listMyDeposits(@CurrentUser() user: CurrentUserPayload) {
     return this.walletService.listMyDeposits(user.uid);
