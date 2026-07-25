@@ -36,7 +36,7 @@ function stripHtml(html: string): string {
 export class CrossPostService {
   private readonly logger = new Logger(CrossPostService.name);
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(private readonly config: ConfigService) { }
 
   async postEverywhere(input: CrossPostInput): Promise<void> {
     const results = await Promise.allSettled([
@@ -44,6 +44,7 @@ export class CrossPostService {
       ...this.bloggerTargets().map((t) => this.postToBlogger(t, input)),
       ...this.wordPressTargets().map((t) => this.postToWordPress(t, input)),
       this.postToTumblr(input),
+      this.postToTelegram(input),
     ]);
 
     for (const r of results) {
@@ -241,5 +242,59 @@ export class CrossPostService {
       throw new Error(`Tumblr post failed: ${JSON.stringify(responseBody)}`);
     }
     this.logger.log(`Posted to Tumblr: ${responseBody.response?.id ?? 'ok'}`);
+  }
+
+  // ---------- Telegram Bot ----------
+
+  private async postToTelegram(input: CrossPostInput): Promise<void> {
+    const botToken =
+      this.config.get<string>('TELEGRAM_WEBZINE_BOT_TOKEN') ||
+      this.config.get<string>('TELEGRAM_BOT_TOKEN');
+    const chatId =
+      this.config.get<string>('TELEGRAM_WEBZINE_CHAT_ID') ||
+      this.config.get<string>('TELEGRAM_CHAT_ID');
+
+    if (!botToken || !chatId) {
+      this.logger.warn(
+        'Neither TELEGRAM_WEBZINE_BOT_TOKEN/TELEGRAM_BOT_TOKEN nor TELEGRAM_WEBZINE_CHAT_ID/TELEGRAM_CHAT_ID is set. Skipping Telegram cross-post.',
+      );
+      return;
+    }
+
+    const cleanTitle = input.title;
+    const cleanBodyHtml = stripHtml(input.contentHtml).slice(0, 400);
+    const linkUrl = `${POST_URL_BASE}/${input.id}`;
+
+    const captionOrText = `<b>${cleanTitle}</b>\n\n${cleanBodyHtml}...\n\n👉 <a href="${linkUrl}">Xem thêm tại ZENTARO Webzine</a>`;
+
+    let res: Response;
+    if (input.imageUrl) {
+      res = await fetch(`https://api.telegram.org/bot${botToken}/sendPhoto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          photo: input.imageUrl,
+          caption: captionOrText.slice(0, 1020), // Telegram caption limit 1024 chars
+          parse_mode: 'HTML',
+        }),
+      });
+    } else {
+      res = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: chatId,
+          text: captionOrText,
+          parse_mode: 'HTML',
+        }),
+      });
+    }
+
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(`Telegram post failed: ${JSON.stringify(body)}`);
+    }
+    this.logger.log(`Posted to Telegram Group: ${body.result?.message_id ?? 'ok'}`);
   }
 }
