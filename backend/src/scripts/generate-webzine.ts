@@ -20,6 +20,8 @@ async function bootstrap() {
     } catch (error) {
         console.error('Error generating webzine post:', error);
     } finally {
+        console.log('Waiting 8 seconds for background cross-posting to finish...');
+        await new Promise((resolve) => setTimeout(resolve, 8000));
         console.log('Closing NestJS context.');
         await app.close();
         process.exit(0);
