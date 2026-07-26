@@ -16,6 +16,7 @@ declare global {
             callback: (response: { credential: string }) => void
             auto_select?: boolean
             cancel_on_tap_outside?: boolean
+            use_fedcm?: boolean
           }) => void
           renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void
           prompt: () => void
@@ -45,6 +46,7 @@ export function GoogleSignInButton({
         client_id: GOOGLE_CLIENT_ID as string,
         auto_select: true,
         cancel_on_tap_outside: true,
+        use_fedcm: false,
         callback: async (response) => {
           try {
             await loginWithGoogle(response.credential, referrerEmailRef.current)
