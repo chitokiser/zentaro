@@ -8,4 +8,5 @@ export const WEBZINE_TAGS = [
   "🧘 젠(禪)&불교철학",
   "🎬 젠타로 동영상",
   "📰 ZenTaro 카드뉴스",
+  "📈 위스키재테크",
 ] as const;

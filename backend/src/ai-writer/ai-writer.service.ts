@@ -16,6 +16,7 @@ const IMAGE_QUERY_BY_TAG: Record<string, string> = {
   '💪 기능성음료&칵테일': 'craft cocktail bar',
   '👑 ZenTaro Story': 'luxury whiskey lifestyle',
   '🧘 젠(禪)&불교철학': 'zen garden meditation temple',
+  '📈 위스키재테크': 'luxury whiskey bottle glass gold',
 };
 
 const SYSTEM_PROMO_TAG = '📰 ZenTaro 카드뉴스';

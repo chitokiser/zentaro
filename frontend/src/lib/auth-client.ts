@@ -26,6 +26,9 @@ export function onAuthChanged(callback: () => void) {
 }
 
 async function parseErrorMessage(res: Response): Promise<string> {
+  if (res.status === 401 && !res.url.includes("/auth/login") && !res.url.includes("/auth/register")) {
+    return "로그인이 필요합니다.";
+  }
   try {
     const body = await res.json();
     return body.message ?? res.statusText;

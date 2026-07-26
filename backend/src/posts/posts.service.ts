@@ -29,7 +29,7 @@ function toIso(ts: { _seconds: number } | undefined | null): string | null {
 
 @Injectable()
 export class PostsService {
-  constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
+  constructor(@Inject(FIRESTORE) private readonly db: Firestore) { }
 
   private col() {
     return this.db.collection(COLLECTIONS.ZENTARO_POSTS);
@@ -67,9 +67,14 @@ export class PostsService {
 
   async list(tag?: string) {
     const snap = await this.col().where('published', '==', true).get();
+    const nowSeconds = Math.floor(Date.now() / 1000);
     return snap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .filter((post: any) => !tag || (post.tags ?? []).includes(tag))
+      .filter((post: any) => {
+        const createdSeconds = post.createdAt?._seconds ?? 0;
+        if (createdSeconds > nowSeconds) return false;
+        return !tag || (post.tags ?? []).includes(tag);
+      })
       .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
   }
 
@@ -97,7 +102,13 @@ export class PostsService {
     if (!snap.exists) {
       throw new NotFoundException('Post not found');
     }
-    return { id: snap.id, ...snap.data() };
+    const data = snap.data() as any;
+    const nowSeconds = Math.floor(Date.now() / 1000);
+    const createdSeconds = data.createdAt?._seconds ?? 0;
+    if (data.published === true && createdSeconds > nowSeconds) {
+      throw new NotFoundException('Post not available yet');
+    }
+    return { id: snap.id, ...data };
   }
 
   async create(

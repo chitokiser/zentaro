@@ -20,6 +20,7 @@ import {
     applyBarrelFinishing,
     setBarrelEvaluationAdmin,
     fetchBarrelPricingConfig,
+    getToken,
     type BarrelDocument,
     type PublicBarrel
 } from "@/lib/auth-client"
@@ -288,6 +289,7 @@ const FINISHING_OPTION_SPECS: FinishingOptionSpec[] = [
 
 export default function BarrelReservePage() {
     const [errorProfile, setErrorProfile] = useState<string | null>(null)
+    const isNeedLogin = !getToken() || errorProfile === "로그인이 필요합니다." || errorProfile?.toLowerCase().includes("unauthorized") || errorProfile?.toLowerCase().includes("jwt") || errorProfile?.toLowerCase().includes("token")
 
     // User Info & Balances
     const [expBalance, setExpBalance] = useState<number>(0)
@@ -311,6 +313,7 @@ export default function BarrelReservePage() {
     // Public Gallery (other members' barrels)
     const [publicBarrels, setPublicBarrels] = useState<PublicBarrel[]>([])
     const [galleryLoading, setGalleryLoading] = useState<boolean>(true)
+    const [galleryError, setGalleryError] = useState<string | null>(null)
     const [defaultGrowthRate, setDefaultGrowthRate] = useState<number>(0.25)
     // Admin-configurable initial subscription price per liter (defaults mirror backend DEFAULT_BARREL_PRICING).
     const [pricePerLiterExp, setPricePerLiterExp] = useState<number>(200000)
@@ -376,6 +379,7 @@ export default function BarrelReservePage() {
 
     const loadPublicGallery = useCallback(async () => {
         setGalleryLoading(true)
+        setGalleryError(null)
         try {
             const [list, pricing] = await Promise.all([fetchPublicBarrels(), fetchBarrelPricingConfig()])
             setPublicBarrels(list)
@@ -384,6 +388,7 @@ export default function BarrelReservePage() {
             setPricePerLiterZp(pricing.pricePerLiterZp)
         } catch (err) {
             console.error("Failed to load public barrel gallery:", err)
+            setGalleryError(err instanceof Error ? err.message : "Không thể tải danh sách bộ sưu tập.")
         } finally {
             setGalleryLoading(false)
         }
@@ -631,7 +636,7 @@ export default function BarrelReservePage() {
             <div className="mx-auto max-w-5xl px-4 py-14 sm:px-6 lg:px-8 space-y-16">
 
                 {/* User Gating or Balance Summary Bar */}
-                {errorProfile === "로그인이 필요합니다." ? (
+                {isNeedLogin ? (
                     <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-6 text-sm text-yellow-600/90 text-center">
                         Vui lòng đăng nhập trước để xem thông tin và đăng ký dịch vụ dành riêng cho hạng thành viên này.{" "}
                         <Link href="/my/profile" className="text-amber-500 underline underline-offset-4 font-bold ml-2">
@@ -844,7 +849,7 @@ export default function BarrelReservePage() {
                                 </div>
                                 <Button
                                     onClick={handleOrderSubmit}
-                                    disabled={actionBusy || errorProfile === "로그인이 필요합니다."}
+                                    disabled={actionBusy || isNeedLogin}
                                     className="w-full bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs py-2 shadow"
                                 >
                                     {actionBusy ? "Đang xử lý..." : `Đăng ký thùng ${currentSpec.size}`}
@@ -958,13 +963,17 @@ export default function BarrelReservePage() {
                         </p>
                     </div>
 
-                    {errorProfile === "로그인이 필요합니다." ? (
+                    {isNeedLogin ? (
                         <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
                             Vui lòng{" "}
                             <Link href="/my/profile" className="text-amber-500 underline underline-offset-4 font-bold mx-1">
                                 đăng nhập
                             </Link>{" "}
                             để xem danh sách thùng gỗ sồi của bạn.
+                        </div>
+                    ) : errorProfile ? (
+                        <div className="rounded-xl border border-dashed border-red-500/30 p-10 text-center text-sm text-red-400 bg-red-500/5">
+                            Không thể tải danh sách thùng gỗ sồi của bạn: {errorProfile}
                         </div>
                     ) : barrels.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
@@ -1194,6 +1203,10 @@ export default function BarrelReservePage() {
                     {galleryLoading ? (
                         <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
                             Đang tải...
+                        </div>
+                    ) : galleryError ? (
+                        <div className="rounded-xl border border-dashed border-red-500/30 p-10 text-center text-sm text-red-400 bg-red-500/5">
+                            Không thể tải danh sách bộ sưu tập: {galleryError}
                         </div>
                     ) : publicBarrels.length === 0 ? (
                         <div className="rounded-xl border border-dashed border-border/60 p-10 text-center text-sm text-muted-foreground">
