@@ -141,7 +141,7 @@ const ko = {
     rejectFallback: "반려 사유 없음",
     qrSectionTitle: "QR 스캔으로 ZTRO 받기",
     qrSectionDescription:
-      "병뚜껑 안에 있는 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시 지급됩니다. QR 코드는 1회만 사용할 수 있습니다.",
+      "병뚜껑 안에 있는 이벤트 QR을 스캔하면 무작위 수량의 ZTRO가 내 지갑으로 즉시 지급됩니다. (보상 풀 잔고 소진 시 종료) QR 코드는 1회만 사용할 수 있습니다.",
     qrCongrats: "획득!",
     poolBalanceLabel: "보상 가능 수령 잔고(Pool Reserve)",
     walletAddressLabel: "지갑 주소:",
@@ -813,7 +813,7 @@ const en: Dict = {
     rejectFallback: "No rejection reason given",
     qrSectionTitle: "Scan a QR for ZTRO",
     qrSectionDescription:
-      "Scan the event QR code found inside a bottle cap to instantly receive a random amount of ZTRO in your wallet. Each QR code can only be used once.",
+      "Scan the event QR code found inside a bottle cap to instantly receive a random amount of ZTRO in your wallet (until the reward pool balance is exhausted). Each QR code can only be used once.",
     qrCongrats: "earned!",
     poolBalanceLabel: "Pool Reserve",
     walletAddressLabel: "Wallet address:",
@@ -1483,7 +1483,7 @@ const vi: Dict = {
     rejectFallback: "Không có lý do từ chối",
     qrSectionTitle: "Quét QR để nhận ZTRO",
     qrSectionDescription:
-      "Quét mã QR sự kiện bên trong nắp chai để nhận ngay một lượng ZTRO ngẫu nhiên vào ví của bạn. Mỗi mã QR chỉ sử dụng được một lần.",
+      "Quét mã QR sự kiện bên trong nắp chai để nhận ngay một lượng ZTRO ngẫu nhiên vào ví của bạn (cho đến khi hết số dư bể phần thưởng). Mỗi mã QR chỉ sử dụng được một lần.",
     qrCongrats: "đã nhận!",
     poolBalanceLabel: "Số dư khả dụng (Pool Reserve)",
     walletAddressLabel: "Địa chỉ ví:",
