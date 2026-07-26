@@ -410,6 +410,9 @@ export async function createDirectProduct(input: {
   supplierName?: string;
   supplierContact?: string;
   supplierCostKrw?: number;
+  mentorRewardEnabled?: boolean;
+  level1MentorRate?: number;
+  level2MentorRate?: number;
 }) {
   const res = await fetch(`${API_URL}/products/direct`, {
     method: "POST",
@@ -440,6 +443,9 @@ export async function updateProductAdmin(
     supplierName: string;
     supplierContact: string;
     supplierCostKrw: number;
+    mentorRewardEnabled: boolean;
+    level1MentorRate: number;
+    level2MentorRate: number;
   }>,
 ) {
   const res = await fetch(`${API_URL}/products/${id}`, {

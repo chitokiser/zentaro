@@ -48,6 +48,13 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
   const [level2MentorRate, setLevel2MentorRate] = useState(
     editingProduct?.level2MentorRate !== undefined ? String(editingProduct.level2MentorRate) : "5"
   )
+  const [supplierName, setSupplierName] = useState(editingProduct?.supplierName ?? "")
+  const [supplierContact, setSupplierContact] = useState(editingProduct?.supplierContact ?? "")
+  const [supplierCostKrw, setSupplierCostKrw] = useState(
+    editingProduct?.supplierCostKrw !== undefined && editingProduct?.supplierCostKrw !== null
+      ? String(editingProduct.supplierCostKrw)
+      : ""
+  )
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -98,6 +105,9 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
         mentorRewardEnabled,
         level1MentorRate: Number(level1MentorRate),
         level2MentorRate: Number(level2MentorRate),
+        supplierName: supplierName.trim() || undefined,
+        supplierContact: supplierContact.trim() || undefined,
+        supplierCostKrw: supplierCostKrw ? Number(supplierCostKrw) : undefined,
       }
       if (editingProduct) {
         await updateProductAdmin(editingProduct.id, payload)
@@ -291,6 +301,41 @@ export function MallAdminForm({ editingProduct, onSaved, onCancelEdit }: MallAdm
               </div>
             </div>
           )}
+        </div>
+        {/* Supplier Info Section */}
+        <div className="border border-border/40 bg-background/50 rounded-md p-3 sm:col-span-2 flex flex-col gap-3">
+          <span className="text-xs font-semibold text-muted-foreground">공급업체 정보 (관리자 전용)</span>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">제조사 / 공급업체명</label>
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="공급업체명"
+                value={supplierName}
+                onChange={(e) => setSupplierName(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <label className="text-xs text-muted-foreground">연락처 (전화/이메일)</label>
+              <input
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="연락처"
+                value={supplierContact}
+                onChange={(e) => setSupplierContact(e.target.value)}
+              />
+            </div>
+            <div className="flex flex-col gap-1 sm:col-span-2">
+              <label className="text-xs text-muted-foreground">공급원가 (원 / KRW)</label>
+              <input
+                type="number"
+                min="0"
+                className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+                placeholder="공급원가 (KRW)"
+                value={supplierCostKrw}
+                onChange={(e) => setSupplierCostKrw(e.target.value)}
+              />
+            </div>
+          </div>
         </div>
         <div className="flex gap-2 sm:col-span-2">
           <Button type="submit" disabled={busy} className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
