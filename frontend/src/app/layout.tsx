@@ -61,6 +61,47 @@ export default function RootLayout({
       lang="vi"
       className={`${playfair.variable} ${notoSansKr.variable} dark h-full antialiased`}
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                function shouldSuppress(errorMsg, errorStack, filename) {
+                  const msg = errorMsg || '';
+                  const stack = errorStack || '';
+                  const file = filename || '';
+                  return file.includes('chrome-extension:') ||
+                         stack.includes('chrome-extension:') ||
+                         msg.includes('l is not a function') ||
+                         stack.includes('registerSolanaInjectedWallet');
+                }
+
+                window.addEventListener('error', function(event) {
+                  const errorMsg = event.message;
+                  const errorStack = event.error ? event.error.stack : '';
+                  const filename = event.filename;
+                  if (shouldSuppress(errorMsg, errorStack, filename)) {
+                    event.stopImmediatePropagation();
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }
+                }, true);
+
+                window.addEventListener('unhandledrejection', function(event) {
+                  const reason = event.reason;
+                  const errorMsg = reason ? (reason.message || String(reason)) : '';
+                  const errorStack = reason ? (reason.stack || '') : '';
+                  if (shouldSuppress(errorMsg, errorStack, '')) {
+                    event.stopImmediatePropagation();
+                    event.stopPropagation();
+                    event.preventDefault();
+                  }
+                }, true);
+              })();
+            `
+          }}
+        />
+      </head>
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <I18nProvider>
           <CartProvider>

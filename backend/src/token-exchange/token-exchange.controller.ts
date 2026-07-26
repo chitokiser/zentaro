@@ -35,13 +35,18 @@ export class TokenExchangeController {
   }
 
   @Post('stake')
-  stake(@CurrentUser() user: CurrentUserPayload, @Body() dto: AmountDto) {
-    return this.tokenExchangeService.stake(user.uid, dto.amount);
+  stake(@CurrentUser() user: CurrentUserPayload, @Body() dto: { amount: number; months?: number }) {
+    return this.tokenExchangeService.stake(user.uid, dto.amount, dto.months ?? 3);
   }
 
   @Post('unstake')
-  unstake(@CurrentUser() user: CurrentUserPayload) {
-    return this.tokenExchangeService.unstake(user.uid);
+  unstake(@CurrentUser() user: CurrentUserPayload, @Body() dto: { stakeId: number }) {
+    return this.tokenExchangeService.unstake(user.uid, dto.stakeId);
+  }
+
+  @Post('transfer-out')
+  transferOut(@CurrentUser() user: CurrentUserPayload, @Body() dto: { stakeId: number; recipient: string }) {
+    return this.tokenExchangeService.transferOut(user.uid, dto.stakeId, dto.recipient);
   }
 
   @Post('claim-dividend')

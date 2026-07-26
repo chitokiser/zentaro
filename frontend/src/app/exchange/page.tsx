@@ -8,6 +8,7 @@ import {
   fetchExchangeDashboard,
   stakeZtro,
   unstakeZtro,
+  transferOutZtro,
   type ExchangeDashboard,
 } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -21,7 +22,6 @@ function remainingLabel(unlockAtSec: number, e: Dict["exchange"]): string {
   return `${days}${e.daysRemainingSuffix}`
 }
 
-// EXP staking rewards are paid out weekly by a server cron job at 00:00 UTC every Sunday (token-exchange.service.ts).
 function nextWeeklyDistributionUtc(now: Date): Date {
   const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0))
   while (d.getUTCDay() !== 0 || d.getTime() <= now.getTime()) {
@@ -49,6 +49,8 @@ export default function ExchangePage() {
   const [actionError, setActionError] = useState<string | null>(null)
 
   const [stakeAmount, setStakeAmount] = useState(1)
+  const [stakeMonths, setStakeMonths] = useState(3)
+  const [transferRecipients, setTransferRecipients] = useState<Record<number, string>>({})
   const [now, setNow] = useState(() => Date.now())
   const [walletBusy, setWalletBusy] = useState(false)
 
@@ -83,10 +85,20 @@ export default function ExchangePage() {
   }
 
   function handleStake() {
-    runAction("stake", () => stakeZtro(stakeAmount))
+    runAction("stake", () => stakeZtro(stakeAmount, stakeMonths))
   }
-  function handleUnstake() {
-    runAction("unstake", () => unstakeZtro())
+
+  function handleUnstakeItem(stakeId: number) {
+    runAction(`unstake_${stakeId}`, () => unstakeZtro(stakeId))
+  }
+
+  function handleTransferItem(stakeId: number) {
+    const recipient = transferRecipients[stakeId]?.trim()
+    if (!recipient) {
+      setActionError("이체 받을 지갑 주소를 입력해주세요.")
+      return
+    }
+    runAction(`transfer_${stakeId}`, () => transferOutZtro(stakeId, recipient))
   }
 
   async function copyAddress() {
@@ -95,7 +107,6 @@ export default function ExchangePage() {
     setActionMessage(e.addressCopied)
   }
 
-  // Wallet creation is handled automatically/idempotently by the server when the dashboard is fetched — passes through if one already exists.
   async function handleCreateWallet() {
     setWalletBusy(true)
     setActionError(null)
@@ -109,6 +120,11 @@ export default function ExchangePage() {
       setWalletBusy(false)
     }
   }
+
+  const activeStakes = dashboard?.stakes?.filter((s) => s.active) || []
+  const nextUnlockStake = activeStakes.length > 0
+    ? Math.min(...activeStakes.map((s) => s.lockedUntil))
+    : 0
 
   return (
     <div>
@@ -193,8 +209,8 @@ export default function ExchangePage() {
               <div>
                 <p className="text-xs text-muted-foreground">{e.unstakeCountdownLabel}</p>
                 <p className="font-semibold">
-                  {dashboard.staked > 0
-                    ? remainingLabel(dashboard.stakingTime + dashboard.stakeLockSeconds, e)
+                  {activeStakes.length > 0
+                    ? remainingLabel(nextUnlockStake, e)
                     : "-"}
                 </p>
               </div>
@@ -225,7 +241,7 @@ export default function ExchangePage() {
             {/* Staking */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
               <h3 className="font-display text-base font-medium">{e.stakeSectionTitle}</h3>
-              <div className="mt-3 flex flex-wrap items-end gap-2">
+              <div className="mt-3 flex flex-wrap items-end gap-3">
                 <label className="flex flex-col gap-1 text-xs text-muted-foreground">
                   {e.amountLabel}
                   <input
@@ -236,6 +252,24 @@ export default function ExchangePage() {
                     className="w-40 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
                   />
                 </label>
+
+                {/* Duration Dropdown */}
+                <label className="flex flex-col gap-1 text-xs text-muted-foreground">
+                  {e.lockMonthsLabel}
+                  <select
+                    value={stakeMonths}
+                    onChange={(ev) => setStakeMonths(Number(ev.target.value))}
+                    className="w-40 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+                  >
+                    {[3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36].map((m) => (
+                      <option key={m} value={m}>
+                        {m}
+                        {e.monthsSuffix}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
                 <Button
                   type="button"
                   size="sm"
@@ -245,17 +279,147 @@ export default function ExchangePage() {
                 >
                   {busy === "stake" ? e.processing : e.stakeButton}
                 </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={busy === "unstake" || dashboard.staked <= 0}
-                  onClick={handleUnstake}
-                >
-                  {busy === "unstake" ? e.processing : e.unstakeButton}
-                </Button>
               </div>
             </div>
+
+            {/* My Staking Positions */}
+            {dashboard.stakes && dashboard.stakes.length > 0 && (
+              <div className="rounded-lg border border-border/60 bg-card p-5">
+                <h3 className="font-display text-base font-medium mb-3">{e.myStakesTitle}</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-border/40 text-muted-foreground">
+                        <th className="py-2 pr-2">{e.stakeIdCol}</th>
+                        <th className="py-2 px-2">{e.stakedAmountCol}</th>
+                        <th className="py-2 px-2">{e.createdAtCol}</th>
+                        <th className="py-2 px-2">{e.lockedUntilCol}</th>
+                        <th className="py-2 px-2">{e.statusCol}</th>
+                        <th className="py-2 pl-2 text-right">{e.actionsCol}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboard.stakes.map((stake) => {
+                        const stakeLocked = now / 1000 < stake.lockedUntil
+                        let statusText = e.statusActive
+                        if (stake.transferred) {
+                          statusText = e.statusTransferred
+                        } else if (stake.unstaked) {
+                          statusText = e.statusUnstaked
+                        }
+
+                        return (
+                          <tr key={stake.stakeId} className="border-b border-border/30 last:border-0 hover:bg-muted/10">
+                            <td className="py-3 pr-2 font-mono">{stake.stakeId}</td>
+                            <td className="py-3 px-2 font-semibold">
+                              {stake.amount.toLocaleString()} ZTRO
+                            </td>
+                            <td className="py-3 px-2 text-muted-foreground">
+                              {new Date(stake.createdAt * 1000).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-2 text-muted-foreground">
+                              {new Date(stake.lockedUntil * 1000).toLocaleDateString()}
+                            </td>
+                            <td className="py-3 px-2">
+                              <span
+                                className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${stake.transferred
+                                    ? "bg-emerald-500/10 text-emerald-500"
+                                    : stake.unstaked
+                                      ? "bg-orange-500/10 text-orange-500"
+                                      : stakeLocked
+                                        ? "bg-blue-500/10 text-blue-500"
+                                        : "bg-primary/10 text-primary"
+                                  }`}
+                              >
+                                {statusText}
+                              </span>
+                            </td>
+                            <td className="py-3 pl-2 text-right">
+                              {stake.active && (
+                                <div>
+                                  {stakeLocked ? (
+                                    <span className="text-[10px] text-muted-foreground">
+                                      {remainingLabel(stake.lockedUntil, e)}
+                                    </span>
+                                  ) : dashboard.withdrawApproved ? (
+                                    <Button
+                                      type="button"
+                                      size="xs"
+                                      disabled={busy === `unstake_${stake.stakeId}`}
+                                      onClick={() => handleUnstakeItem(stake.stakeId)}
+                                    >
+                                      {busy === `unstake_${stake.stakeId}` ? e.processing : e.unstakeButton}
+                                    </Button>
+                                  ) : (
+                                    <div className="flex flex-col items-end gap-1">
+                                      <Button
+                                        type="button"
+                                        size="xs"
+                                        disabled
+                                        variant="outline"
+                                        className="text-muted-foreground"
+                                      >
+                                        {e.unstakeButton}
+                                      </Button>
+                                      <span className="text-[9px] text-destructive">
+                                        {e.unstakePendingApproval}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
+                              {!stake.active && stake.unstaked && !stake.transferred && (
+                                <div className="flex items-center justify-end gap-1">
+                                  <input
+                                    type="text"
+                                    placeholder={e.transferRecipientPlaceholder}
+                                    value={transferRecipients[stake.stakeId] || ""}
+                                    onChange={(ev) =>
+                                      setTransferRecipients((prev) => ({
+                                        ...prev,
+                                        [stake.stakeId]: ev.target.value,
+                                      }))
+                                    }
+                                    className="w-32 rounded border border-border/60 bg-background px-2 py-0.5 text-[10px] text-foreground h-6"
+                                  />
+                                  {dashboard.transferApproved ? (
+                                    <Button
+                                      type="button"
+                                      size="xs"
+                                      className="h-6 text-[10px] px-2"
+                                      disabled={busy === `transfer_${stake.stakeId}`}
+                                      onClick={() => handleTransferItem(stake.stakeId)}
+                                    >
+                                      {busy === `transfer_${stake.stakeId}` ? e.processing : e.transferButton}
+                                    </Button>
+                                  ) : (
+                                    <div className="flex flex-col items-end gap-0.5">
+                                      <Button
+                                        type="button"
+                                        size="xs"
+                                        disabled
+                                        variant="outline"
+                                        className="h-6 text-[10px] px-2 text-muted-foreground"
+                                      >
+                                        {e.transferButton}
+                                      </Button>
+                                      <span className="text-[8px] text-destructive">
+                                        {e.transferPendingApproval}
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

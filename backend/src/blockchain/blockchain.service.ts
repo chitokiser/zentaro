@@ -22,6 +22,18 @@ const ERC20_ABI = [
   'function approve(address spender, uint256 amount) returns (bool)',
 ];
 
+const VAULT_ABI = [
+  'function stake(uint256 amount, uint256 lockDays) external returns (uint256)',
+  'function unstake(uint256 stakeId) external',
+  'function transferOut(uint256 stakeId, address recipient) external',
+  'function getAllStakes(address user) external view returns (uint256[] memory)',
+  'function stakes(uint256 stakeId) external view returns (uint256 stakeId, uint256 amount, uint256 lockedUntil, uint256 createdAt, bool active, bool unstaked, bool transferred)',
+  'function totalStaked() external view returns (uint256)',
+  'function adminReserve() external view returns (uint256)',
+  'function withdrawApproved(address user) external view returns (bool)',
+  'function transferApproved(address user) external view returns (bool)',
+];
+
 const ZTROBANK_ABI = [
   'function buy(uint256 amount, uint256 maxPay) external returns (bool)',
   'function sell(uint256 amount) external returns (bool)',
@@ -171,6 +183,14 @@ export class BlockchainService {
     return new ethers.Contract(
       this.requireEnv('ZTRO_TOKEN_ADDRESS'),
       ERC20_ABI,
+      runner,
+    );
+  }
+
+  getVaultContract(runner: ethers.ContractRunner): ethers.Contract {
+    return new ethers.Contract(
+      this.requireEnv('ZTRO_VAULT_CONTRACT_ADDRESS'),
+      VAULT_ABI,
       runner,
     );
   }

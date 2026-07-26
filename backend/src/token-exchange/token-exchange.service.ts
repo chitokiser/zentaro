@@ -159,12 +159,12 @@ export class TokenExchangeService {
     const bank = this.blockchain.getBankContract(provider);
     const usdt = this.blockchain.getUsdtContract(provider);
     const ztro = this.blockchain.getZtroContract(provider);
+    const vault = this.blockchain.getVaultContract(provider);
 
     const [
       ztroBalance,
       usdtBalance,
       price,
-      userInfo,
       dashboardInfo,
       pendingDividend,
       effectiveStaked,
@@ -172,11 +172,13 @@ export class TokenExchangeService {
       rate,
       stakeLock,
       divInterval,
+      stakeIds,
+      withdrawApproved,
+      transferApproved,
     ] = await Promise.all([
       ztro.balanceOf(address),
       usdt.balanceOf(address),
       bank.price(),
-      bank.user(address),
       bank.myDashboard(address),
       bank.pendingDividend(address),
       bank.effectiveStaked(),
@@ -184,16 +186,38 @@ export class TokenExchangeService {
       bank.rate(),
       bank.STAKE_LOCK(),
       bank.DIV_INTERVAL(),
+      vault.getAllStakes(address),
+      vault.withdrawApproved(address),
+      vault.transferApproved(address),
     ]);
+
+    const stakesList = await Promise.all(
+      stakeIds.map(async (id: bigint) => {
+        const info = await vault.stakes(id);
+        return {
+          stakeId: Number(info.stakeId),
+          amount: Number(info.amount),
+          lockedUntil: Number(info.lockedUntil),
+          createdAt: Number(info.createdAt),
+          active: info.active,
+          unstaked: info.unstaked,
+          transferred: info.transferred,
+        };
+      })
+    );
+
+    const totalStakedAmount = stakesList
+      .filter((s) => s.active)
+      .reduce((sum, s) => sum + s.amount, 0);
 
     return {
       address,
       ztroBalance: Number(ztroBalance),
       usdtBalance: fmtUsdt(usdtBalance),
       priceUsdt: fmtUsdt(price),
-      staked: Number(userInfo.depo),
-      stakingTime: Number(userInfo.stakingTime),
-      lastClaim: Number(userInfo.lastClaim),
+      staked: totalStakedAmount,
+      stakingTime: stakesList.length > 0 ? Math.min(...stakesList.map(s => s.createdAt)) : 0,
+      lastClaim: 0,
       avgBuyPriceUsdt: fmtUsdt(dashboardInfo.myAvgBuyPriceWei),
       pnlUsdt: fmtUsdt(dashboardInfo.myPnlWei),
       roiBps: Number(dashboardInfo.myRoiBps_),
@@ -204,6 +228,9 @@ export class TokenExchangeService {
       stakeLockSeconds: Number(stakeLock),
       divIntervalSeconds: Number(divInterval),
       usdtTokenAddress: await usdt.getAddress(),
+      stakes: stakesList,
+      withdrawApproved: !!withdrawApproved,
+      transferApproved: !!transferApproved,
     };
   }
 
@@ -255,24 +282,25 @@ export class TokenExchangeService {
     return this.parseReceipt(bank, receipt, 'Sold');
   }
 
-  async stake(uid: string, amount: number) {
+  async stake(uid: string, amount: number, months: number = 3) {
     try {
       const { address, privateKey } =
         await this.walletService.getDecryptedPrivateKey(uid);
       await this.blockchain.ensureGas(address);
       const signer = this.blockchain.getUserSigner(privateKey);
 
-      const bank = this.blockchain.getBankContract(signer);
+      const vault = this.blockchain.getVaultContract(signer);
       const ztro = this.blockchain.getZtroContract(signer);
-      const bankAddress = await bank.getAddress();
+      const vaultAddress = await vault.getAddress();
 
-      const allowance: bigint = await ztro.allowance(address, bankAddress);
+      const allowance: bigint = await ztro.allowance(address, vaultAddress);
       if (allowance < BigInt(amount)) {
-        const approveTx = await ztro.approve(bankAddress, ethers.MaxUint256);
+        const approveTx = await ztro.approve(vaultAddress, ethers.MaxUint256);
         await approveTx.wait();
       }
 
-      const tx = await bank.stake(amount);
+      const lockDays = months * 30;
+      const tx = await vault.stake(amount, lockDays);
       const receipt = await tx.wait();
       return { txHash: receipt.hash as string };
     } catch (err) {
@@ -283,20 +311,38 @@ export class TokenExchangeService {
     }
   }
 
-  async unstake(uid: string) {
+  async unstake(uid: string, stakeId: number) {
     const { address, privateKey } =
       await this.walletService.getDecryptedPrivateKey(uid);
     await this.blockchain.ensureGas(address);
     const signer = this.blockchain.getUserSigner(privateKey);
 
-    const bank = this.blockchain.getBankContract(signer);
+    const vault = this.blockchain.getVaultContract(signer);
     try {
-      const tx = await bank.withdraw();
+      const tx = await vault.unstake(stakeId);
       const receipt = await tx.wait();
       return { txHash: receipt.hash as string };
     } catch (err) {
       throw new BadRequestException(
         err instanceof Error ? err.message : '언스테이킹에 실패했습니다.',
+      );
+    }
+  }
+
+  async transferOut(uid: string, stakeId: number, recipient: string) {
+    const { address, privateKey } =
+      await this.walletService.getDecryptedPrivateKey(uid);
+    await this.blockchain.ensureGas(address);
+    const signer = this.blockchain.getUserSigner(privateKey);
+
+    const vault = this.blockchain.getVaultContract(signer);
+    try {
+      const tx = await vault.transferOut(stakeId, recipient);
+      const receipt = await tx.wait();
+      return { txHash: receipt.hash as string };
+    } catch (err) {
+      throw new BadRequestException(
+        err instanceof Error ? err.message : '이체에 실패했습니다.',
       );
     }
   }
@@ -759,11 +805,11 @@ export class TokenExchangeService {
       : score;
     const effectiveBreakdown = hasFullBreakdown
       ? {
-          aroma: breakdown!.aroma!,
-          palate: breakdown!.palate!,
-          finish: breakdown!.finish!,
-          barrelQuality: breakdown!.barrelQuality!,
-        }
+        aroma: breakdown!.aroma!,
+        palate: breakdown!.palate!,
+        finish: breakdown!.finish!,
+        barrelQuality: breakdown!.barrelQuality!,
+      }
       : null;
 
     const annualGrowthRate = annualGrowthRateFromScore(effectiveScore, pricing.annualGrowthRate);

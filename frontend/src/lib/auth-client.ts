@@ -182,6 +182,13 @@ export async function redeemZtroQr(code: string): Promise<ZtroRewardResult> {
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
+} export async function fetchZtroRewardPoolBalance(): Promise<{ balance: number }> {
+  const res = await fetch(`${API_URL}/ztro-rewards/pool-balance`, {
+    method: "GET",
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
 }
 
 export interface ZtroRewardCodeItem {
@@ -246,6 +253,17 @@ export interface ExchangeDashboard {
   stakeLockSeconds: number;
   divIntervalSeconds: number;
   usdtTokenAddress: string;
+  stakes?: Array<{
+    stakeId: number;
+    amount: number;
+    lockedUntil: number;
+    createdAt: number;
+    active: boolean;
+    unstaked: boolean;
+    transferred: boolean;
+  }>;
+  withdrawApproved?: boolean;
+  transferApproved?: boolean;
 }
 
 export async function fetchExchangeDashboard(): Promise<ExchangeDashboard> {
@@ -276,20 +294,31 @@ export async function sellZtro(amount: number) {
   return res.json();
 }
 
-export async function stakeZtro(amount: number) {
+export async function stakeZtro(amount: number, months: number = 3) {
   const res = await fetch(`${API_URL}/token-exchange/stake`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ amount }),
+    body: JSON.stringify({ amount, months }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
 
-export async function unstakeZtro() {
+export async function unstakeZtro(stakeId: number) {
   const res = await fetch(`${API_URL}/token-exchange/unstake`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ stakeId }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function transferOutZtro(stakeId: number, recipient: string) {
+  const res = await fetch(`${API_URL}/token-exchange/transfer-out`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ stakeId, recipient }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

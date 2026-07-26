@@ -14,6 +14,7 @@ import {
   type BottleCapClaim,
   redeemZtroQr,
   type ZtroRewardResult,
+  fetchZtroRewardPoolBalance,
 } from "@/lib/auth-client"
 
 type ProductChoice = "origin" | "blue" | "other"
@@ -35,6 +36,7 @@ export default function BottleCapRewardsPage() {
   const [contactPhone, setContactPhone] = useState("")
   const [trackingNumber, setTrackingNumber] = useState("")
   const [note, setNote] = useState("")
+  const [poolBalance, setPoolBalance] = useState<number | null>(null)
 
   const [scanning, setScanning] = useState(false)
   const [redeeming, setRedeeming] = useState(false)
@@ -54,6 +56,11 @@ export default function BottleCapRewardsPage() {
         const msg = err instanceof Error ? err.message : "오류가 발생했습니다."
         setClaimError(msg)
         setError(msg)
+      })
+    fetchZtroRewardPoolBalance()
+      .then((data) => setPoolBalance(data.balance))
+      .catch((err) => {
+        console.error("Failed to fetch ZTRO pool balance:", err)
       })
   }, [])
 
@@ -103,6 +110,9 @@ export default function BottleCapRewardsPage() {
     try {
       const result = await redeemZtroQr(code)
       setRewardResult(result)
+      fetchZtroRewardPoolBalance()
+        .then((data) => setPoolBalance(data.balance))
+        .catch(() => { })
     } catch (err) {
       setRewardError(err instanceof Error ? err.message : "리워드 지급에 실패했습니다.")
     } finally {
@@ -281,8 +291,17 @@ export default function BottleCapRewardsPage() {
             </div>
 
             <div className="rounded-lg border border-border/60 bg-card p-5">
-              <h3 className="font-display text-base font-medium">{t.bottleCap.qrSectionTitle}</h3>
-              <p className="mt-1 text-xs text-muted-foreground">{t.bottleCap.qrSectionDescription}</p>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 className="font-display text-base font-medium">{t.bottleCap.qrSectionTitle}</h3>
+                  <p className="mt-1 text-xs text-muted-foreground">{t.bottleCap.qrSectionDescription}</p>
+                </div>
+                {poolBalance !== null && (
+                  <Badge variant="outline" className="self-start text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1 px-2.5">
+                    {t.bottleCap.poolBalanceLabel}: {poolBalance.toLocaleString()} ZTRO
+                  </Badge>
+                )}
+              </div>
 
               {rewardResult ? (
                 <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-primary/30 bg-secondary/40 px-4 py-3 text-sm">

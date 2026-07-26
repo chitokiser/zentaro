@@ -11,7 +11,7 @@ import { RedeemZtroRewardDto } from './dto/redeem-ztro-reward.dto';
 @Controller('ztro-rewards')
 @UseGuards(JwtAuthGuard)
 export class ZtroRewardsController {
-  constructor(private readonly ztroRewardsService: ZtroRewardsService) {}
+  constructor(private readonly ztroRewardsService: ZtroRewardsService) { }
 
   @Post('redeem')
   redeem(
@@ -33,6 +33,11 @@ export class ZtroRewardsController {
   @RequireAdminLevel(2)
   listAll() {
     return this.ztroRewardsService.listAll();
+  }
+
+  @Get('pool-balance')
+  poolBalancePublic() {
+    return this.ztroRewardsService.poolBalance();
   }
 
   @Get('admin/pool-balance')
