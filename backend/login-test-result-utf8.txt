@@ -1,0 +1,7 @@
+﻿Testing with email: testuser_54363@example.com
+Sending POST /api/auth/register...
+Register response status: 201
+Register response body: {"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0VW9iZ3JtSXBpbTY0R29vQ2RzciIsImVtYWlsIjoidGVzdHVzZXJfNTQzNjNAZXhhbXBsZS5jb20iLCJpYXQiOjE3ODUwNTU1MzksImV4cCI6MTc4NTY2MDMzOX0._zyORwCgXm5UGvmLreLt93wwY6F-nNa_CKJKNjSHnCM","uid":"tUobgrmIpim64GooCdsr","isAdmin":false,"adminLevel":null}
+Sending POST /api/auth/login...
+Login response status: 201
+Login response body: {"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0VW9iZ3JtSXBpbTY0R29vQ2RzciIsImVtYWlsIjoidGVzdHVzZXJfNTQzNjNAZXhhbXBsZS5jb20iLCJpYXQiOjE3ODUwNTU1NDAsImV4cCI6MTc4NTY2MDM0MH0.b8BmDE51gYu4DeEzoi-WlBIMrWBFu1_bA2G7C5zr5kk","uid":"tUobgrmIpim64GooCdsr","isAdmin":false,"adminLevel":null}

@@ -3,6 +3,8 @@
 import { useEffect, useState, useCallback } from "react"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
+import { ZtroPoolInfo } from "@/components/ztro-pool-info"
+import { ZtroChartWidget } from "@/components/ztro-chart-widget"
 import { Button } from "@/components/ui/button"
 import {
   fetchExchangeDashboard,
@@ -160,6 +162,12 @@ export default function ExchangePage() {
                 {actionError}
               </p>
             ) : null}
+
+            {/* ZTRO Pool Live Data */}
+            <ZtroPoolInfo />
+
+            {/* ZTRO Live Chart */}
+            <ZtroChartWidget />
 
             {/* Staking info */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
@@ -323,12 +331,12 @@ export default function ExchangePage() {
                             <td className="py-3 px-2">
                               <span
                                 className={`rounded px-1.5 py-0.5 text-[10px] font-medium ${stake.transferred
-                                    ? "bg-emerald-500/10 text-emerald-500"
-                                    : stake.unstaked
-                                      ? "bg-orange-500/10 text-orange-500"
-                                      : stakeLocked
-                                        ? "bg-blue-500/10 text-blue-500"
-                                        : "bg-primary/10 text-primary"
+                                  ? "bg-emerald-500/10 text-emerald-500"
+                                  : stake.unstaked
+                                    ? "bg-orange-500/10 text-orange-500"
+                                    : stakeLocked
+                                      ? "bg-blue-500/10 text-blue-500"
+                                      : "bg-primary/10 text-primary"
                                   }`}
                               >
                                 {statusText}

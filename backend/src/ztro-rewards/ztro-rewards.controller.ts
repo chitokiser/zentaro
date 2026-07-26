@@ -9,11 +9,11 @@ import { IssueZtroRewardsDto } from './dto/issue-ztro-rewards.dto';
 import { RedeemZtroRewardDto } from './dto/redeem-ztro-reward.dto';
 
 @Controller('ztro-rewards')
-@UseGuards(JwtAuthGuard)
 export class ZtroRewardsController {
   constructor(private readonly ztroRewardsService: ZtroRewardsService) { }
 
   @Post('redeem')
+  @UseGuards(JwtAuthGuard)
   redeem(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: RedeemZtroRewardDto,
@@ -22,14 +22,14 @@ export class ZtroRewardsController {
   }
 
   @Post('issue')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   issue(@Body() dto: IssueZtroRewardsDto) {
     return this.ztroRewardsService.issue(dto.count, dto.baseValue);
   }
 
   @Get('admin/list')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   listAll() {
     return this.ztroRewardsService.listAll();
@@ -41,7 +41,7 @@ export class ZtroRewardsController {
   }
 
   @Get('admin/pool-balance')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   poolBalance() {
     return this.ztroRewardsService.poolBalance();

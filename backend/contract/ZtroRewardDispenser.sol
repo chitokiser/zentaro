@@ -193,11 +193,5 @@ contract ZtroRewardDispenser is Ownable, ReentrancyGuard {
         return ztro.balanceOf(address(this));
     }
 
-    /// Emergency withdrawal (e.g. ending the event, migrating to a new contract).
-    function sweep(address to, uint256 amount) external onlyOwner {
-        require(to != address(0), "to zero");
-        require(ztro.transfer(to, amount), "transfer fail");
-        emit Swept(to, amount);
-    }
 }
 

@@ -67,7 +67,9 @@ export class BlockchainService {
   private _relayer?: ethers.Wallet;
   private _contract?: ethers.Contract;
 
-  constructor(private readonly config: ConfigService) { }
+  constructor(private readonly config: ConfigService) {
+    // Reload trigger for .env
+  }
 
   private get provider(): ethers.JsonRpcProvider {
     if (!this._provider) {
