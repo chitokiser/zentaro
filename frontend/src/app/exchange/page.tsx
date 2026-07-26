@@ -11,9 +11,11 @@ import {
   stakeZtro,
   unstakeZtro,
   transferOutZtro,
+  fetchMe,
   type ExchangeDashboard,
 } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { PaymentPinDialog } from "@/components/payment-pin-dialog"
 import type { Dict } from "@/lib/i18n/translations"
 
 function remainingLabel(unlockAtSec: number, e: Dict["exchange"]): string {
@@ -56,10 +58,19 @@ export default function ExchangePage() {
   const [now, setNow] = useState(() => Date.now())
   const [walletBusy, setWalletBusy] = useState(false)
 
+  // PIN Dialog States
+  const [isPinOpen, setIsPinOpen] = useState(false)
+  const [hasPinSet, setHasPinSet] = useState(true)
+  const [pendingStakeId, setPendingStakeId] = useState<number | null>(null)
+  const [pendingRecipient, setPendingRecipient] = useState<string | null>(null)
+
   const load = useCallback(() => {
     fetchExchangeDashboard()
       .then(setDashboard)
       .catch((err) => setError(err instanceof Error ? err.message : e.genericError))
+    fetchMe()
+      .then((me) => setHasPinSet(me.hasPaymentPassword))
+      .catch((err) => console.error("Me fetch error:", err))
   }, [e.genericError])
 
   useEffect(() => {
@@ -100,7 +111,20 @@ export default function ExchangePage() {
       setActionError("이체 받을 지갑 주소를 입력해주세요.")
       return
     }
-    runAction(`transfer_${stakeId}`, () => transferOutZtro(stakeId, recipient))
+    setPendingStakeId(stakeId)
+    setPendingRecipient(recipient)
+    setIsPinOpen(true)
+  }
+
+  async function executeTransferOut(paymentPassword?: string) {
+    if (pendingStakeId === null || !pendingRecipient) return
+
+    await runAction(`transfer_${pendingStakeId}`, () =>
+      transferOutZtro(pendingStakeId, pendingRecipient, paymentPassword)
+    )
+    setIsPinOpen(false)
+    setPendingStakeId(null)
+    setPendingRecipient(null)
   }
 
   async function copyAddress() {
@@ -431,6 +455,20 @@ export default function ExchangePage() {
           </div>
         )}
       </div>
+
+      <PaymentPinDialog
+        isOpen={isPinOpen}
+        onClose={() => {
+          setIsPinOpen(false)
+          setPendingStakeId(null)
+          setPendingRecipient(null)
+        }}
+        onSuccess={executeTransferOut}
+        title="ZTRO 외부 이체 승인"
+        description={pendingRecipient ? `ZTRO 지갑 이체(${pendingRecipient.substring(0, 6)}...)를 완료하기 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
+        hasPinSet={hasPinSet}
+        onPinSetSuccess={() => setHasPinSet(true)}
+      />
     </div>
   )
 }

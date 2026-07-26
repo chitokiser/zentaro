@@ -10,6 +10,7 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
     { label: t.nav.myPageItems.profile, href: "/my/profile" },
     { label: t.nav.myPageItems.mentor, href: "/my/mentor" },
     { label: t.nav.myPageItems.wallet, href: "/my/wallet" },
+    { label: "혜택 안내 ✨", href: "/my/benefits" },
   ]
 
   return (

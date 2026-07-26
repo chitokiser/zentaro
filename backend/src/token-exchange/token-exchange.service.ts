@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, Inject } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import * as bcrypt from 'bcryptjs';
 import { ethers } from 'ethers';
 import { FieldValue } from 'firebase-admin/firestore';
 import type { Firestore } from 'firebase-admin/firestore';
@@ -329,7 +330,8 @@ export class TokenExchangeService {
     }
   }
 
-  async transferOut(uid: string, stakeId: number, recipient: string) {
+  async transferOut(uid: string, stakeId: number, recipient: string, paymentPassword?: string) {
+    await this.verifyPaymentPassword(uid, paymentPassword);
     const { address, privateKey } =
       await this.walletService.getDecryptedPrivateKey(uid);
     await this.blockchain.ensureGas(address);
@@ -403,8 +405,19 @@ export class TokenExchangeService {
         try {
           const userInfo = await bank.user(address);
           const stakedZtro = Number(userInfo.depo);
+          const MIN_STAKE_FOR_LEVEL_REWARD = 10000;
 
-          const expAmount = Math.floor(stakedZtro / 100); // 10,000 ZTRO staked = 100 EXP/week
+          if (stakedZtro < MIN_STAKE_FOR_LEVEL_REWARD) continue;
+
+          const level: number = walletData.level ?? 1;
+          // How many months the oldest active stake has been running (approximate by total locked duration)
+          // Simplified: we sum up months from stakeId durations stored on-chain via vault.getAllStakes
+          // For the weekly cron we approximate staking months by using stakedMonths = 1 per week run
+          // and read active stakeIds for a better estimate if needed. For now: flat 1 month unit per week.
+          // Formula: stakedZtro * level * stakingMonths / 1000
+          // stakingMonths approximated as 1 for weekly distribution interval
+          const stakingMonths = 1;
+          const expAmount = Math.floor(stakedZtro * level * stakingMonths / 1000);
 
           if (expAmount > 0) {
             const userId = walletDoc.id;
@@ -419,13 +432,14 @@ export class TokenExchangeService {
                 userId,
                 amount: expAmount,
                 type: 'staking_exp_reward',
-                description: `ZTRO 스테이킹 주간 보상 (스테이킹 수량: ${stakedZtro.toLocaleString()} ZTRO)`,
+                description: `ZTRO 스테이킹 주간 보상 (스테이킹 ${stakedZtro.toLocaleString()} ZTRO × Lv.${level} / 1,000 = ${expAmount.toLocaleString()} EXP)`,
                 stakedAmount: stakedZtro,
+                level,
                 createdAt: FieldValue.serverTimestamp(),
               });
             });
 
-            console.log(`[StakingReward] Distributed ${expAmount} EXP to user ${userId} (address: ${address})`);
+            console.log(`[StakingReward] Distributed ${expAmount} EXP to user ${userId} (Lv.${level}, staked: ${stakedZtro})`);
             processedCount++;
             totalExpDistributed += expAmount;
           }
@@ -1033,7 +1047,8 @@ export class TokenExchangeService {
     return { success: true, forSale: false };
   }
 
-  async buyBarrel(buyerUid: string, barrelId: string) {
+  async buyBarrel(buyerUid: string, barrelId: string, paymentPassword?: string) {
+    await this.verifyPaymentPassword(buyerUid, paymentPassword);
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
     const buyerRef = this.db.collection(COLLECTIONS.USERS).doc(buyerUid);
     const pricing = await this.getBarrelPricingConfig();
@@ -1054,7 +1069,13 @@ export class TokenExchangeService {
       const sellerUid = barrel.userId;
       // Priced live at the moment of purchase — never a stale stored value.
       const price = totalBarrelValueZp(barrel, pricing);
-      const fee = Math.round(price * P2P_TRADE_FEE_RATE);
+
+      // Apply level-based fee discount for seller: base 15% minus seller's level (min 1%)
+      const sellerWalletSnap = await tx.get(this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(sellerUid));
+      const sellerLevel: number = sellerWalletSnap.exists ? (sellerWalletSnap.data()!.level ?? 1) : 1;
+      const BASE_RESALE_FEE_RATE = 0.15;
+      const effectiveFeeRate = Math.max(0.01, BASE_RESALE_FEE_RATE - sellerLevel / 100);
+      const fee = Math.round(price * effectiveFeeRate);
       const sellerReceives = price - fee;
 
       const [buyerSnap, sellerSnap] = await Promise.all([
@@ -1129,5 +1150,20 @@ export class TokenExchangeService {
     }
     await barrelRef.delete();
     return { success: true, barrelId };
+  }
+
+  private async verifyPaymentPassword(uid: string, paymentPassword?: string): Promise<void> {
+    if (!paymentPassword) {
+      throw new BadRequestException('자금이체 비밀번호를 입력해주세요.');
+    }
+    const snap = await this.db.collection(COLLECTIONS.USERS).doc(uid).get();
+    const hash = snap.exists ? snap.data()?.paymentPasswordHash : null;
+    if (!hash) {
+      throw new BadRequestException('자금이체 비밀번호가 설정되어 있지 않습니다. 먼저 설정해주세요.');
+    }
+    const matches = await bcrypt.compare(paymentPassword, hash);
+    if (!matches) {
+      throw new BadRequestException('자금이체 비밀번호가 일치하지 않습니다.');
+    }
   }
 }

@@ -60,6 +60,13 @@ export class AuthService {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    // Grant 5,000 EXP signup bonus to mentor (fire-and-forget)
+    if (mentor?.uid) {
+      this.grantMentorSignupExp(mentor.uid, dto.email).catch((e) =>
+        console.error('[register] grantMentorSignupExp failed:', e),
+      );
+    }
+
     return this.issueToken(docRef.id, dto.email);
   }
 
@@ -157,7 +164,32 @@ export class AuthService {
       createdAt: FieldValue.serverTimestamp(),
     });
 
+    // Grant 5,000 EXP signup bonus to mentor (fire-and-forget)
+    if (mentor?.uid) {
+      this.grantMentorSignupExp(mentor.uid, payload.email).catch((e) =>
+        console.error('[googleLogin] grantMentorSignupExp failed:', e),
+      );
+    }
+
     return this.issueToken(docRef.id, payload.email);
+  }
+
+  /** Inlined referral signup EXP grant to avoid circular WalletModule dependency. */
+  private async grantMentorSignupExp(mentorUid: string, menteeEmail: string): Promise<void> {
+    const SIGNUP_REFERRAL_EXP = 5000;
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(mentorUid);
+    await this.db.runTransaction(async (tx) => {
+      tx.set(walletRef, { exp: FieldValue.increment(SIGNUP_REFERRAL_EXP) }, { merge: true });
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: mentorUid,
+        amount: SIGNUP_REFERRAL_EXP,
+        type: 'referral_signup_reward',
+        description: `신규 추천 가입 보상 (멘티: ${menteeEmail})`,
+        menteeEmail,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
   }
 
   private isAdminEmail(email: string): boolean {
@@ -201,6 +233,7 @@ export class AuthService {
       photoUrl: data.photoUrl ?? null,
       isAdmin: adminLevel !== null,
       adminLevel,
+      hasPaymentPassword: !!data.paymentPasswordHash,
     };
   }
 
@@ -321,5 +354,31 @@ export class AuthService {
       .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
 
     return { referrer, referredMembers, totalEarnedExp, referredPurchases };
+  }
+
+  /** Specifies payment password (6-digit PIN) for the user. */
+  async setPaymentPassword(uid: string, pin: string): Promise<{ success: boolean }> {
+    if (!/^\d{6}$/.test(pin)) {
+      throw new ConflictException('자금이체 비밀번호는 숫자 6자리여야 합니다.');
+    }
+    const hash = await bcrypt.hash(pin, 10);
+    await this.usersCol().doc(uid).set({ paymentPasswordHash: hash }, { merge: true });
+    return { success: true };
+  }
+
+  /** Verifies payment password (6-digit PIN). Throws on mismatch. */
+  async verifyPaymentPassword(uid: string, paymentPassword?: string): Promise<void> {
+    if (!paymentPassword) {
+      throw new ConflictException('자금이체 비밀번호를 입력해주세요.');
+    }
+    const snap = await this.usersCol().doc(uid).get();
+    const hash = snap.exists ? snap.data()?.paymentPasswordHash : null;
+    if (!hash) {
+      throw new ConflictException('자금이체 비밀번호가 설정되어 있지 않습니다. 먼저 설정해주세요.');
+    }
+    const matches = await bcrypt.compare(paymentPassword, hash);
+    if (!matches) {
+      throw new ConflictException('자금이체 비밀번호가 일치하지 않습니다.');
+    }
   }
 }

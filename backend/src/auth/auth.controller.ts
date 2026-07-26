@@ -12,10 +12,11 @@ import { GoogleLoginDto } from './dto/google-login.dto';
 import { ShippingAddressDto } from './dto/shipping-address.dto';
 import { SetAdminLevelDto } from './dto/set-admin-level.dto';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
+import { SetPaymentPasswordDto } from './dto/set-payment-password.dto';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(private readonly authService: AuthService) { }
 
   @Post('register')
   @Throttle({ default: { ttl: 60000, limit: 10 } })
@@ -81,5 +82,11 @@ export class AuthController {
     @CurrentUser() user: CurrentUserPayload,
   ) {
     return this.authService.setAdminLevel(uid, dto.adminLevel, user.email);
+  }
+
+  @Post('payment-password')
+  @UseGuards(JwtAuthGuard)
+  setPaymentPassword(@CurrentUser() user: CurrentUserPayload, @Body() dto: SetPaymentPasswordDto) {
+    return this.authService.setPaymentPassword(user.uid, dto.pin);
   }
 }

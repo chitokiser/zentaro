@@ -85,10 +85,21 @@ export interface Me {
   photoUrl: string | null;
   isAdmin: boolean;
   adminLevel: 1 | 2 | 3 | null;
+  hasPaymentPassword: boolean;
 }
 
 export async function fetchMe(): Promise<Me> {
   const res = await fetch(`${API_URL}/auth/me`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setPaymentPassword(pin: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/auth/payment-password`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ pin }),
+  });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
@@ -314,11 +325,11 @@ export async function unstakeZtro(stakeId: number) {
   return res.json();
 }
 
-export async function transferOutZtro(stakeId: number, recipient: string) {
+export async function transferOutZtro(stakeId: number, recipient: string, paymentPassword?: string) {
   const res = await fetch(`${API_URL}/token-exchange/transfer-out`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ stakeId, recipient }),
+    body: JSON.stringify({ stakeId, recipient, paymentPassword }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
@@ -1062,7 +1073,7 @@ export async function depositUsdt(): Promise<{ success: boolean; usdtAmount: num
   return res.json();
 }
 
-export async function withdrawUsdt(zpAmount: number): Promise<{
+export async function withdrawUsdt(zpAmount: number, paymentPassword?: string): Promise<{
   success: boolean;
   zpDeducted: number;
   grossUsdt: number;
@@ -1073,7 +1084,7 @@ export async function withdrawUsdt(zpAmount: number): Promise<{
   const res = await fetch(`${API_URL}/wallet/withdraw-usdt`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ zpAmount }),
+    body: JSON.stringify({ zpAmount, paymentPassword }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
@@ -1257,10 +1268,11 @@ export async function cancelBarrelSale(barrelId: string): Promise<{ success: boo
   return res.json();
 }
 
-export async function buyBarrel(barrelId: string): Promise<{ success: boolean }> {
+export async function buyBarrel(barrelId: string, paymentPassword?: string): Promise<{ success: boolean }> {
   const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/buy`, {
     method: "POST",
-    headers: authHeaders(),
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ paymentPassword }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

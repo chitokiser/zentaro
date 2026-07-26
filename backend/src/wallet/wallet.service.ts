@@ -1,7 +1,8 @@
-import { Inject, Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ethers } from 'ethers';
+import * as bcrypt from 'bcryptjs';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
@@ -45,10 +46,15 @@ const ZENTARO_TRANSACTION_TYPES = [
   'mentor_referral_reward',
   'usdt_withdrawal',
   'exp_level_up',
+  'referral_signup_reward',
+  'level_charge_exp_bonus',
+  'mentor_level_bonus_reward',
 ];
 
 /** Level-up cost formula: currentLevel^2 * 10000 EXP, deducted on level-up. */
 const LEVEL_UP_EXP_MULTIPLIER = 10000;
+/** Maximum level a member can reach. */
+const MAX_LEVEL = 10;
 
 function expCostForLevel(level: number): number {
   return level * level * LEVEL_UP_EXP_MULTIPLIER;
@@ -227,7 +233,8 @@ export class WalletService {
    * anything. Every withdrawal is logged to TRANSACTIONS (type 'usdt_withdrawal') so it
    * shows up in the admin transactions ledger.
    */
-  async withdrawUsdt(uid: string, zpAmount: number) {
+  async withdrawUsdt(uid: string, zpAmount: number, paymentPassword?: string) {
+    await this.verifyPaymentPassword(uid, paymentPassword);
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
 
     await this.db.runTransaction(async (tx) => {
@@ -324,7 +331,7 @@ export class WalletService {
   async approveDeposit(id: string) {
     const depositRef = this.db.collection(COLLECTIONS.ZENTARO_DEPOSITS).doc(id);
 
-    return this.db.runTransaction(async (tx) => {
+    const result = await this.db.runTransaction(async (tx) => {
       const snap = await tx.get(depositRef);
       if (!snap.exists) {
         throw new NotFoundException('Deposit request not found');
@@ -359,8 +366,31 @@ export class WalletService {
         createdAt: FieldValue.serverTimestamp(),
       });
 
-      return { id, status: 'approved' };
+      return {
+        id,
+        status: 'approved',
+        userId: deposit.userId,
+        email: deposit.email,
+        zpAmount: deposit.zpAmount,
+        referredByUid: userSnap.data()?.referredBy ?? null,
+      };
     });
+
+    // Post-transaction: grant level-based EXP bonuses (fire-and-forget, do not fail the approval)
+    try {
+      await this.grantLevelChargeExpBonus(result.userId, result.zpAmount, result.email ?? '');
+    } catch (e) {
+      console.error('[approveDeposit] grantLevelChargeExpBonus failed:', e);
+    }
+    if (result.referredByUid) {
+      try {
+        await this.grantMentorLevelBonus(result.referredByUid, result.email ?? '', result.zpAmount);
+      } catch (e) {
+        console.error('[approveDeposit] grantMentorLevelBonus failed:', e);
+      }
+    }
+
+    return { id: result.id, status: result.status };
   }
 
   async rejectDeposit(id: string, reason?: string) {
@@ -479,7 +509,7 @@ export class WalletService {
     });
   }
 
-  /** Spends EXP to raise the member's level. Cost to leave level N is N^2 * 10000 EXP. */
+  /** Spends EXP to raise the member's level. Cost to leave level N is N^2 * 10000 EXP. Max level is 10. */
   async levelUp(uid: string) {
     const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
 
@@ -488,8 +518,12 @@ export class WalletService {
       const walletData = walletSnap.exists ? walletSnap.data()! : DEFAULT_WALLET;
       const currentLevel = walletData.level ?? 1;
       const currentExp = walletData.exp ?? 0;
-      const cost = expCostForLevel(currentLevel);
 
+      if (currentLevel >= MAX_LEVEL) {
+        throw new BadRequestException(`이미 최고 레벨(Lv.${MAX_LEVEL})입니다.`);
+      }
+
+      const cost = expCostForLevel(currentLevel);
       if (currentExp < cost) {
         throw new BadRequestException(
           `레벨업에 EXP가 부족합니다. (필요 ${cost.toLocaleString()} EXP, 보유 ${currentExp.toLocaleString()} EXP)`,
@@ -516,8 +550,86 @@ export class WalletService {
         level: nextLevel,
         exp: currentExp - cost,
         cost,
-        nextLevelCost: expCostForLevel(nextLevel),
+        nextLevelCost: nextLevel < MAX_LEVEL ? expCostForLevel(nextLevel) : null,
       };
+    });
+  }
+
+  /**
+   * Grants 5,000 EXP to a mentor when their referral (mentee) completes signup.
+   * Called from AuthService after a new user is created (register / googleLogin).
+   */
+  async grantSignupReferralExp(mentorUid: string, menteeEmail: string): Promise<void> {
+    const SIGNUP_REFERRAL_EXP = 5000;
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(mentorUid);
+    await this.db.runTransaction(async (tx) => {
+      tx.set(walletRef, { exp: FieldValue.increment(SIGNUP_REFERRAL_EXP) }, { merge: true });
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: mentorUid,
+        amount: SIGNUP_REFERRAL_EXP,
+        type: 'referral_signup_reward',
+        description: `신규 추천 가입 보상 (멘티: ${menteeEmail})`,
+        menteeEmail,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  /**
+   * Grants EXP bonus to the charging member equal to (level%) of the ZP charged.
+   * e.g. Lv3 charging 100,000 ZP → 3,000 EXP bonus
+   */
+  async grantLevelChargeExpBonus(uid: string, zpAmount: number, email: string): Promise<void> {
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+    const walletSnap = await walletRef.get();
+    const level: number = walletSnap.exists ? (walletSnap.data()!.level ?? 1) : 1;
+    const bonusExp = Math.floor(zpAmount * level / 100);
+    if (bonusExp <= 0) return;
+
+    await this.db.runTransaction(async (tx) => {
+      tx.set(walletRef, { exp: FieldValue.increment(bonusExp) }, { merge: true });
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: uid,
+        amount: bonusExp,
+        type: 'level_charge_exp_bonus',
+        description: `레벨 충전 EXP 보너스 (Lv.${level}, ${zpAmount.toLocaleString()} ZP 충전 → +${bonusExp.toLocaleString()} EXP)`,
+        chargeZpAmount: zpAmount,
+        level,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+  }
+
+  /**
+   * Grants EXP to a mentor equal to (mentor's level%) of the mentee's ZP payment.
+   * e.g. Lv3 mentor, mentee pays 100,000 ZP → 3,000 EXP to mentor
+   */
+  async grantMentorLevelBonus(
+    mentorUid: string,
+    menteeEmail: string,
+    zpPaidByMentee: number,
+  ): Promise<void> {
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(mentorUid);
+    const walletSnap = await walletRef.get();
+    const level: number = walletSnap.exists ? (walletSnap.data()!.level ?? 1) : 1;
+    const bonusExp = Math.floor(zpPaidByMentee * level / 100);
+    if (bonusExp <= 0) return;
+
+    await this.db.runTransaction(async (tx) => {
+      tx.set(walletRef, { exp: FieldValue.increment(bonusExp) }, { merge: true });
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(txRef, {
+        userId: mentorUid,
+        amount: bonusExp,
+        type: 'mentor_level_bonus_reward',
+        description: `멘토 레벨 EXP 보상 (Lv.${level}, 멘티 ${menteeEmail} ${zpPaidByMentee.toLocaleString()} ZP 결제 → +${bonusExp.toLocaleString()} EXP)`,
+        menteeEmail,
+        zpPaidByMentee,
+        level,
+        createdAt: FieldValue.serverTimestamp(),
+      });
     });
   }
 
@@ -540,5 +652,21 @@ export class WalletService {
     const emailByUid = new Map(userSnaps.map((s) => [s.id, s.data()?.email ?? null]));
 
     return rows.map((r) => ({ ...r, email: emailByUid.get(r.userId) ?? null }));
+  }
+
+  /** Direct Firestore read for verifying payment password, avoiding circular AuthService injection. */
+  async verifyPaymentPassword(uid: string, paymentPassword?: string): Promise<void> {
+    if (!paymentPassword) {
+      throw new BadRequestException('자금이체 비밀번호를 입력해주세요.');
+    }
+    const snap = await this.db.collection(COLLECTIONS.USERS).doc(uid).get();
+    const hash = snap.exists ? snap.data()?.paymentPasswordHash : null;
+    if (!hash) {
+      throw new BadRequestException('자금이체 비밀번호가 설정되어 있지 않습니다. 먼저 설정해주세요.');
+    }
+    const matches = await bcrypt.compare(paymentPassword, hash);
+    if (!matches) {
+      throw new BadRequestException('자금이체 비밀번호가 일치하지 않습니다.');
+    }
   }
 }

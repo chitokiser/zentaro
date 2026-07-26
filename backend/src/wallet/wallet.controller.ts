@@ -35,7 +35,7 @@ export class WalletController {
 
   @Post('withdraw-usdt')
   withdrawUsdt(@CurrentUser() user: CurrentUserPayload, @Body() dto: WithdrawUsdtDto) {
-    return this.walletService.withdrawUsdt(user.uid, dto.zpAmount);
+    return this.walletService.withdrawUsdt(user.uid, dto.zpAmount, dto.paymentPassword);
   }
 
   @Post('level-up')

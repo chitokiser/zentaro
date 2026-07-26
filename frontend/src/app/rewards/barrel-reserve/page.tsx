@@ -25,6 +25,7 @@ import {
     type PublicBarrel
 } from "@/lib/auth-client"
 import { BarrelVisual, formatAgingDuration, AGING_TARGET_SECONDS } from "@/components/rewards/barrel-visual"
+import { PaymentPinDialog } from "@/components/payment-pin-dialog"
 import {
     Wine,
     Flame,
@@ -296,6 +297,11 @@ export default function BarrelReservePage() {
     const [zpBalance, setZpBalance] = useState<number>(0)
     const [stakedZtro, setStakedZtro] = useState<number>(0)
     const [walletAddress, setWalletAddress] = useState<string>("")
+    const [hasPinSet, setHasPinSet] = useState<boolean>(true)
+
+    // Purchase PIN control
+    const [isBuyPinOpen, setIsBuyPinOpen] = useState(false)
+    const [pendingBuyBarrel, setPendingBuyBarrel] = useState<PublicBarrel | null>(null)
 
     // Interactive Barrel Selection
     const [selectedSize, setSelectedSize] = useState<string>("10L")
@@ -370,6 +376,7 @@ export default function BarrelReservePage() {
             const me = await fetchMe()
             setMyUid(me.uid)
             setAdminLevel(me.adminLevel)
+            setHasPinSet(me.hasPaymentPassword)
         } catch (err) {
             console.error("Failed to load user and barrel data:", err)
             const msg = err instanceof Error ? err.message : "Không thể tải thông tin hội viên."
@@ -508,21 +515,29 @@ export default function BarrelReservePage() {
         }
     }
 
-    const handleBuyBarrel = async (barrel: PublicBarrel) => {
+    const handleBuyBarrel = (barrel: PublicBarrel) => {
         if (!myUid) {
             alert("Vui lòng đăng nhập để mua thùng.")
             return
         }
         if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZp.toLocaleString()} ZP để mua thùng này (${barrel.id}) không? Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
+        setPendingBuyBarrel(barrel)
+        setIsBuyPinOpen(true)
+    }
+
+    const executeBuyBarrel = async (paymentPassword?: string) => {
+        if (!pendingBuyBarrel) return
         setActionBusy(true)
         setActionError(null)
         setActionSuccess(null)
         try {
-            await buyBarrel(barrel.id)
+            await buyBarrel(pendingBuyBarrel.id, paymentPassword)
             setActionSuccess("Mua thùng thành công. Hãy kiểm tra trong Bộ sưu tập thùng của tôi.")
+            setIsBuyPinOpen(false)
+            setPendingBuyBarrel(null)
             await Promise.all([loadData(), loadPublicGallery()])
         } catch (err) {
-            setActionError(err instanceof Error ? err.message : "Mua thất bại.")
+            throw err
         } finally {
             setActionBusy(false)
         }
@@ -2217,6 +2232,19 @@ export default function BarrelReservePage() {
                     </div>
                 </div>
             )}
+
+            <PaymentPinDialog
+                isOpen={isBuyPinOpen}
+                onClose={() => {
+                    setIsBuyPinOpen(false)
+                    setPendingBuyBarrel(null)
+                }}
+                onSuccess={executeBuyBarrel}
+                title="P2P 배럴 구매 승인"
+                description={pendingBuyBarrel ? `${pendingBuyBarrel.currentValueZp.toLocaleString()} ZP 대금 결제를 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
+                hasPinSet={hasPinSet}
+                onPinSetSuccess={() => setHasPinSet(true)}
+            />
         </div>
     )
 }

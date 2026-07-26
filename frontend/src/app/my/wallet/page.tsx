@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, levelUp, type ExchangeDashboard, type DepositRequest } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, levelUp, fetchMe, type ExchangeDashboard, type DepositRequest, type Me } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { LevelBenefitsCard } from "@/components/level-benefits-card"
+import { PaymentPinDialog } from "@/components/payment-pin-dialog"
 
 interface WalletData {
   ap: number
@@ -25,7 +27,14 @@ export default function WalletPage() {
   const w = t.myPage.wallet
   const [wallet, setWallet] = useState<WalletData | null>(null)
   const [dashboard, setDashboard] = useState<ExchangeDashboard | null>(null)
+  const [me, setMe] = useState<Me | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // PIN Dialog States
+  const [isPinDialogOpen, setIsPinDialogOpen] = useState(false)
+  const [pinDialogTitle, setPinDialogTitle] = useState("결제 비밀번호 승인")
+  const [pinDialogDesc, setPinDialogDesc] = useState("자산 인출을 위해 6자리 결제 비밀번호를 입력해주세요.")
+  const [pendingZpAmount, setPendingZpAmount] = useState<number | null>(null)
 
   // ZP Top-up UI States
   const [zpAmount, setZpAmount] = useState<number>(10000)
@@ -68,10 +77,11 @@ export default function WalletPage() {
   }, [])
 
   const loadWalletData = () => {
-    Promise.all([fetchWallet(), fetchExchangeDashboard()])
-      .then(([wData, dData]) => {
+    Promise.all([fetchWallet(), fetchExchangeDashboard(), fetchMe()])
+      .then(([wData, dData, mData]) => {
         setWallet(wData)
         setDashboard(dData)
+        setMe(mData)
       })
       .catch((err) => setError(err instanceof Error ? err.message : w.convertGenericError))
   }
@@ -187,7 +197,7 @@ export default function WalletPage() {
     }
   }
 
-  const handleUsdtWithdraw = async () => {
+  const handleUsdtWithdraw = () => {
     if (!wallet) return
     if (!Number.isInteger(withdrawAmount) || withdrawAmount < 10000) {
       setWithdrawError(w.usdtWithdrawMinAlert)
@@ -197,16 +207,28 @@ export default function WalletPage() {
       setWithdrawError(w.usdtWithdrawInsufficientAlert)
       return
     }
+    setWithdrawError(null)
+    setWithdrawSuccess(null)
+    setPendingZpAmount(withdrawAmount)
+    setPinDialogTitle("USDT 출금 승인")
+    setPinDialogDesc(`${withdrawAmount.toLocaleString()} ZP 출금을 위해 6자리 결제 비밀번호를 입력해주세요.`)
+    setIsPinDialogOpen(true)
+  }
+
+  const executeUsdtWithdraw = async (paymentPassword?: string) => {
+    const amount = pendingZpAmount ?? withdrawAmount
     setWithdrawBusy(true)
     setWithdrawError(null)
     setWithdrawSuccess(null)
     try {
-      const result = await withdrawUsdt(withdrawAmount)
-      setWithdrawSuccess(`${w.usdtWithdrawSuccessPrefix}${withdrawAmount.toLocaleString()}${w.usdtWithdrawSuccessMiddle}${result.netUsdt.toFixed(4)}${w.usdtWithdrawSuccessSuffix}`)
+      const result = await withdrawUsdt(amount, paymentPassword)
+      setWithdrawSuccess(`${w.usdtWithdrawSuccessPrefix}${amount.toLocaleString()}${w.usdtWithdrawSuccessMiddle}${result.netUsdt.toFixed(4)}${w.usdtWithdrawSuccessSuffix}`)
+      setIsPinDialogOpen(false)
+      setPendingZpAmount(null)
       loadWalletData()
       loadDepositHistory()
     } catch (err) {
-      setWithdrawError(err instanceof Error ? err.message : w.usdtWithdrawErrorGeneric)
+      throw err
     } finally {
       setWithdrawBusy(false)
     }
@@ -275,34 +297,45 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* EXP level-up */}
-      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col gap-3">
-        <div className="flex items-center justify-between gap-3">
+      <LevelBenefitsCard
+        level={wallet.level}
+        exp={wallet.exp}
+        onLevelUp={handleLevelUp}
+        levelUpBusy={levelUpBusy}
+        levelUpError={levelUpError}
+        levelUpSuccess={levelUpSuccess}
+      />
+
+      {/* Payment Password Status Card */}
+      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg border ${me?.hasPaymentPassword ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-500" : "bg-yellow-500/10 border-yellow-500/20 text-yellow-500"}`}>
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
+          </div>
           <div>
-            <h3 className="font-display text-sm font-semibold text-foreground">{w.levelSectionTitle}</h3>
-            <p className="mt-1 text-xs text-muted-foreground">{w.levelSectionDescription}</p>
-          </div>
-          <div className="text-right shrink-0">
-            <span className="text-[10px] text-muted-foreground block">{w.levelCurrentLabel}</span>
-            <span className="font-display text-2xl font-bold text-amber-500">Lv.{wallet.level}</span>
+            <h4 className="font-display text-sm font-semibold text-foreground">결제 비밀번호 보안 설정</h4>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {me?.hasPaymentPassword
+                ? "결제 비밀번호가 안전하게 설정되어 있습니다. (USDT 출금, P2P 구매, ZTRO 이체 시 사용)"
+                : "USDT 출금 및 중요 자산 이체 거래를 위해서 6자리 결제 비밀번호 설정이 필수입니다."
+              }
+            </p>
           </div>
         </div>
-        {levelUpError ? <p className="text-xs text-destructive">{levelUpError}</p> : null}
-        {levelUpSuccess ? <p className="text-xs text-emerald-500">{levelUpSuccess}</p> : null}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <span className="text-xs text-muted-foreground">
-            {w.levelUpCostPrefix}
-            <span className="font-semibold text-foreground notranslate">{expCostForLevel(wallet.level).toLocaleString()} EXP</span>
-          </span>
-          <button
-            type="button"
-            disabled={levelUpBusy || wallet.exp < expCostForLevel(wallet.level)}
-            onClick={handleLevelUp}
-            className="bg-amber-500 hover:bg-amber-600 text-black font-semibold text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
-          >
-            {levelUpBusy ? w.levelUpBusyButton : w.levelUpButton}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setPinDialogTitle(me?.hasPaymentPassword ? "결제 비밀번호 재설정" : "결제 비밀번호 설정");
+            setPinDialogDesc("보안 자산 거래 보호를 위해 6자리 결제 비밀번호를 입력해주세요.");
+            setPendingZpAmount(null);
+            setIsPinDialogOpen(true);
+          }}
+          className={`shrink-0 self-start sm:self-center font-medium text-xs rounded-md px-3.5 py-1.5 transition ${me?.hasPaymentPassword ? "bg-secondary border border-border text-foreground hover:bg-secondary/80" : "bg-amber-500 hover:bg-amber-600 text-black font-semibold"}`}
+        >
+          {me?.hasPaymentPassword ? "비밀번호 변경" : "비밀번호 설정"}
+        </button>
       </div>
 
       {/* ZP -> EXP 1:1 conversion */}
@@ -584,8 +617,8 @@ export default function WalletPage() {
                       {req.currency === "VND"
                         ? `${Math.round((req.zpAmount / 10000) * 25420.5).toLocaleString()} VND`
                         : req.currency === "KRW"
-                        ? `${Math.round((req.zpAmount / 10000) * 1395.2).toLocaleString()} KRW`
-                        : `${req.usdtAmount ?? (req.zpAmount / 10000)} USDT`
+                          ? `${Math.round((req.zpAmount / 10000) * 1395.2).toLocaleString()} KRW`
+                          : `${req.usdtAmount ?? (req.zpAmount / 10000)} USDT`
                       }
                     </td>
                     <td className="py-2.5">{req.currency}</td>
@@ -611,6 +644,18 @@ export default function WalletPage() {
           <p className="text-xs text-muted-foreground py-6 text-center">{w.historyEmpty}</p>
         )}
       </div>
+
+      <PaymentPinDialog
+        isOpen={isPinDialogOpen}
+        onClose={() => setIsPinDialogOpen(false)}
+        onSuccess={pendingZpAmount !== null ? executeUsdtWithdraw : () => setIsPinDialogOpen(false)}
+        title={pinDialogTitle}
+        description={pinDialogDesc}
+        hasPinSet={me?.hasPaymentPassword}
+        onPinSetSuccess={() => {
+          setMe((prev) => (prev ? { ...prev, hasPaymentPassword: true } : null));
+        }}
+      />
     </div>
   )
 }

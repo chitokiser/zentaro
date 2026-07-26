@@ -45,8 +45,11 @@ export class TokenExchangeController {
   }
 
   @Post('transfer-out')
-  transferOut(@CurrentUser() user: CurrentUserPayload, @Body() dto: { stakeId: number; recipient: string }) {
-    return this.tokenExchangeService.transferOut(user.uid, dto.stakeId, dto.recipient);
+  transferOut(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: { stakeId: number; recipient: string; paymentPassword?: string },
+  ) {
+    return this.tokenExchangeService.transferOut(user.uid, dto.stakeId, dto.recipient, dto.paymentPassword);
   }
 
   @Post('claim-dividend')
@@ -92,8 +95,12 @@ export class TokenExchangeController {
   }
 
   @Post('barrel/:id/buy')
-  buyBarrel(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
-    return this.tokenExchangeService.buyBarrel(user.uid, id);
+  buyBarrel(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: { paymentPassword?: string },
+  ) {
+    return this.tokenExchangeService.buyBarrel(user.uid, id, dto.paymentPassword);
   }
 
   @Post('barrel/:id/enhancement')
