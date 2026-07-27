@@ -4,7 +4,7 @@
 
 - Fixed supply: 1,000,000,000 (decimals: 0)
 - Network: opBNB
-- Deployed address: `0x4c88B8b5caC7F6c3F28612fe4DcCA94e76541cee`
+- Deployed address: `0xF4E758D3461886f7dD5af3E86f622e171113A568`
 
 ## HEX (HeritageX Token) — `hex.sol`
 
@@ -26,7 +26,7 @@ ZTRO stakers. References the HEX token above at
 ## ZtroRewardDispenser (`ZtroRewardDispenser.sol`)
 
 - Network: opBNB
-- **v2 deployed address: `0xe0F8e9Ce505e62aBe40E84Ac49777fF8333eE46a`** — payout formula
+- **v2 deployed address: `0xB019DF1086b634Abd4459cCD96BeD3aa56b0fd45`** — payout formula
   changed from a flat 1–50 range to `baseValue x randomMultiplier`, so the ABI changed
   and required a fresh deployment. The v1 address
   (`0x75C940770e4d480BeAddE8e0f6d5fab3375Df95f`, never funded) is retired.

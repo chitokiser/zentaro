@@ -1,7 +1,7 @@
 const { ethers } = require('ethers');
 
 const OPBNB_RPC_URL = 'https://opbnb-rpc.publicnode.com';
-const TARGET_ADDRESS = '0x9880728c28B6B03057225F70738a0B9e4Bed2ac2';
+const TARGET_ADDRESS = '0xB019DF1086b634Abd4459cCD96BeD3aa56b0fd45';
 
 async function main() {
     const provider = new ethers.JsonRpcProvider(OPBNB_RPC_URL);

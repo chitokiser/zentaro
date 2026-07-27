@@ -71,6 +71,10 @@ const ko = {
     tagline:
       "Every Bottle Tells a Story. 프리미엄 크래프트 증류소 ZENTARO가 빚어내는 진, 위스키, 리큐르와 보태니컬의 이야기.",
     rights: "All rights reserved.",
+    companyName: "상호: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
+    ceo: "대표자: NGUYỄN XUÂN ƯỚC",
+    address: "주소: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
+    businessNo: "사업자등록번호: 2401046502",
   },
   pwaInstall: {
     title: "ZENTARO 앱 설치하기",
@@ -743,6 +747,10 @@ const en: Dict = {
     tagline:
       "Every Bottle Tells a Story. The tale of gin, whisky, liqueur, and botanicals crafted by premium craft distillery ZENTARO.",
     rights: "All rights reserved.",
+    companyName: "Company: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
+    ceo: "CEO: NGUYỄN XUÂN ƯỚC",
+    address: "Address: Lien Son Block, Tien Phong Ward, Bac Ninh City, Bac Ninh Province, Vietnam",
+    businessNo: "Business Registration No: 2401046502",
   },
   pwaInstall: {
     title: "Install ZENTARO App",
@@ -1413,6 +1421,10 @@ const vi: Dict = {
     tagline:
       "Every Bottle Tells a Story. Câu chuyện về gin, whisky, rượu mùi và thảo mộc được chưng cất bởi ZENTARO.",
     rights: "Đã đăng ký bản quyền.",
+    companyName: "Công ty: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
+    ceo: "Đại diện: NGUYỄN XUÂN ƯỚC",
+    address: "Địa chỉ: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
+    businessNo: "Mã số thuế: 2401046502",
   },
   pwaInstall: {
     title: "Cài đặt ứng dụng ZENTARO",

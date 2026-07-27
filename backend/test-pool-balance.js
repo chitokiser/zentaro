@@ -2,8 +2,8 @@ const { ethers } = require('ethers');
 
 // Faster RPC
 const OPBNB_RPC_URL = 'https://opbnb.publicnode.com';
-const ZTRO_TOKEN_ADDRESS = '0x4c88B8b5caC7F6c3F28612fe4DcCA94e76541cee';
-const ZTRO_REWARD_CONTRACT_ADDRESS = '0x9880728c28B6B03057225F70738a0B9e4Bed2ac2';
+const ZTRO_TOKEN_ADDRESS = '0xF4E758D3461886f7dD5af3E86f622e171113A568';
+const ZTRO_REWARD_CONTRACT_ADDRESS = '0xB019DF1086b634Abd4459cCD96BeD3aa56b0fd45';
 
 async function main() {
     const provider = new ethers.JsonRpcProvider(OPBNB_RPC_URL);

@@ -41,7 +41,7 @@ contract ReentrancyGuard {
 
 contract ZtroRewardDispenser is Ownable, ReentrancyGuard {
     // ZTRO: decimals = 0 (whole-token units). Deployed at
-    // 0x4c88B8b5caC7F6c3F28612fe4DcCA94e76541cee on opBNB.
+    // 0xF4E758D3461886f7dD5af3E86f622e171113A568 on opBNB.
     IERC20 public immutable ztro;
 
     // Backend hot wallet: pays gas for reward() and is the only address allowed to call it.

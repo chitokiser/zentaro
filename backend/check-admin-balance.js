@@ -1,9 +1,9 @@
 const { ethers } = require('ethers');
 
 const OPBNB_RPC_URL = 'https://opbnb-mainnet-rpc.bnbchain.org';
-const ZTRO_TOKEN_ADDRESS = '0x4c88B8b5caC7F6c3F28612fe4DcCA94e76541cee';
-const ZTRO_REWARD_CONTRACT_ADDRESS = '0x9880728c28B6B03057225F70738a0B9e4Bed2ac2';
-const ADMIN_WALLET_ADDRESS = '0xd0b8E0Dbb658d24cA59aa7108f582daD98Dd2A27';
+const ZTRO_TOKEN_ADDRESS = '0xF4E758D3461886f7dD5af3E86f622e171113A568';
+const ZTRO_REWARD_CONTRACT_ADDRESS = '0xB019DF1086b634Abd4459cCD96BeD3aa56b0fd45';
+const ADMIN_WALLET_ADDRESS = '0xE1F72796e5d76193fC38e976B033b5C646e6C230';
 
 async function main() {
     const provider = new ethers.JsonRpcProvider(OPBNB_RPC_URL);

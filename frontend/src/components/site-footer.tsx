@@ -84,6 +84,15 @@ export function SiteFooter() {
           </div>
 
           <div className="mt-10 border-t border-border/40 pt-6 text-xs text-muted-foreground">
+            <div className="mb-4 flex flex-wrap gap-x-3 gap-y-1.5 text-[11px] text-muted-foreground/80">
+              <span>{t.footer.companyName}</span>
+              <span className="hidden sm:inline text-border/50">|</span>
+              <span>{t.footer.ceo}</span>
+              <span className="hidden sm:inline text-border/50">|</span>
+              <span>{t.footer.address}</span>
+              <span className="hidden sm:inline text-border/50">|</span>
+              <span>{t.footer.businessNo}</span>
+            </div>
             © {new Date().getFullYear()} ZENTARO. {t.footer.rights}
           </div>
         </div>
