@@ -756,8 +756,18 @@ export default function DaoStakingPage() {
                             </div>
 
                             {!account ? (
-                                <div className="py-12 text-center text-xs text-slate-500">
-                                    거버너의 메타마스크 지갑을 연동하시면 스테이킹 위치 목록이 여기에 표시됩니다.
+                                <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
+                                    <div className="text-xs text-slate-500 max-w-sm">
+                                        나의 ZTRO 스테이킹 수량, 락업 만기 현황 및 최종 자산 인출을 확인하려면 개인 Web3 지갑 연동이 필요합니다.
+                                    </div>
+                                    <Button
+                                        onClick={connectAndSwitchToOpBnb}
+                                        disabled={busy}
+                                        className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs px-6 py-2 flex items-center gap-2"
+                                    >
+                                        <Wallet className="h-4 w-4" />
+                                        개인 지갑 연결 (Connect MetaMask)
+                                    </Button>
                                 </div>
                             ) : userStakes.length === 0 ? (
                                 <div className="py-12 text-center text-xs text-slate-500">
@@ -917,8 +927,18 @@ export default function DaoStakingPage() {
 
                             {/* Proposals list */}
                             {!account ? (
-                                <div className="py-8 text-center text-xs text-slate-500">
-                                    지갑을 온체인 연결하시면 DAO 제안 목록 조회 및 거버넌스 투표 참여가 가능합니다.
+                                <div className="py-8 flex flex-col items-center justify-center gap-4 text-center">
+                                    <div className="text-xs text-slate-500 max-w-sm">
+                                        지갑을 온체인 연결하시면 DAO 제안 목록 조회 및 거버넌스 투표 참여가 가능합니다.
+                                    </div>
+                                    <Button
+                                        onClick={connectAndSwitchToOpBnb}
+                                        disabled={busy}
+                                        className="bg-indigo-600/90 hover:bg-indigo-500 text-white font-semibold text-xs px-6 py-2 flex items-center gap-2"
+                                    >
+                                        <Wallet className="h-4 w-4" />
+                                        개인 지갑 연결 (Connect MetaMask)
+                                    </Button>
                                 </div>
                             ) : proposals.length === 0 ? (
                                 <div className="py-8 text-center text-xs text-slate-500">
@@ -1005,8 +1025,8 @@ export default function DaoStakingPage() {
                                                             onClick={() => handleVote(prop.proposalId, true)}
                                                             disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
                                                             className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && prop.userVoteChoice
-                                                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
-                                                                    : "bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800"
+                                                                ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+                                                                : "bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800"
                                                                 }`}
                                                         >
                                                             <Check className="h-3.5 w-3.5" />
@@ -1016,8 +1036,8 @@ export default function DaoStakingPage() {
                                                             onClick={() => handleVote(prop.proposalId, false)}
                                                             disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
                                                             className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && !prop.userVoteChoice
-                                                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/30"
-                                                                    : "bg-slate-900 hover:bg-slate-800 text-rose-400 border border-slate-800"
+                                                                ? "bg-rose-600/20 text-rose-400 border border-rose-500/30"
+                                                                : "bg-slate-900 hover:bg-slate-800 text-rose-400 border border-slate-800"
                                                                 }`}
                                                         >
                                                             <X className="h-3.5 w-3.5" />
