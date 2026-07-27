@@ -5,7 +5,8 @@ import { ethers } from "ethers"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight } from "lucide-react"
+import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight, Vote, Check, X, Megaphone } from "lucide-react"
+import { useI18n } from "@/lib/i18n/i18n-context"
 
 // opBNB details
 declare global {
@@ -39,6 +40,16 @@ const VAULT_ABI = [
     "function adminReserve() external view returns (uint256)",
     "function withdrawApproved(address user) external view returns (bool)",
     "function transferApproved(address user) external view returns (bool)",
+    // Proposal functions mapping
+    "function owner() external view returns (address)",
+    "function proposalCounter() external view returns (uint256)",
+    "function proposals(uint256 proposalId) external view returns (uint256 proposalId, address recipient, uint256 amount, uint256 createdAt, uint256 deadline, bool executed, bool cancelled, uint256 yesVotes, uint256 noVotes, uint256 snapshotTotalStake)",
+    "function vote(uint256 proposalId, bool support) external",
+    "function hasVoted(uint256 proposalId, address staker) external view returns (bool)",
+    "function voteChoice(uint256 proposalId, address staker) external view returns (bool)",
+    "function createProposal(address recipient, uint256 amount) external returns (uint256)",
+    "function executeProposal(uint256 proposalId) external",
+    "function cancelProposal(uint256 proposalId) external",
 ]
 
 interface StakePosition {
@@ -52,7 +63,23 @@ interface StakePosition {
     isUnlocked: boolean
 }
 
+interface ProposalItem {
+    proposalId: number
+    recipient: string
+    amount: number
+    createdAt: Date
+    deadline: Date
+    executed: boolean
+    cancelled: boolean
+    yesVotes: number
+    noVotes: number
+    snapshotTotalStake: number
+    userHasVoted: boolean
+    userVoteChoice: boolean
+}
+
 export default function DaoStakingPage() {
+    const { t } = useI18n()
     const [account, setAccount] = useState<string | null>(null)
     const [chainId, setChainId] = useState<string | null>(null)
     const [clientInit, setClientInit] = useState(false)
@@ -63,6 +90,12 @@ export default function DaoStakingPage() {
     const [totalStaked, setTotalStaked] = useState<string>("0")
     const [userStakingPower, setUserStakingPower] = useState<string>("0")
     const [userStakes, setUserStakes] = useState<StakePosition[]>([])
+
+    // DAO Proposal data
+    const [isOwner, setIsOwner] = useState<boolean>(false)
+    const [proposals, setProposals] = useState<ProposalItem[]>([])
+    const [proposalRecipient, setProposalRecipient] = useState<string>("")
+    const [proposalAmount, setProposalAmount] = useState<string>("")
 
     // Staking Input
     const [stakeAmount, setStakeAmount] = useState<string>("")
@@ -181,7 +214,9 @@ export default function DaoStakingPage() {
                 userAllowanceWei,
                 withdrawFlag,
                 transferFlag,
-                stakeIdsLists
+                stakeIdsLists,
+                contractOwner,
+                proposalCountRaw
             ] = await Promise.all([
                 ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
                 vaultContract.totalStaked(),
@@ -189,7 +224,9 @@ export default function DaoStakingPage() {
                 ztroContract.allowance(account, ZTRO_VAULT_CONTRACT_ADDRESS),
                 vaultContract.withdrawApproved(account),
                 vaultContract.transferApproved(account),
-                vaultContract.getAllStakes(account)
+                vaultContract.getAllStakes(account),
+                vaultContract.owner(),
+                vaultContract.proposalCounter()
             ])
 
             setLockedContractZtro(ethers.formatEther(contractBalance))
@@ -199,6 +236,7 @@ export default function DaoStakingPage() {
 
             setWithdrawApprovedFlag(withdrawFlag)
             setTransferApprovedFlag(transferFlag)
+            setIsOwner(contractOwner.toLowerCase() === account.toLowerCase())
 
             // Fetch user stakes positions lists
             const positions: StakePosition[] = []
@@ -229,6 +267,43 @@ export default function DaoStakingPage() {
 
             setUserStakingPower(tempUserStakingPower.toString())
             setUserStakes(positions.sort((a, b) => b.stakeId - a.stakeId))
+
+            // Fetch and parse proposals details from contract
+            const proposalItems: ProposalItem[] = []
+            const propCount = Number(proposalCountRaw)
+            for (let i = propCount; i >= 1; i--) {
+                try {
+                    const rawProp = await vaultContract.proposals(i)
+                    let userVoted = false
+                    let userChoice = false
+                    try {
+                        userVoted = await vaultContract.hasVoted(i, account)
+                        if (userVoted) {
+                            userChoice = await vaultContract.voteChoice(i, account)
+                        }
+                    } catch (voteErr) {
+                        console.warn(`Failed to inspect user vote on proposal #${i}:`, voteErr)
+                    }
+
+                    proposalItems.push({
+                        proposalId: Number(rawProp[0]),
+                        recipient: rawProp[1],
+                        amount: Number(ethers.formatEther(rawProp[2])),
+                        createdAt: new Date(Number(rawProp[3]) * 1000),
+                        deadline: new Date(Number(rawProp[4]) * 1000),
+                        executed: rawProp[5],
+                        cancelled: rawProp[6],
+                        yesVotes: Number(ethers.formatEther(rawProp[7])),
+                        noVotes: Number(ethers.formatEther(rawProp[8])),
+                        snapshotTotalStake: Number(ethers.formatEther(rawProp[9])),
+                        userHasVoted: userVoted,
+                        userVoteChoice: userChoice
+                    })
+                } catch (e) {
+                    console.error(`Failed to load details for proposal #${i}:`, e)
+                }
+            }
+            setProposals(proposalItems)
 
         } catch (err) {
             console.error("Failed to query smart contract states:", err)
@@ -342,6 +417,114 @@ export default function DaoStakingPage() {
         } catch (err: any) {
             console.error(err)
             setMessage({ text: err.reason || err.message || "Transfer Out 실패", type: "error" })
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    // Execute Create Proposal
+    const handleCreateProposal = async () => {
+        if (!proposalRecipient || !ethers.isAddress(proposalRecipient)) {
+            setMessage({ text: "올바른 대상 지갑 주소를 입력대조해 주세요.", type: "error" })
+            return
+        }
+        if (!proposalAmount || isNaN(Number(proposalAmount)) || Number(proposalAmount) <= 0) {
+            setMessage({ text: "올바른 인출 수량을 지정해 주세요.", type: "error" })
+            return
+        }
+        if (typeof window === "undefined" || !window.ethereum || !account) return
+        setBusy(true)
+        setMessage({ text: "신규 안건 발의 트랜잭션을 준비 중입니다. 지갑 확인 필요...", type: "info" })
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const signer = await provider.getSigner()
+            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+
+            const amountWei = ethers.parseEther(proposalAmount)
+            const tx = await vaultContract.createProposal(proposalRecipient, amountWei)
+
+            setMessage({ text: "안건 발의 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
+            await tx.wait()
+
+            setMessage({ text: "DAO 거버넌스 안건 발의 성공!", type: "success" })
+            setProposalRecipient("")
+            setProposalAmount("")
+            refreshStakingDetails()
+        } catch (err: any) {
+            console.error(err)
+            setMessage({ text: err.reason || err.message || "안건 발의 실패 (컨트랙트 소유자 권한 점검 요망)", type: "error" })
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    // Execute Vote
+    const handleVote = async (proposalId: number, support: boolean) => {
+        if (typeof window === "undefined" || !window.ethereum || !account) return
+        setBusy(true)
+        setMessage({ text: `안건 #${proposalId}에 대한 투표를 진행 중입니다. 지갑 승인 필요...`, type: "info" })
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const signer = await provider.getSigner()
+            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+
+            const tx = await vaultContract.vote(proposalId, support)
+            setMessage({ text: "투표 트랜잭션이 블록에 포함되길 기다리는 중입니다...", type: "info" })
+            await tx.wait()
+
+            setMessage({ text: `안건 #${proposalId} 투표 성공!`, type: "success" })
+            refreshStakingDetails()
+        } catch (err: any) {
+            console.error(err)
+            setMessage({ text: err.reason || err.message || "투표 트스크 실패 (투표 가중치 파워 점검 요망)", type: "error" })
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    // Execute Proposal
+    const handleExecuteProposal = async (proposalId: number) => {
+        if (typeof window === "undefined" || !window.ethereum || !account) return
+        setBusy(true)
+        setMessage({ text: `안건 #${proposalId} 실행을 준비 중입니다. 지갑 확인 필요...`, type: "info" })
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const signer = await provider.getSigner()
+            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+
+            const tx = await vaultContract.executeProposal(proposalId)
+            setMessage({ text: "실행 트랜잭션의 승인을 확인 중입니다...", type: "info" })
+            await tx.wait()
+
+            setMessage({ text: `안건 #${proposalId} 실행 성공! 금고 자산 인출 완료.`, type: "success" })
+            refreshStakingDetails()
+        } catch (err: any) {
+            console.error(err)
+            setMessage({ text: err.reason || err.message || "안건 실행 실패 (가결 기준 및 소유자 권한 점검)", type: "error" })
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    // Cancel Proposal
+    const handleCancelProposal = async (proposalId: number) => {
+        if (typeof window === "undefined" || !window.ethereum || !account) return
+        setBusy(true)
+        setMessage({ text: `안건 #${proposalId} 취소를 조율 중입니다. 지갑 확인 필요...`, type: "info" })
+        try {
+            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const signer = await provider.getSigner()
+            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+
+            const tx = await vaultContract.cancelProposal(proposalId)
+            setMessage({ text: "취소 트랜잭션 처리 중입니다...", type: "info" })
+            await tx.wait()
+
+            setMessage({ text: `안건 #${proposalId} 취소 완료!`, type: "success" })
+            refreshStakingDetails()
+        } catch (err: any) {
+            console.error(err)
+            setMessage({ text: err.reason || err.message || "안건 취소 실패 (소유자 권한 점검)", type: "error" })
         } finally {
             setBusy(false)
         }
@@ -664,6 +847,209 @@ export default function DaoStakingPage() {
                             <p className="leading-relaxed">
                                 Vault DAO 의 모든 투표권(Voting Power)은 해당 지갑의 누적 활성 스테이킹 ZTRO 수량의 가중치로 구성됩니다. 제안(Proposals)이 발의될 경우, 거버너는 서명 권리를 통해 해당 인출 또는 안건에 찬반 의사를 행사할 수 있습니다. 30일 배수로 락업 기간이 높을수록 리워드 획득 비율과 생태계 참여 지위가 강화됩니다.
                             </p>
+                        </div>
+
+                        {/* DAO Proposals Section */}
+                        <div className="rounded-2xl border border-slate-800/80 bg-slate-950/80 p-6 flex flex-col gap-6 backdrop-blur-xl">
+                            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+                                <h3 className="font-display text-lg font-semibold text-white flex items-center gap-2">
+                                    <Vote className="h-5 w-5 text-indigo-400" />
+                                    {t.daoStakingPage.proposalSectionTitle}
+                                </h3>
+                                <Button
+                                    onClick={refreshStakingDetails}
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-8 w-8 border-slate-800 text-slate-400 hover:text-white"
+                                    title="새로고침"
+                                    disabled={busy}
+                                >
+                                    <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} />
+                                </Button>
+                            </div>
+
+                            {/* Create Proposal Form - Admin Only view, normal users see guidelines */}
+                            <div className="p-4 rounded-xl border border-slate-800 bg-slate-900/20 space-y-4">
+                                <span className="text-xs font-semibold text-slate-200 block flex items-center gap-1.5">
+                                    <Megaphone className="h-4 w-4 text-indigo-400" />
+                                    {t.daoStakingPage.proposalCreateTitle}
+                                </span>
+                                {isOwner ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <label className="flex flex-col gap-1 text-xs text-slate-400">
+                                            {t.daoStakingPage.proposalRecipientLabel}
+                                            <input
+                                                type="text"
+                                                placeholder="0x..."
+                                                className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-mono placeholder-slate-700 focus:outline-none focus:border-indigo-500"
+                                                value={proposalRecipient}
+                                                onChange={(e) => setProposalRecipient(e.target.value)}
+                                                disabled={busy}
+                                            />
+                                        </label>
+                                        <div className="flex gap-3 items-end">
+                                            <label className="flex-1 flex flex-col gap-1 text-xs text-slate-400">
+                                                {t.daoStakingPage.proposalAmountLabel}
+                                                <input
+                                                    type="text"
+                                                    placeholder="0.0"
+                                                    className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-mono placeholder-slate-700 focus:outline-none focus:border-indigo-500"
+                                                    value={proposalAmount}
+                                                    onChange={(e) => setProposalAmount(e.target.value)}
+                                                    disabled={busy}
+                                                />
+                                            </label>
+                                            <Button
+                                                onClick={handleCreateProposal}
+                                                disabled={busy || !proposalRecipient || !proposalAmount}
+                                                className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs h-[34px]"
+                                            >
+                                                {t.daoStakingPage.proposalSubmitButton}
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <p className="text-[11px] text-slate-400 italic">
+                                        {t.daoStakingPage.proposalOwnerOnlyAlert}
+                                    </p>
+                                )}
+                            </div>
+
+                            {/* Proposals list */}
+                            {!account ? (
+                                <div className="py-8 text-center text-xs text-slate-500">
+                                    지갑을 온체인 연결하시면 DAO 제안 목록 조회 및 거버넌스 투표 참여가 가능합니다.
+                                </div>
+                            ) : proposals.length === 0 ? (
+                                <div className="py-8 text-center text-xs text-slate-500">
+                                    {t.daoStakingPage.proposalListEmpty}
+                                </div>
+                            ) : (
+                                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 select-none">
+                                    {proposals.map((prop) => {
+                                        const now = Date.now()
+                                        const deadlineMs = prop.deadline.getTime()
+                                        const isExpired = now >= deadlineMs
+                                        const totalVotes = prop.yesVotes + prop.noVotes
+                                        const yesPercent = totalVotes > 0 ? (prop.yesVotes / totalVotes) * 100 : 0
+                                        const noPercent = totalVotes > 0 ? (prop.noVotes / totalVotes) * 100 : 0
+
+                                        let statusBadge = (
+                                            <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/20 text-[10px]">
+                                                {t.daoStakingPage.proposalStatusActive}
+                                            </Badge>
+                                        )
+                                        if (prop.executed) {
+                                            statusBadge = (
+                                                <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/20 text-[10px]">
+                                                    {t.daoStakingPage.proposalStatusExecuted}
+                                                </Badge>
+                                            )
+                                        } else if (prop.cancelled) {
+                                            statusBadge = (
+                                                <Badge className="bg-slate-800 text-slate-500 border-slate-800 text-[10px]">
+                                                    {t.daoStakingPage.proposalStatusCancelled}
+                                                </Badge>
+                                            )
+                                        } else if (isExpired) {
+                                            statusBadge = (
+                                                <Badge className="bg-amber-600/20 text-amber-400 border-amber-500/20 text-[10px]">
+                                                    {t.daoStakingPage.proposalStatusPassed}
+                                                </Badge>
+                                            )
+                                        }
+
+                                        return (
+                                            <div
+                                                key={prop.proposalId}
+                                                className="p-4 rounded-xl border border-slate-800 bg-slate-900/30 flex flex-col gap-3 transition-colors hover:border-slate-700/80"
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <div className="flex flex-col gap-1">
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-mono text-xs font-semibold text-slate-400">ID: #{prop.proposalId}</span>
+                                                            {statusBadge}
+                                                        </div>
+                                                        <span className="block text-[10px] text-slate-500 font-mono">
+                                                            Recipient: {prop.recipient}
+                                                        </span>
+                                                    </div>
+                                                    <span className="font-mono text-sm font-bold text-white">
+                                                        {prop.amount.toLocaleString()} ZTRO
+                                                    </span>
+                                                </div>
+
+                                                {/* Progress Bar for vote weights */}
+                                                <div className="space-y-1.5">
+                                                    <div className="flex justify-between text-[10px] text-slate-400">
+                                                        <span>{t.daoStakingPage.voteStatusLabel.replace("{yes}", prop.yesVotes.toLocaleString()).replace("{no}", prop.noVotes.toLocaleString())}</span>
+                                                        <span>투표 가중치: {totalVotes.toLocaleString()} ZTRO</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden flex">
+                                                        <div className="h-full bg-emerald-500" style={{ width: `${yesPercent}%` }} />
+                                                        <div className="h-full bg-rose-500" style={{ width: `${noPercent}%` }} />
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center text-[10px] text-slate-500">
+                                                    <span>발의일: {prop.createdAt.toLocaleString()}</span>
+                                                    <span className={isExpired ? "text-amber-500" : ""}>
+                                                        마감일: {prop.deadline.toLocaleString()} {isExpired && "(만료)"}
+                                                    </span>
+                                                </div>
+
+                                                {/* Voting actions */}
+                                                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3">
+                                                    <div className="flex gap-2">
+                                                        <Button
+                                                            onClick={() => handleVote(prop.proposalId, true)}
+                                                            disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
+                                                            className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && prop.userVoteChoice
+                                                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+                                                                    : "bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800"
+                                                                }`}
+                                                        >
+                                                            <Check className="h-3.5 w-3.5" />
+                                                            {t.daoStakingPage.voteYesButton}
+                                                        </Button>
+                                                        <Button
+                                                            onClick={() => handleVote(prop.proposalId, false)}
+                                                            disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
+                                                            className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && !prop.userVoteChoice
+                                                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/30"
+                                                                    : "bg-slate-900 hover:bg-slate-800 text-rose-400 border border-slate-800"
+                                                                }`}
+                                                        >
+                                                            <X className="h-3.5 w-3.5" />
+                                                            {t.daoStakingPage.voteNoButton}
+                                                        </Button>
+                                                    </div>
+
+                                                    {/* Admin proposal controls */}
+                                                    {isOwner && !prop.executed && !prop.cancelled && (
+                                                        <div className="flex gap-2 ml-auto">
+                                                            <Button
+                                                                onClick={() => handleExecuteProposal(prop.proposalId)}
+                                                                disabled={busy}
+                                                                className="bg-indigo-600 hover:bg-indigo-500 text-white text-[11px] px-3 py-1 h-8"
+                                                            >
+                                                                {t.daoStakingPage.executeButton}
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => handleCancelProposal(prop.proposalId)}
+                                                                disabled={busy}
+                                                                className="bg-rose-950/40 hover:bg-rose-900/40 text-rose-400 border border-rose-900/30 text-[11px] px-3 py-1 h-8"
+                                                            >
+                                                                {t.daoStakingPage.cancelButton}
+                                                            </Button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )
+                                    })}
+                                </div>
+                            )}
                         </div>
 
                     </div>
