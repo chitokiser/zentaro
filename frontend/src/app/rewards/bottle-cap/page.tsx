@@ -136,6 +136,14 @@ export default function BottleCapRewardsPage() {
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
+        {error === "로그인이 필요합니다." && poolBalance !== null && (
+          <div className="mb-6 flex justify-end">
+            <Badge variant="outline" className="text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1.5 px-3">
+              {t.bottleCap.poolBalanceLabel || "수량"}: {poolBalance.toLocaleString()} ZTRO
+            </Badge>
+          </div>
+        )}
+
         {error === "로그인이 필요합니다." ? (
           <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
             {t.bottleCap.loginRequired}{" "}

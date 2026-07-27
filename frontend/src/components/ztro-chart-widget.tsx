@@ -26,12 +26,12 @@ export function ZtroChartWidget() {
                     </h3>
                 </div>
                 <a
-                    href="https://dexscreener.com/opbnb/0xdd15A5316ED6A3530A403feDfc94FF0C6B2e64F3"
+                    href="https://www.geckoterminal.com/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 rounded-md border border-border/50 px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
                 >
-                    DexScreener에서 보기
+                    GeckoTerminal에서 보기
                     <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                         <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                         <polyline points="15 3 21 3 21 9" />
@@ -52,7 +52,7 @@ export function ZtroChartWidget() {
                 )}
                 <iframe
                     title="ZTRO/USDT Chart"
-                    src="https://dexscreener.com/opbnb/0xdd15A5316ED6A3530A403feDfc94FF0C6B2e64F3?embed=1&theme=dark&info=0"
+                    src="https://www.geckoterminal.com/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df?embed=1&info=0&swaps=0"
                     style={{ width: "100%", height: "100%", border: "none" }}
                     onLoad={() => setIsLoaded(true)}
                     allowFullScreen

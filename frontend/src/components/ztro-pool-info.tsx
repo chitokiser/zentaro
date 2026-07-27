@@ -22,16 +22,31 @@ export function ZtroPoolInfo() {
         const fetchPoolData = async () => {
             try {
                 const response = await fetch(
-                    "https://api.dexscreener.com/latest/dex/pairs/opbnb/0xdd15A5316ED6A3530A403feDfc94FF0C6B2e64F3"
+                    "https://api.geckoterminal.com/api/v2/networks/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df"
                 )
-                const data = await response.json()
+                const resJson = await response.json()
 
-                if (data.pair) {
-                    setPoolData(data.pair)
-                } else if (data.pairs && data.pairs.length > 0) {
-                    setPoolData(data.pairs[0])
+                if (resJson && resJson.data && resJson.data.attributes) {
+                    const attr = resJson.data.attributes
+                    const mapped: PoolPairData = {
+                        priceUsd: attr.base_token_price_usd || "0",
+                        priceNative: attr.base_token_price_native_currency || "0",
+                        priceChange: {
+                            h24: Number(attr.price_change_percentage?.h24 ?? 0),
+                        },
+                        liquidity: {
+                            usd: Number(attr.reserve_in_usd ?? 0),
+                        },
+                        volume: {
+                            h24: Number(attr.volume_usd?.h24 ?? 0),
+                        },
+                        fdv: Number(attr.fdv_usd ?? 0),
+                    }
+                    setPoolData(mapped)
+                    setError(false)
+                } else {
+                    setError(true)
                 }
-                setError(false)
             } catch {
                 setError(true)
             } finally {
@@ -89,12 +104,27 @@ export function ZtroPoolInfo() {
                         </span>
                     </div>
                 </div>
-                <div className="flex items-center gap-1.5">
-                    <span className="relative flex h-2 w-2">
-                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                        <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                    </span>
-                    <span className="text-[10px] text-emerald-500 font-medium">LIVE</span>
+                <div className="flex items-center gap-3">
+                    <a
+                        href="https://pancakeswap.finance/swap?outputCurrency=0xf4e758d3461886f7dd5af3e86f622e171113a568&chain=opbnb"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-amber-600 shadow-sm"
+                    >
+                        PancakeSwap에서 거래 (Buy/Sell)
+                        <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                            <polyline points="15 3 21 3 21 9" />
+                            <line x1="10" y1="14" x2="21" y2="3" />
+                        </svg>
+                    </a>
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                        <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+                        </span>
+                        <span className="text-[10px] text-emerald-500 font-medium">LIVE</span>
+                    </div>
                 </div>
             </div>
 

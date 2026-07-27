@@ -15,36 +15,41 @@ import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
 @Controller('token-exchange')
-@UseGuards(JwtAuthGuard)
 export class TokenExchangeController {
   constructor(private readonly tokenExchangeService: TokenExchangeService) { }
 
   @Get('dashboard')
+  @UseGuards(JwtAuthGuard)
   dashboard(@CurrentUser() user: CurrentUserPayload) {
     return this.tokenExchangeService.dashboard(user.uid);
   }
 
   @Post('buy')
+  @UseGuards(JwtAuthGuard)
   buy(@CurrentUser() user: CurrentUserPayload, @Body() dto: BuyZtroDto) {
     return this.tokenExchangeService.buy(user.uid, dto.amount, dto.maxPayUsdt);
   }
 
   @Post('sell')
+  @UseGuards(JwtAuthGuard)
   sell(@CurrentUser() user: CurrentUserPayload, @Body() dto: AmountDto) {
     return this.tokenExchangeService.sell(user.uid, dto.amount);
   }
 
   @Post('stake')
+  @UseGuards(JwtAuthGuard)
   stake(@CurrentUser() user: CurrentUserPayload, @Body() dto: { amount: number; months?: number }) {
     return this.tokenExchangeService.stake(user.uid, dto.amount, dto.months ?? 3);
   }
 
   @Post('unstake')
+  @UseGuards(JwtAuthGuard)
   unstake(@CurrentUser() user: CurrentUserPayload, @Body() dto: { stakeId: number }) {
     return this.tokenExchangeService.unstake(user.uid, dto.stakeId);
   }
 
   @Post('transfer-out')
+  @UseGuards(JwtAuthGuard)
   transferOut(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: { stakeId: number; recipient: string; paymentPassword?: string },
@@ -53,23 +58,26 @@ export class TokenExchangeController {
   }
 
   @Post('claim-dividend')
+  @UseGuards(JwtAuthGuard)
   claimDividend(@CurrentUser() user: CurrentUserPayload) {
     return this.tokenExchangeService.claimDividend(user.uid);
   }
 
   @Post('admin/distribute-rewards')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(1)
   distributeRewards() {
     return this.tokenExchangeService.distributeWeeklyStakingRewards();
   }
 
   @Post('barrel/order')
+  @UseGuards(JwtAuthGuard)
   createBarrelOrder(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateBarrelOrderDto) {
     return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size, dto.agingEnvironment);
   }
 
   @Get('barrel/my')
+  @UseGuards(JwtAuthGuard)
   listMyBarrels(@CurrentUser() user: CurrentUserPayload) {
     return this.tokenExchangeService.listMyBarrels(user.uid);
   }
@@ -80,21 +88,25 @@ export class TokenExchangeController {
   }
 
   @Post('barrel/action')
+  @UseGuards(JwtAuthGuard)
   triggerBarrelAction(@CurrentUser() user: CurrentUserPayload, @Body() dto: { barrelId: string; action: string }) {
     return this.tokenExchangeService.triggerBarrelAction(user.uid, dto.barrelId, dto.action);
   }
 
   @Post('barrel/:id/list-for-sale')
+  @UseGuards(JwtAuthGuard)
   listBarrelForSale(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.tokenExchangeService.listBarrelForSale(user.uid, id);
   }
 
   @Post('barrel/:id/cancel-sale')
+  @UseGuards(JwtAuthGuard)
   cancelBarrelSale(@CurrentUser() user: CurrentUserPayload, @Param('id') id: string) {
     return this.tokenExchangeService.cancelBarrelSale(user.uid, id);
   }
 
   @Post('barrel/:id/buy')
+  @UseGuards(JwtAuthGuard)
   buyBarrel(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
@@ -104,6 +116,7 @@ export class TokenExchangeController {
   }
 
   @Post('barrel/:id/enhancement')
+  @UseGuards(JwtAuthGuard)
   addBarrelEnhancement(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
@@ -113,6 +126,7 @@ export class TokenExchangeController {
   }
 
   @Post('barrel/:id/finishing')
+  @UseGuards(JwtAuthGuard)
   applyBarrelFinishing(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
@@ -122,21 +136,21 @@ export class TokenExchangeController {
   }
 
   @Delete('admin/barrel/:id')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   deleteBarrelAdmin(@Param('id') id: string) {
     return this.tokenExchangeService.deleteBarrelAdmin(id);
   }
 
   @Post('admin/barrel/:id/finishing/start')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   startBarrelFinishingAdmin(@Param('id') id: string) {
     return this.tokenExchangeService.startBarrelFinishingAdmin(id);
   }
 
   @Post('admin/barrel/:id/evaluation')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   setBarrelEvaluationAdmin(
     @Param('id') id: string,
@@ -157,14 +171,14 @@ export class TokenExchangeController {
   }
 
   @Post('admin/barrel-pricing-config')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(1)
   updateBarrelPricingConfig(@Body() dto: UpdateBarrelPricingDto) {
     return this.tokenExchangeService.updateBarrelPricingConfig(dto);
   }
 
   @Post('admin/barrel/:id/growth-rate')
-  @UseGuards(AdminGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   updateBarrelGrowthRateAdmin(@Param('id') id: string, @Body() dto: UpdateBarrelGrowthRateDto) {
     return this.tokenExchangeService.updateBarrelGrowthRateAdmin(id, dto.annualGrowthRate);

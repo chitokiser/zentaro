@@ -1245,7 +1245,9 @@ export async function triggerBarrelAction(barrelId: string, action: string): Pro
 }
 
 export async function fetchPublicBarrels(): Promise<PublicBarrel[]> {
-  const res = await fetch(`${API_URL}/token-exchange/barrel/public`, { headers: authHeaders() });
+  const token = getToken();
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(`${API_URL}/token-exchange/barrel/public`, { headers });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
@@ -1288,7 +1290,9 @@ export async function deleteBarrelAdmin(barrelId: string): Promise<{ success: bo
 }
 
 export async function fetchBarrelPricingConfig(): Promise<BarrelPricingConfig> {
-  const res = await fetch(`${API_URL}/token-exchange/barrel-pricing-config`, { headers: authHeaders() });
+  const token = getToken();
+  const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+  const res = await fetch(`${API_URL}/token-exchange/barrel-pricing-config`, { headers });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
