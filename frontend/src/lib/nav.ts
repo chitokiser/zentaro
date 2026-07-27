@@ -59,6 +59,11 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
           description: t.nav.serviceItems.barrelReserveDesc,
         },
         {
+          label: t.nav.serviceItems.daoStaking,
+          href: "/rewards/dao-staking",
+          description: t.nav.serviceItems.daoStakingDesc,
+        },
+        {
           label: t.nav.serviceItems.webzine,
           href: "/webzine",
           description: t.nav.serviceItems.webzineDesc,

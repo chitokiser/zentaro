@@ -135,24 +135,21 @@ export default function BottleCapRewardsPage() {
         description={t.bottleCap.description}
       />
 
-      <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-        {error === "로그인이 필요합니다." && poolBalance !== null && (
-          <div className="mb-6 flex justify-end">
-            <Badge variant="outline" className="text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1.5 px-3">
-              {t.bottleCap.poolBalanceLabel || "수량"}: {poolBalance.toLocaleString()} ZTRO
-            </Badge>
-          </div>
-        )}
+      <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8 flex flex-col gap-8">
 
-        {error === "로그인이 필요합니다." ? (
+        {/* 상단 1: 로그인하지 않았을 때만 로그인 요구 배너 노출 */}
+        {error === "로그인이 필요합니다." && (
           <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
             {t.bottleCap.loginRequired}{" "}
             <Link href="/my/profile" className="text-primary underline underline-offset-4">
               {t.bottleCap.loginCta}
             </Link>
           </div>
-        ) : (
-          <div className="flex flex-col gap-8">
+        )}
+
+        {/* 상단 2: 로그인했을 때만 병뚜껑 리워드 청구 폼(Form) 및 히스토리(History) 영역 노출 */}
+        {error !== "로그인이 필요합니다." && (
+          <>
             <form
               onSubmit={handleClaimSubmit}
               className="flex flex-col gap-4 rounded-lg border border-border/60 bg-card p-5"
@@ -297,20 +294,38 @@ export default function BottleCapRewardsPage() {
                 ))}
               </div>
             </div>
+          </>
+        )}
 
-            <div className="rounded-lg border border-border/60 bg-card p-5">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <div>
-                  <h3 className="font-display text-base font-medium">{t.bottleCap.qrSectionTitle}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground">{t.bottleCap.qrSectionDescription}</p>
-                </div>
-                {poolBalance !== null && (
-                  <Badge variant="outline" className="self-start text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1 px-2.5">
-                    {t.bottleCap.poolBalanceLabel}: {poolBalance.toLocaleString()} ZTRO
-                  </Badge>
-                )}
-              </div>
+        {/* 하단 3: 로그인 여부와 관계없이 항상 노출되는 QR 스캔 잔고 및 설명 카드 */}
+        <div className="rounded-lg border border-border/60 bg-card p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-display text-base font-medium">{t.bottleCap.qrSectionTitle}</h3>
+              <p className="mt-1 text-xs text-muted-foreground">{t.bottleCap.qrSectionDescription}</p>
+            </div>
+            {poolBalance !== null && (
+              <Badge variant="outline" className="self-start text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1 px-2.5">
+                {t.bottleCap.poolBalanceLabel || "수량"}: {poolBalance.toLocaleString()} ZTRO
+              </Badge>
+            )}
+          </div>
 
+          {error === "로그인이 필요합니다." ? (
+            <div className="mt-4 flex flex-col items-start gap-2">
+              <p className="text-xs text-muted-foreground">
+                병뚜껑 내부의 리워드 QR 보상을 스캔하려면 먼저 로그인해 주셔야 합니다.
+              </p>
+              <Button
+                type="button"
+                disabled
+                className="bg-primary/20 text-muted-foreground cursor-not-allowed"
+              >
+                {t.bottleCap.scanButton} (로그인 필요)
+              </Button>
+            </div>
+          ) : (
+            <>
               {rewardResult ? (
                 <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-primary/30 bg-secondary/40 px-4 py-3 text-sm">
                   <p className="text-primary">
@@ -364,9 +379,10 @@ export default function BottleCapRewardsPage() {
                   </Button>
                 </div>
               )}
-            </div>
-          </div>
-        )}
+            </>
+          )}
+        </div>
+
       </div>
     </div>
   )
