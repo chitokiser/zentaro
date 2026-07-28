@@ -9,10 +9,26 @@ import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight, Vote, C
 import { useI18n } from "@/lib/i18n/i18n-context"
 
 // opBNB details
+interface EthereumProvider {
+    request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+    on: (event: string, handler: (...args: unknown[]) => void) => void
+    removeListener: (event: string, handler: (...args: unknown[]) => void) => void
+}
+
 declare global {
     interface Window {
-        ethereum?: any
+        ethereum?: EthereumProvider
     }
+}
+
+/** MetaMask/RPC errors carry `.reason` and/or `.message`, but arrive typed as unknown. */
+function walletErrorMessage(err: unknown, fallback: string): string {
+    if (err && typeof err === "object") {
+        const { reason, message } = err as { reason?: unknown; message?: unknown }
+        if (typeof reason === "string" && reason) return reason
+        if (typeof message === "string" && message) return message
+    }
+    return fallback
 }
 
 const OPBNB_CHAIN_ID = "0xcc" // 204
@@ -109,45 +125,55 @@ export default function DaoStakingPage() {
     // UI state
     const [busy, setBusy] = useState<boolean>(false)
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null)
+    // Ticks so proposal-expiry checks below never call Date.now() directly during render.
+    const [now, setNow] = useState<number>(() => Date.now())
+    useEffect(() => {
+        const timer = setInterval(() => setNow(Date.now()), 30000)
+        return () => clearInterval(timer)
+    }, [])
 
     // Helper check for SSR safety
     useEffect(() => {
-        setClientInit(true)
-        if (typeof window !== "undefined" && window.ethereum) {
+        const init = () => {
+            setClientInit(true)
+            if (typeof window === "undefined" || !window.ethereum) return undefined
+            const ethereum = window.ethereum
+
             // Get current accounts and chain ID
-            window.ethereum.request({ method: "eth_accounts" })
-                .then((accounts: any) => {
-                    if (accounts && accounts.length > 0) {
-                        setAccount(accounts[0])
+            ethereum.request({ method: "eth_accounts" })
+                .then((accounts) => {
+                    const list = accounts as string[]
+                    if (list && list.length > 0) {
+                        setAccount(list[0])
                     }
                 })
-            window.ethereum.request({ method: "eth_chainId" })
-                .then((id: any) => {
-                    setChainId(id)
+            ethereum.request({ method: "eth_chainId" })
+                .then((id) => {
+                    setChainId(id as string)
                 })
 
             // Setup event listeners
-            const handleAccountsChanged = (accounts: any) => {
+            const handleAccountsChanged = (...args: unknown[]) => {
+                const accounts = args[0] as string[]
                 if (accounts && accounts.length > 0) {
                     setAccount(accounts[0])
                 } else {
                     setAccount(null)
                 }
             }
-            const handleChainChanged = (id: any) => {
-                setChainId(id)
+            const handleChainChanged = (...args: unknown[]) => {
+                setChainId(args[0] as string)
             }
 
-            window.ethereum.on("accountsChanged", handleAccountsChanged)
-            window.ethereum.on("chainChanged", handleChainChanged)
+            ethereum.on("accountsChanged", handleAccountsChanged)
+            ethereum.on("chainChanged", handleChainChanged)
 
             return () => {
-                if (window.ethereum.removeListener) {
-                    window.ethereum.removeListener("accountsChanged", handleAccountsChanged)
-                    window.ethereum.removeListener("chainChanged", handleChainChanged)
-                }
+                ethereum.removeListener("accountsChanged", handleAccountsChanged)
+                ethereum.removeListener("chainChanged", handleChainChanged)
             }
         }
+        return init()
     }, [])
 
     // Check and switch/add opBNB chain
@@ -160,7 +186,7 @@ export default function DaoStakingPage() {
         setMessage(null)
         try {
             // Request account connect
-            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" })
+            const accounts = await window.ethereum.request({ method: "eth_requestAccounts" }) as string[]
             setAccount(accounts[0])
 
             // Switch to opBNB
@@ -169,9 +195,10 @@ export default function DaoStakingPage() {
                     method: "wallet_switchEthereumChain",
                     params: [{ chainId: OPBNB_CHAIN_ID }],
                 })
-            } catch (switchError: any) {
+            } catch (switchError) {
                 // If chain not exist, add it
-                if (switchError.code === 4902) {
+                const code = switchError && typeof switchError === "object" ? (switchError as { code?: unknown }).code : undefined
+                if (code === 4902) {
                     await window.ethereum.request({
                         method: "wallet_addEthereumChain",
                         params: [
@@ -188,128 +215,192 @@ export default function DaoStakingPage() {
                     throw switchError
                 }
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.message || "지갑 연결 도중 오류가 발생했습니다.", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "지갑 연결 도중 오류가 발생했습니다."), type: "error" })
         } finally {
             setBusy(false)
         }
     }
 
-    // Load contract details (both public metrics and user-specific states)
-    const refreshStakingDetails = useCallback(async () => {
-        if (typeof window === "undefined" || !window.ethereum || !account) return
+    /**
+     * Contract-wide numbers (reserve balance, total staked, proposal list) are public
+     * on-chain reads that don't need a connected wallet — fetched via a read-only public
+     * RPC so guests and not-yet-connected members still see real numbers instead of the
+     * "0" placeholders. Once a wallet connects, refreshStakingDetails() below re-fetches
+     * these same fields (redundant but harmless) plus everything that's genuinely
+     * per-user (their stakes, allowance, vote status).
+     */
+    const loadPublicMetrics = useCallback(() => {
+        const run = async () => {
+            try {
+                const provider = new ethers.JsonRpcProvider(OPBNB_RPC_URL)
+                const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, provider)
+                const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
 
-        try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+                const [contractBalance, totalStakedWei, proposalCountRaw] = await Promise.all([
+                    ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
+                    vaultContract.totalStaked(),
+                    vaultContract.proposalCounter(),
+                ])
 
-            const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, provider)
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
+                setLockedContractZtro(contractBalance.toString())
+                setTotalStaked(totalStakedWei.toString())
 
-            // Fetch contract metrics
-            const [
-                contractBalance,
-                totalStakedWei,
-                userZtroBalanceWei,
-                userAllowanceWei,
-                withdrawFlag,
-                transferFlag,
-                stakeIdsLists,
-                contractOwner,
-                proposalCountRaw
-            ] = await Promise.all([
-                ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
-                vaultContract.totalStaked(),
-                ztroContract.balanceOf(account),
-                ztroContract.allowance(account, ZTRO_VAULT_CONTRACT_ADDRESS),
-                vaultContract.withdrawApproved(account),
-                vaultContract.transferApproved(account),
-                vaultContract.getAllStakes(account),
-                vaultContract.owner(),
-                vaultContract.proposalCounter()
-            ])
-
-            // ZTRO is a 0-decimal token on-chain — raw uint256 values ARE the ZTRO count,
-            // never run them through formatEther/parseEther (that assumes 18 decimals).
-            setLockedContractZtro(contractBalance.toString())
-            setTotalStaked(totalStakedWei.toString())
-            setZtroBalance(userZtroBalanceWei.toString())
-            setAllowance(userAllowanceWei.toString())
-
-            setWithdrawApprovedFlag(withdrawFlag)
-            setTransferApprovedFlag(transferFlag)
-            setIsOwner(contractOwner.toLowerCase() === account.toLowerCase())
-
-            // Fetch user stakes positions lists
-            const positions: StakePosition[] = []
-            let tempUserStakingPower = 0
-
-            for (let i = 0; i < stakeIdsLists.length; i++) {
-                const sid = stakeIdsLists[i]
-                const rawStake = await vaultContract.stakes(sid)
-                const amountEth = Number(rawStake[1])
-                const lockedUntilSec = Number(rawStake[2])
-                const createdAtSec = Number(rawStake[3])
-
-                if (rawStake[4]) {
-                    tempUserStakingPower += amountEth
-                }
-
-                positions.push({
-                    stakeId: Number(rawStake[0]),
-                    amount: amountEth,
-                    lockedUntil: new Date(lockedUntilSec * 1000),
-                    createdAt: new Date(createdAtSec * 1000),
-                    active: rawStake[4],
-                    unstaked: rawStake[5],
-                    transferred: rawStake[6],
-                    isUnlocked: Date.now() >= lockedUntilSec * 1000
-                })
-            }
-
-            setUserStakingPower(tempUserStakingPower.toString())
-            setUserStakes(positions.sort((a, b) => b.stakeId - a.stakeId))
-
-            // Fetch and parse proposals details from contract
-            const proposalItems: ProposalItem[] = []
-            const propCount = Number(proposalCountRaw)
-            for (let i = propCount; i >= 1; i--) {
-                try {
-                    const rawProp = await vaultContract.proposals(i)
-                    let userVoted = false
-                    let userChoice = false
+                const proposalItems: ProposalItem[] = []
+                const propCount = Number(proposalCountRaw)
+                for (let i = propCount; i >= 1; i--) {
                     try {
-                        userVoted = await vaultContract.hasVoted(i, account)
-                        if (userVoted) {
-                            userChoice = await vaultContract.voteChoice(i, account)
-                        }
-                    } catch (voteErr) {
-                        console.warn(`Failed to inspect user vote on proposal #${i}:`, voteErr)
+                        const rawProp = await vaultContract.proposals(i)
+                        proposalItems.push({
+                            proposalId: Number(rawProp[0]),
+                            recipient: rawProp[1],
+                            amount: Number(rawProp[2]),
+                            createdAt: new Date(Number(rawProp[3]) * 1000),
+                            deadline: new Date(Number(rawProp[4]) * 1000),
+                            executed: rawProp[5],
+                            cancelled: rawProp[6],
+                            yesVotes: Number(rawProp[7]),
+                            noVotes: Number(rawProp[8]),
+                            snapshotTotalStake: Number(rawProp[9]),
+                            userHasVoted: false,
+                            userVoteChoice: false,
+                        })
+                    } catch (e) {
+                        console.error(`Failed to load details for proposal #${i}:`, e)
+                    }
+                }
+                setProposals(proposalItems)
+            } catch (err) {
+                console.error("Failed to load public DAO metrics:", err)
+            }
+        }
+        return run()
+    }, [])
+
+    useEffect(() => {
+        loadPublicMetrics()
+    }, [loadPublicMetrics])
+
+    // Load user-specific contract details once a wallet is connected (also re-syncs the
+    // public metrics above, now enriched with this account's vote status per proposal).
+    const refreshStakingDetails = useCallback(() => {
+        const run = async () => {
+            if (typeof window === "undefined" || !window.ethereum || !account) return
+            const ethereum = window.ethereum
+
+            try {
+                const provider = new ethers.BrowserProvider(ethereum)
+
+                const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, provider)
+                const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
+
+                // Fetch contract metrics
+                const [
+                    contractBalance,
+                    totalStakedWei,
+                    userZtroBalanceWei,
+                    userAllowanceWei,
+                    withdrawFlag,
+                    transferFlag,
+                    stakeIdsLists,
+                    contractOwner,
+                    proposalCountRaw
+                ] = await Promise.all([
+                    ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
+                    vaultContract.totalStaked(),
+                    ztroContract.balanceOf(account),
+                    ztroContract.allowance(account, ZTRO_VAULT_CONTRACT_ADDRESS),
+                    vaultContract.withdrawApproved(account),
+                    vaultContract.transferApproved(account),
+                    vaultContract.getAllStakes(account),
+                    vaultContract.owner(),
+                    vaultContract.proposalCounter()
+                ])
+
+                // ZTRO is a 0-decimal token on-chain — raw uint256 values ARE the ZTRO count,
+                // never run them through formatEther/parseEther (that assumes 18 decimals).
+                setLockedContractZtro(contractBalance.toString())
+                setTotalStaked(totalStakedWei.toString())
+                setZtroBalance(userZtroBalanceWei.toString())
+                setAllowance(userAllowanceWei.toString())
+
+                setWithdrawApprovedFlag(withdrawFlag)
+                setTransferApprovedFlag(transferFlag)
+                setIsOwner(contractOwner.toLowerCase() === account.toLowerCase())
+
+                // Fetch user stakes positions lists
+                const positions: StakePosition[] = []
+                let tempUserStakingPower = 0
+
+                for (let i = 0; i < stakeIdsLists.length; i++) {
+                    const sid = stakeIdsLists[i]
+                    const rawStake = await vaultContract.stakes(sid)
+                    const amountEth = Number(rawStake[1])
+                    const lockedUntilSec = Number(rawStake[2])
+                    const createdAtSec = Number(rawStake[3])
+
+                    if (rawStake[4]) {
+                        tempUserStakingPower += amountEth
                     }
 
-                    proposalItems.push({
-                        proposalId: Number(rawProp[0]),
-                        recipient: rawProp[1],
-                        amount: Number(rawProp[2]),
-                        createdAt: new Date(Number(rawProp[3]) * 1000),
-                        deadline: new Date(Number(rawProp[4]) * 1000),
-                        executed: rawProp[5],
-                        cancelled: rawProp[6],
-                        yesVotes: Number(rawProp[7]),
-                        noVotes: Number(rawProp[8]),
-                        snapshotTotalStake: Number(rawProp[9]),
-                        userHasVoted: userVoted,
-                        userVoteChoice: userChoice
+                    positions.push({
+                        stakeId: Number(rawStake[0]),
+                        amount: amountEth,
+                        lockedUntil: new Date(lockedUntilSec * 1000),
+                        createdAt: new Date(createdAtSec * 1000),
+                        active: rawStake[4],
+                        unstaked: rawStake[5],
+                        transferred: rawStake[6],
+                        isUnlocked: Date.now() >= lockedUntilSec * 1000
                     })
-                } catch (e) {
-                    console.error(`Failed to load details for proposal #${i}:`, e)
                 }
-            }
-            setProposals(proposalItems)
 
-        } catch (err) {
-            console.error("Failed to query smart contract states:", err)
+                setUserStakingPower(tempUserStakingPower.toString())
+                setUserStakes(positions.sort((a, b) => b.stakeId - a.stakeId))
+
+                // Fetch and parse proposals details from contract
+                const proposalItems: ProposalItem[] = []
+                const propCount = Number(proposalCountRaw)
+                for (let i = propCount; i >= 1; i--) {
+                    try {
+                        const rawProp = await vaultContract.proposals(i)
+                        let userVoted = false
+                        let userChoice = false
+                        try {
+                            userVoted = await vaultContract.hasVoted(i, account)
+                            if (userVoted) {
+                                userChoice = await vaultContract.voteChoice(i, account)
+                            }
+                        } catch (voteErr) {
+                            console.warn(`Failed to inspect user vote on proposal #${i}:`, voteErr)
+                        }
+
+                        proposalItems.push({
+                            proposalId: Number(rawProp[0]),
+                            recipient: rawProp[1],
+                            amount: Number(rawProp[2]),
+                            createdAt: new Date(Number(rawProp[3]) * 1000),
+                            deadline: new Date(Number(rawProp[4]) * 1000),
+                            executed: rawProp[5],
+                            cancelled: rawProp[6],
+                            yesVotes: Number(rawProp[7]),
+                            noVotes: Number(rawProp[8]),
+                            snapshotTotalStake: Number(rawProp[9]),
+                            userHasVoted: userVoted,
+                            userVoteChoice: userChoice
+                        })
+                    } catch (e) {
+                        console.error(`Failed to load details for proposal #${i}:`, e)
+                    }
+                }
+                setProposals(proposalItems)
+
+            } catch (err) {
+                console.error("Failed to query smart contract states:", err)
+            }
         }
+        return run()
     }, [account])
 
     // Trigger loads upon account or chain updates
@@ -322,10 +413,11 @@ export default function DaoStakingPage() {
     // Execute ERC-20 Approve
     const handleApprove = async () => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: "인가 금액 승인을 조율 중입니다. 지갑 확인 필요...", type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, signer)
 
@@ -337,9 +429,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: "사용 승인 완료!", type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "Approve 실패", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "Approve 실패"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -356,10 +448,11 @@ export default function DaoStakingPage() {
             return
         }
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: "스테이킹 트랜잭션을 준비 중입니다. 지갑 확인 필요...", type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -373,9 +466,9 @@ export default function DaoStakingPage() {
             setMessage({ text: "ZTRO 스테이킹 성공!", type: "success" })
             setStakeAmount("")
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "Staking 트랜잭션 실패", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "Staking 트랜잭션 실패"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -384,10 +477,11 @@ export default function DaoStakingPage() {
     // Execute Unstake
     const handleUnstake = async (stakeId: number) => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: `스테이킹 #${stakeId} 언스테이킹 승인 조율 중...`, type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -397,9 +491,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: "언스테이킹 성공! 이제 토큰 회수가 가능합니다.", type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "Unstake 트랜잭션 실패", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "Unstake 트랜잭션 실패"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -408,10 +502,11 @@ export default function DaoStakingPage() {
     // Execute Transfer Out (Claim Back tokens)
     const handleTransferOut = async (stakeId: number) => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: `스테이킹 #${stakeId} 자산 내 지갑 환원 중...`, type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -421,9 +516,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: "자산 회수가 성공적으로 끝났습니다!", type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "Transfer Out 실패", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "Transfer Out 실패"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -444,10 +539,11 @@ export default function DaoStakingPage() {
             return
         }
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: "신규 안건 발의 트랜잭션을 준비 중입니다. 지갑 확인 필요...", type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -462,9 +558,9 @@ export default function DaoStakingPage() {
             setProposalRecipient("")
             setProposalAmount("")
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "안건 발의 실패 (컨트랙트 소유자 권한 점검 요망)", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "안건 발의 실패 (컨트랙트 소유자 권한 점검 요망)"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -473,10 +569,11 @@ export default function DaoStakingPage() {
     // Execute Vote
     const handleVote = async (proposalId: number, support: boolean) => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: `안건 #${proposalId}에 대한 투표를 진행 중입니다. 지갑 승인 필요...`, type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -486,9 +583,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: `안건 #${proposalId} 투표 성공!`, type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "투표 트스크 실패 (투표 가중치 파워 점검 요망)", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "투표 트스크 실패 (투표 가중치 파워 점검 요망)"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -497,10 +594,11 @@ export default function DaoStakingPage() {
     // Execute Proposal
     const handleExecuteProposal = async (proposalId: number) => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: `안건 #${proposalId} 실행을 준비 중입니다. 지갑 확인 필요...`, type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -510,9 +608,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: `안건 #${proposalId} 실행 성공! 금고 자산 인출 완료.`, type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "안건 실행 실패 (가결 기준 및 소유자 권한 점검)", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "안건 실행 실패 (가결 기준 및 소유자 권한 점검)"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -521,10 +619,11 @@ export default function DaoStakingPage() {
     // Cancel Proposal
     const handleCancelProposal = async (proposalId: number) => {
         if (typeof window === "undefined" || !window.ethereum || !account) return
+        const ethereum = window.ethereum
         setBusy(true)
         setMessage({ text: `안건 #${proposalId} 취소를 조율 중입니다. 지갑 확인 필요...`, type: "info" })
         try {
-            const provider = new ethers.BrowserProvider(window.ethereum as any)
+            const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
@@ -534,9 +633,9 @@ export default function DaoStakingPage() {
 
             setMessage({ text: `안건 #${proposalId} 취소 완료!`, type: "success" })
             refreshStakingDetails()
-        } catch (err: any) {
+        } catch (err) {
             console.error(err)
-            setMessage({ text: err.reason || err.message || "안건 취소 실패 (소유자 권한 점검)", type: "error" })
+            setMessage({ text: walletErrorMessage(err, "안건 취소 실패 (소유자 권한 점검)"), type: "error" })
         } finally {
             setBusy(false)
         }
@@ -981,7 +1080,6 @@ export default function DaoStakingPage() {
                             ) : (
                                 <div className="space-y-4 max-h-[600px] overflow-y-auto pr-1 select-none">
                                     {proposals.map((prop) => {
-                                        const now = Date.now()
                                         const deadlineMs = prop.deadline.getTime()
                                         const isExpired = now >= deadlineMs
                                         const totalVotes = prop.yesVotes + prop.noVotes
