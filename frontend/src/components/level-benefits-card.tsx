@@ -20,7 +20,7 @@ const BENEFITS: { level: number; icon: string; title: string; description: strin
         level: 1,
         icon: "🎯",
         title: "에어드랍 참여 · 멘토 자격",
-        description: "ZTRO 에어드랍 이벤트 참여 가능. 추천 링크로 멘티를 모집할 수 있는 멘토 자격이 부여됩니다.",
+        description: "Ztaro 에어드랍 이벤트 참여 가능. 추천 링크로 멘티를 모집할 수 있는 멘토 자격이 부여됩니다.",
     },
     {
         level: 2,
@@ -37,20 +37,20 @@ const BENEFITS: { level: number; icon: string; title: string; description: strin
     {
         level: 4,
         icon: "🏪",
-        title: "가맹점 ZTRO 보상",
-        description: "제휴 가맹점에서 ZP로 결제 시 결제액 × 레벨 ÷ 10,000 만큼 ZTRO를 보상받습니다.",
+        title: "가맹점 Ztaro 보상",
+        description: "제휴 가맹점에서 ZP로 결제 시 결제액 × 레벨 ÷ 10,000 만큼 Ztaro를 보상받습니다.",
     },
     {
         level: 5,
         icon: "📈",
         title: "스테이킹 배당 강화",
-        description: "ZTRO 스테이킹 주간 배당 공식: 스테이킹수량 × 레벨 × 스테이킹개월 ÷ 1,000 EXP (최소 10,000 ZTRO 스테이킹 필요)",
+        description: "Ztaro 스테이킹 주간 배당 공식: 스테이킹수량 × 레벨 × 스테이킹개월 ÷ 1,000 EXP (최소 10,000 Ztaro 스테이킹 필요)",
     },
     {
         level: 10,
         icon: "🚀",
-        title: "외부 지갑 ZTRO 이체",
-        description: "레벨 10 달성 시 보유 ZTRO를 외부 지갑으로 자유롭게 이체할 수 있는 기능이 해제됩니다.",
+        title: "외부 지갑 Ztaro 이체",
+        description: "레벨 10 달성 시 보유 Ztaro를 외부 지갑으로 자유롭게 이체할 수 있는 기능이 해제됩니다.",
     },
 ]
 

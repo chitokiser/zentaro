@@ -33,9 +33,9 @@ const EXP_SOURCES = [
     },
     {
         icon: "📊",
-        title: "ZTRO 스테이킹 배당",
-        description: "10,000 ZTRO 이상 스테이킹 시, 주간 배당으로 EXP를 자동 지급합니다.",
-        example: "10,000 ZTRO × Lv.3 × 1개월 ÷ 1,000 = 30 EXP/주",
+        title: "Ztaro 스테이킹 배당",
+        description: "10,000 Ztaro 이상 스테이킹 시, 주간 배당으로 EXP를 자동 지급합니다.",
+        example: "10,000 Ztaro × Lv.3 × 1개월 ÷ 1,000 = 30 EXP/주",
         color: "text-amber-500",
         bg: "bg-amber-500/8 border-amber-500/20",
     },
@@ -45,13 +45,13 @@ const LEVEL_TABLE = [
     { level: 1, expCost: "—", stakingReward: "–", barrelFee: "15%", mentorExp: "1%", notes: "기본 혜택" },
     { level: 2, expCost: "10,000", stakingReward: "스테이킹×2/1000", barrelFee: "13%", mentorExp: "2%", notes: "배럴 수수료 2% 할인" },
     { level: 3, expCost: "40,000", stakingReward: "스테이킹×3/1000", barrelFee: "12%", mentorExp: "3%", notes: "멘티 EXP 보상 시작" },
-    { level: 4, expCost: "90,000", stakingReward: "스테이킹×4/1000", barrelFee: "11%", mentorExp: "4%", notes: "가맹점 ZTRO 보상" },
+    { level: 4, expCost: "90,000", stakingReward: "스테이킹×4/1000", barrelFee: "11%", mentorExp: "4%", notes: "가맹점 Ztaro 보상" },
     { level: 5, expCost: "160,000", stakingReward: "스테이킹×5/1000", barrelFee: "10%", mentorExp: "5%", notes: "스테이킹 배당 강화" },
     { level: 6, expCost: "250,000", stakingReward: "스테이킹×6/1000", barrelFee: "9%", mentorExp: "6%", notes: "" },
     { level: 7, expCost: "360,000", stakingReward: "스테이킹×7/1000", barrelFee: "8%", mentorExp: "7%", notes: "" },
     { level: 8, expCost: "490,000", stakingReward: "스테이킹×8/1000", barrelFee: "7%", mentorExp: "8%", notes: "" },
     { level: 9, expCost: "640,000", stakingReward: "스테이킹×9/1000", barrelFee: "6%", mentorExp: "9%", notes: "" },
-    { level: 10, expCost: "810,000", stakingReward: "스테이킹×10/1000", barrelFee: "5%", mentorExp: "10%", notes: "🚀 외부 ZTRO 이체 해제" },
+    { level: 10, expCost: "810,000", stakingReward: "스테이킹×10/1000", barrelFee: "5%", mentorExp: "10%", notes: "🚀 외부 Ztaro 이체 해제" },
 ]
 
 export default function BenefitsPage() {
@@ -82,7 +82,7 @@ export default function BenefitsPage() {
                             href="/exchange"
                             className="bg-secondary border border-border hover:bg-secondary/80 text-foreground font-medium text-sm px-5 py-2.5 rounded-lg transition"
                         >
-                            ZTRO 스테이킹
+                            Ztaro 스테이킹
                         </Link>
                     </div>
                 </div>
@@ -186,11 +186,11 @@ export default function BenefitsPage() {
                         },
                         {
                             q: "스테이킹 배당을 받으려면 최소 스테이킹이 필요한가요?",
-                            a: "네, 주간 스테이킹 배당 보상은 최소 10,000 ZTRO 이상 스테이킹한 경우에만 지급됩니다.",
+                            a: "네, 주간 스테이킹 배당 보상은 최소 10,000 Ztaro 이상 스테이킹한 경우에만 지급됩니다.",
                         },
                         {
-                            q: "외부 ZTRO 이체는 레벨 10만 가능한가요?",
-                            a: "네, 보유한 ZTRO를 외부 개인 지갑으로 전송하는 기능은 플랫폼 신뢰도 확보를 위해 레벨 10 멤버에게만 활성화됩니다.",
+                            q: "외부 Ztaro 이체는 레벨 10만 가능한가요?",
+                            a: "네, 보유한 Ztaro를 외부 개인 지갑으로 전송하는 기능은 플랫폼 신뢰도 확보를 위해 레벨 10 멤버에게만 활성화됩니다.",
                         },
                     ].map((item) => (
                         <div key={item.q} className="rounded-xl border border-border/60 bg-card px-5 py-4">

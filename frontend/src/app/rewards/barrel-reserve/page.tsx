@@ -74,7 +74,7 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "5 Lít (khoảng 7 chai)",
         agingPeriod: "Khuyến nghị 6~12 tháng",
         recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
-        expRequirement: "Stake 50,000 ZTRO + trừ 1,000,000 EXP",
+        expRequirement: "Stake 50,000 Ztaro + trừ 1,000,000 EXP",
         ztroRequirementValue: 50000,
         expRequirementValue: 1000000,
         dimensions: "26cm x 18cm x 18cm",
@@ -87,7 +87,7 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "10 Lít (khoảng 14 chai)",
         agingPeriod: "Khuyến nghị 12~18 tháng",
         recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
-        expRequirement: "Stake 100,000 ZTRO + trừ 2,000,000 EXP",
+        expRequirement: "Stake 100,000 Ztaro + trừ 2,000,000 EXP",
         ztroRequirementValue: 100000,
         expRequirementValue: 2000000,
         dimensions: "34cm x 24cm x 24cm",
@@ -100,7 +100,7 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "20 Lít (khoảng 28 chai)",
         agingPeriod: "Khuyến nghị 18~24 tháng",
         recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
-        expRequirement: "Stake 200,000 ZTRO + trừ 4,000,000 EXP",
+        expRequirement: "Stake 200,000 Ztaro + trừ 4,000,000 EXP",
         ztroRequirementValue: 200000,
         expRequirementValue: 4000000,
         dimensions: "42cm x 30cm x 30cm",
@@ -113,7 +113,7 @@ const BARREL_SPECS: BarrelSpec[] = [
         capacity: "40 Lít (khoảng 56 chai)",
         agingPeriod: "Khuyến nghị 24~36 tháng trở lên",
         recommendedSpirit: "ZENTARO Craft Rice Neutral Spirit Base",
-        expRequirement: "Stake 400,000 ZTRO + trừ 8,000,000 EXP",
+        expRequirement: "Stake 400,000 Ztaro + trừ 8,000,000 EXP",
         ztroRequirementValue: 400000,
         expRequirementValue: 8000000,
         dimensions: "52cm x 38cm x 38cm",
@@ -143,8 +143,8 @@ const FLAVORS = [
 
 const BARREL_LITERS: Record<string, number> = { "5L": 5, "10L": 10, "20L": 20, "40L": 40 }
 
-/** ZTRO staking requirement per liter to pay with EXP; not admin-configurable (only the EXP/ZP price is). */
-const BARREL_STAKE_PER_LITER_ZTRO = 10000
+/** Ztaro staking requirement per liter to pay with EXP; not admin-configurable (only the EXP/ZP price is). */
+const BARREL_STAKE_PER_LITER_ZTARO = 10000
 
 // Mirrors backend BARREL_PREP_SECONDS — the barrel is being filled/prepped for the first 24h
 // after order and isn't aging yet (no growth, no "aging" status) during that window.
@@ -329,7 +329,7 @@ export default function BarrelReservePage() {
     const currentSpec = {
         ...currentSpecStatic,
         expRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * pricePerLiterExp,
-        ztroRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * BARREL_STAKE_PER_LITER_ZTRO,
+        ztroRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * BARREL_STAKE_PER_LITER_ZTARO,
     }
 
     // Live ticking clock, used to compute cumulative aging duration client-side
@@ -442,9 +442,9 @@ export default function BarrelReservePage() {
         if (meetsStakeAndExp) {
             confirmMessage = `Bạn có muốn đặt thùng ${currentSpec.label} không? ${cost.toLocaleString()} EXP sẽ bị trừ ngay khi đăng ký.`
         } else if (zpBalance >= cost) {
-            confirmMessage = `Bạn chưa đủ điều kiện stake ZTRO hoặc số dư EXP. Bạn có muốn thanh toán ${cost.toLocaleString()} ZP để đặt thùng ${currentSpec.label} thay thế không?`
+            confirmMessage = `Bạn chưa đủ điều kiện stake Ztaro hoặc số dư EXP. Bạn có muốn thanh toán ${cost.toLocaleString()} ZP để đặt thùng ${currentSpec.label} thay thế không?`
         } else {
-            alert(`Bạn chưa đủ điều kiện đặt hàng.\n\n[Cách 1] Cần tối thiểu ${ztroNeed.toLocaleString()} ZTRO stake + ${cost.toLocaleString()} EXP (hiện có: ${stakedZtro.toLocaleString()} ZTRO, ${expBalance.toLocaleString()} EXP)\n[Cách 2] Thanh toán bằng ZP cần ${cost.toLocaleString()} ZP (hiện có: ${zpBalance.toLocaleString()} ZP)`)
+            alert(`Bạn chưa đủ điều kiện đặt hàng.\n\n[Cách 1] Cần tối thiểu ${ztroNeed.toLocaleString()} Ztaro stake + ${cost.toLocaleString()} EXP (hiện có: ${stakedZtro.toLocaleString()} Ztaro, ${expBalance.toLocaleString()} EXP)\n[Cách 2] Thanh toán bằng ZP cần ${cost.toLocaleString()} ZP (hiện có: ${zpBalance.toLocaleString()} ZP)`)
             return
         }
 
@@ -495,7 +495,7 @@ export default function BarrelReservePage() {
     }
 
     const handleListForSale = async (barrelId: string, currentValueZtro: number) => {
-        if (!confirm(`Bạn có muốn đăng bán thùng này với giá thị trường hiện tại ${currentValueZtro.toLocaleString()} ZTRO không? Giá được tự động tính theo dung tích và thời gian ủ, chủ sở hữu không thể tự đặt giá. Giao dịch thanh toán hoàn toàn bằng ZTRO on-chain giữa ví lưu ký của hai bên. Khi giao dịch thành công, ${(barrelFeeRateForLevel(memberLevel) * 100).toFixed(0)}% giá trị bán (theo Lv.${memberLevel} của bạn) sẽ bị trừ làm phí. Trong thời gian đăng bán, các yêu cầu giao hàng/đóng chai sẽ bị hạn chế.`)) return
+        if (!confirm(`Bạn có muốn đăng bán thùng này với giá thị trường hiện tại ${currentValueZtro.toLocaleString()} Ztaro không? Giá được tự động tính theo dung tích và thời gian ủ, chủ sở hữu không thể tự đặt giá. Giao dịch thanh toán hoàn toàn bằng Ztaro on-chain giữa ví lưu ký của hai bên. Khi giao dịch thành công, ${(barrelFeeRateForLevel(memberLevel) * 100).toFixed(0)}% giá trị bán (theo Lv.${memberLevel} của bạn) sẽ bị trừ làm phí. Trong thời gian đăng bán, các yêu cầu giao hàng/đóng chai sẽ bị hạn chế.`)) return
 
         setActionBusy(true)
         setActionError(null)
@@ -532,7 +532,7 @@ export default function BarrelReservePage() {
             alert("Vui lòng đăng nhập để mua thùng.")
             return
         }
-        if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZtro.toLocaleString()} ZTRO để mua thùng này (${barrel.id}) không? Giao dịch được thực hiện on-chain trực tiếp từ ví lưu ký của bạn. Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
+        if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZtro.toLocaleString()} Ztaro để mua thùng này (${barrel.id}) không? Giao dịch được thực hiện on-chain trực tiếp từ ví lưu ký của bạn. Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
         setPendingBuyBarrel(barrel)
         setIsBuyPinOpen(true)
     }
@@ -673,9 +673,9 @@ export default function BarrelReservePage() {
                 ) : (
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-5 text-sm">
                         <div>
-                            <span className="text-xs text-muted-foreground block">Tổng số ZTRO đã stake</span>
+                            <span className="text-xs text-muted-foreground block">Tổng số Ztaro đã stake</span>
                             <span className="text-base font-bold text-foreground mt-1 block">
-                                {stakedZtro.toLocaleString()} ZTRO
+                                {stakedZtro.toLocaleString()} Ztaro
                             </span>
                         </div>
                         <div>
@@ -857,13 +857,13 @@ export default function BarrelReservePage() {
                                     </h5>
                                     <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                         Giá thùng là <span className="notranslate">{pricePerLiterExp.toLocaleString()} EXP</span> hoặc <span className="notranslate">{pricePerLiterZp.toLocaleString()} ZP</span> mỗi lít.
-                                        Để thanh toán bằng <span className="notranslate">EXP</span>, bạn cần stake tối thiểu {BARREL_STAKE_PER_LITER_ZTRO.toLocaleString()} ZTRO mỗi lít; thanh toán bằng ZP không yêu cầu stake và có thể đặt hàng ngay với cùng số tiền.
+                                        Để thanh toán bằng <span className="notranslate">EXP</span>, bạn cần stake tối thiểu {BARREL_STAKE_PER_LITER_ZTARO.toLocaleString()} Ztaro mỗi lít; thanh toán bằng ZP không yêu cầu stake và có thể đặt hàng ngay với cùng số tiền.
                                     </p>
                                 </div>
                                 <div className="bg-card p-3 rounded border border-amber-500/10 text-xs space-y-1">
                                     <span className="text-muted-foreground block">Stake cần thiết khi thanh toán EXP:</span>
                                     <span className="text-foreground font-semibold block">
-                                        Từ {currentSpec.ztroRequirementValue.toLocaleString()} ZTRO
+                                        Từ {currentSpec.ztroRequirementValue.toLocaleString()} Ztaro
                                     </span>
                                     <span className="text-muted-foreground block mt-1">Chi phí (thanh toán EXP):</span>
                                     <span className="text-amber-500 font-bold block">
@@ -1040,7 +1040,7 @@ export default function BarrelReservePage() {
                                                     {barrel.forSale && (
                                                         <Badge className="mt-1.5 bg-emerald-500 text-black border-none text-[10px] uppercase font-bold flex items-center gap-1 w-fit">
                                                             <Tag className="w-3 h-3" />
-                                                            Đang bán · {barrel.currentValueZtro.toLocaleString()} ZTRO
+                                                            Đang bán · {barrel.currentValueZtro.toLocaleString()} Ztaro
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -1076,7 +1076,7 @@ export default function BarrelReservePage() {
                                             <div className="col-span-2 sm:col-span-1">
                                                 <span className="text-muted-foreground block">Giá thị trường hiện tại (tự động tính)</span>
                                                 <span className="font-mono font-bold text-amber-500">
-                                                    {barrel.currentValueZtro.toLocaleString()} ZTRO
+                                                    {barrel.currentValueZtro.toLocaleString()} Ztaro
                                                 </span>
                                                 <span className="block text-[10px] text-muted-foreground/70">
                                                     (~{barrel.currentValueZp.toLocaleString()} ZP quy đổi, dùng để tính phí lưu kho)
@@ -1226,7 +1226,7 @@ export default function BarrelReservePage() {
                             Bộ sưu tập thùng toàn hội viên (Public Collection)
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng ZTRO (giao dịch on-chain trực tiếp giữa ví lưu ký hai bên).
+                            Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng Ztaro (giao dịch on-chain trực tiếp giữa ví lưu ký hai bên).
                         </p>
                     </div>
 
@@ -1281,7 +1281,7 @@ export default function BarrelReservePage() {
                                         </div>
 
                                         <div className="text-[10px] text-center text-muted-foreground">
-                                            Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZtro.toLocaleString()} ZTRO</span>
+                                            Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZtro.toLocaleString()} Ztaro</span>
                                         </div>
 
                                         {typeof pb.blendMasterScore === "number" ? (
@@ -1382,7 +1382,7 @@ export default function BarrelReservePage() {
                             <div className="text-amber-500 font-mono font-bold text-xs">STEP 1 & 2</div>
                             <h4 className="font-semibold text-sm text-foreground">Chọn thông số thùng và xét duyệt điều kiện sở hữu</h4>
                             <p className="text-xs text-muted-foreground leading-normal">
-                                Khi hội viên chọn dung tích thùng mong muốn, hệ thống sẽ tra cứu và xác minh theo thời gian thực lượng ZTRO đã stake cùng số dư <span className="notranslate">EXP</span> trong ví.
+                                Khi hội viên chọn dung tích thùng mong muốn, hệ thống sẽ tra cứu và xác minh theo thời gian thực lượng Ztaro đã stake cùng số dư <span className="notranslate">EXP</span> trong ví.
                             </p>
                         </div>
                         <div className="p-4 rounded-lg bg-card border border-border/40 space-y-2">
@@ -2256,7 +2256,7 @@ export default function BarrelReservePage() {
                 }}
                 onSuccess={executeBuyBarrel}
                 title="P2P 배럴 구매 승인"
-                description={pendingBuyBarrel ? `${pendingBuyBarrel.currentValueZtro.toLocaleString()} ZTRO 온체인 대금 결제를 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
+                description={pendingBuyBarrel ? `${pendingBuyBarrel.currentValueZtro.toLocaleString()} Ztaro 온체인 대금 결제를 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
                 hasPinSet={hasPinSet}
                 onPinSetSuccess={() => setHasPinSet(true)}
             />

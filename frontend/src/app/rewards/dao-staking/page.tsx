@@ -36,8 +36,12 @@ const OPBNB_RPC_URL = "https://opbnb-rpc.publicnode.com"
 const OPBNB_EXPLORER_URL = "https://opbnbscan.com"
 
 // Contract Addresses
-const ZTRO_TOKEN_ADDRESS = "0xF4E758D3461886f7dD5af3E86f622e171113A568"
-const ZTRO_VAULT_CONTRACT_ADDRESS = "0x58d567c90865EF5ccBF8291553D51d38DC63A7B1"
+const ZTARO_TOKEN_ADDRESS = "0xdD98e6425f1fc7Ca536cd6bba9674f1E270cB30C"
+const ZTARO_VAULT_CONTRACT_ADDRESS = "0x9c20817B074DAe2298d07cAC587667214eA0DC01"
+
+// Ztaro's total supply is 1e9 — any allowance anywhere near MaxUint256 only ever comes
+// from handleApprove's unlimited approve, never a deliberately-sized amount.
+const UNLIMITED_ALLOWANCE_THRESHOLD = 10n ** 30n
 
 // ABIs
 const ERC20_ABI = [
@@ -53,7 +57,7 @@ const VAULT_ABI = [
     "function getAllStakes(address user) external view returns (uint256[] memory)",
     "function stakes(uint256 stakeId) external view returns (uint256 stakeId, uint256 amount, uint256 lockedUntil, uint256 createdAt, bool active, bool unstaked, bool transferred)",
     "function totalStaked() external view returns (uint256)",
-    "function adminReserve() external view returns (uint256)",
+    "function availableReserve() external view returns (uint256)",
     "function withdrawApproved(address user) external view returns (bool)",
     "function transferApproved(address user) external view returns (bool)",
     // Proposal functions mapping
@@ -63,7 +67,7 @@ const VAULT_ABI = [
     "function vote(uint256 proposalId, bool support) external",
     "function hasVoted(uint256 proposalId, address staker) external view returns (bool)",
     "function voteChoice(uint256 proposalId, address staker) external view returns (bool)",
-    "function createProposal(address recipient, uint256 amount) external returns (uint256)",
+    "function createProposal(uint256 amount) external returns (uint256)",
     "function executeProposal(uint256 proposalId) external",
     "function cancelProposal(uint256 proposalId) external",
 ]
@@ -110,7 +114,6 @@ export default function DaoStakingPage() {
     // DAO Proposal data
     const [isOwner, setIsOwner] = useState<boolean>(false)
     const [proposals, setProposals] = useState<ProposalItem[]>([])
-    const [proposalRecipient, setProposalRecipient] = useState<string>("")
     const [proposalAmount, setProposalAmount] = useState<string>("")
 
     // Staking Input
@@ -235,11 +238,11 @@ export default function DaoStakingPage() {
         const run = async () => {
             try {
                 const provider = new ethers.JsonRpcProvider(OPBNB_RPC_URL)
-                const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, provider)
-                const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
+                const ztroContract = new ethers.Contract(ZTARO_TOKEN_ADDRESS, ERC20_ABI, provider)
+                const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
 
                 const [contractBalance, totalStakedWei, proposalCountRaw] = await Promise.all([
-                    ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
+                    ztroContract.balanceOf(ZTARO_VAULT_CONTRACT_ADDRESS),
                     vaultContract.totalStaked(),
                     vaultContract.proposalCounter(),
                 ])
@@ -292,8 +295,8 @@ export default function DaoStakingPage() {
             try {
                 const provider = new ethers.BrowserProvider(ethereum)
 
-                const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, provider)
-                const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
+                const ztroContract = new ethers.Contract(ZTARO_TOKEN_ADDRESS, ERC20_ABI, provider)
+                const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, provider)
 
                 // Fetch contract metrics
                 const [
@@ -307,10 +310,10 @@ export default function DaoStakingPage() {
                     contractOwner,
                     proposalCountRaw
                 ] = await Promise.all([
-                    ztroContract.balanceOf(ZTRO_VAULT_CONTRACT_ADDRESS),
+                    ztroContract.balanceOf(ZTARO_VAULT_CONTRACT_ADDRESS),
                     vaultContract.totalStaked(),
                     ztroContract.balanceOf(account),
-                    ztroContract.allowance(account, ZTRO_VAULT_CONTRACT_ADDRESS),
+                    ztroContract.allowance(account, ZTARO_VAULT_CONTRACT_ADDRESS),
                     vaultContract.withdrawApproved(account),
                     vaultContract.transferApproved(account),
                     vaultContract.getAllStakes(account),
@@ -318,7 +321,7 @@ export default function DaoStakingPage() {
                     vaultContract.proposalCounter()
                 ])
 
-                // ZTRO is a 0-decimal token on-chain — raw uint256 values ARE the ZTRO count,
+                // Ztaro is a 0-decimal token on-chain — raw uint256 values ARE the Ztaro count,
                 // never run them through formatEther/parseEther (that assumes 18 decimals).
                 setLockedContractZtro(contractBalance.toString())
                 setTotalStaked(totalStakedWei.toString())
@@ -419,10 +422,10 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const ztroContract = new ethers.Contract(ZTRO_TOKEN_ADDRESS, ERC20_ABI, signer)
+            const ztroContract = new ethers.Contract(ZTARO_TOKEN_ADDRESS, ERC20_ABI, signer)
 
             // Unlimited approve
-            const tx = await ztroContract.approve(ZTRO_VAULT_CONTRACT_ADDRESS, ethers.MaxUint256)
+            const tx = await ztroContract.approve(ZTARO_VAULT_CONTRACT_ADDRESS, ethers.MaxUint256)
 
             setMessage({ text: "트랜잭션이 블록에 포함되길 기다리는 중입니다...", type: "info" })
             await tx.wait()
@@ -444,7 +447,7 @@ export default function DaoStakingPage() {
             return
         }
         if (!Number.isInteger(Number(stakeAmount))) {
-            setMessage({ text: "ZTRO는 소수점 없이 정수 단위로만 스테이킹할 수 있습니다.", type: "error" })
+            setMessage({ text: "Ztaro는 소수점 없이 정수 단위로만 스테이킹할 수 있습니다.", type: "error" })
             return
         }
         if (typeof window === "undefined" || !window.ethereum || !account) return
@@ -454,16 +457,16 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
-            // ZTRO has 0 decimals on-chain — the raw amount IS the ZTRO count, no parseEther.
+            // Ztaro has 0 decimals on-chain — the raw amount IS the Ztaro count, no parseEther.
             const amountWei = BigInt(stakeAmount)
             const tx = await vaultContract.stake(amountWei, lockDays)
 
             setMessage({ text: "스테이킹 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
             await tx.wait()
 
-            setMessage({ text: "ZTRO 스테이킹 성공!", type: "success" })
+            setMessage({ text: "Ztaro 스테이킹 성공!", type: "success" })
             setStakeAmount("")
             refreshStakingDetails()
         } catch (err) {
@@ -483,7 +486,7 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
             const tx = await vaultContract.unstake(stakeId)
             setMessage({ text: "트랜잭션 블록 대기 중입니다...", type: "info" })
@@ -508,7 +511,7 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
             const tx = await vaultContract.transferOut(stakeId, account)
             setMessage({ text: "트랜잭션 승인을 확인 중입니다...", type: "info" })
@@ -526,16 +529,12 @@ export default function DaoStakingPage() {
 
     // Execute Create Proposal
     const handleCreateProposal = async () => {
-        if (!proposalRecipient || !ethers.isAddress(proposalRecipient)) {
-            setMessage({ text: "올바른 대상 지갑 주소를 입력대조해 주세요.", type: "error" })
-            return
-        }
         if (!proposalAmount || isNaN(Number(proposalAmount)) || Number(proposalAmount) <= 0) {
             setMessage({ text: "올바른 인출 수량을 지정해 주세요.", type: "error" })
             return
         }
         if (!Number.isInteger(Number(proposalAmount))) {
-            setMessage({ text: "ZTRO는 소수점 없이 정수 단위로만 지정할 수 있습니다.", type: "error" })
+            setMessage({ text: "Ztaro는 소수점 없이 정수 단위로만 지정할 수 있습니다.", type: "error" })
             return
         }
         if (typeof window === "undefined" || !window.ethereum || !account) return
@@ -545,17 +544,16 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
-            // ZTRO has 0 decimals on-chain — the raw amount IS the ZTRO count, no parseEther.
+            // Ztaro has 0 decimals on-chain — the raw amount IS the Ztaro count, no parseEther.
             const amountWei = BigInt(proposalAmount)
-            const tx = await vaultContract.createProposal(proposalRecipient, amountWei)
+            const tx = await vaultContract.createProposal(amountWei)
 
             setMessage({ text: "안건 발의 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
             await tx.wait()
 
             setMessage({ text: "DAO 거버넌스 안건 발의 성공!", type: "success" })
-            setProposalRecipient("")
             setProposalAmount("")
             refreshStakingDetails()
         } catch (err) {
@@ -575,7 +573,7 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
             const tx = await vaultContract.vote(proposalId, support)
             setMessage({ text: "투표 트랜잭션이 블록에 포함되길 기다리는 중입니다...", type: "info" })
@@ -600,7 +598,7 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
             const tx = await vaultContract.executeProposal(proposalId)
             setMessage({ text: "실행 트랜잭션의 승인을 확인 중입니다...", type: "info" })
@@ -625,7 +623,7 @@ export default function DaoStakingPage() {
         try {
             const provider = new ethers.BrowserProvider(ethereum)
             const signer = await provider.getSigner()
-            const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
+            const vaultContract = new ethers.Contract(ZTARO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
             const tx = await vaultContract.cancelProposal(proposalId)
             setMessage({ text: "취소 트랜잭션 처리 중입니다...", type: "info" })
@@ -652,8 +650,8 @@ export default function DaoStakingPage() {
         <div className="min-h-screen bg-[#07090e] text-slate-100">
             <PageHeader
                 eyebrow="DAO Governance"
-                title="ZTRO Vault DAO Staking"
-                description="700,000,000 ZTRO 보증 기금을 기반으로 가동되는 개인 메타마스크 지갑 전용 온체인 스테이킹. ZTRO를 잠금하여 거버넌스 투표권 및 배당 청구 권리를 확보하세요."
+                title="Ztaro Vault DAO Staking"
+                description="700,000,000 Ztaro 보증 기금을 기반으로 가동되는 개인 메타마스크 지갑 전용 온체인 스테이킹. Ztaro를 잠금하여 거버넌스 투표권 및 배당 청구 권리를 확보하세요."
             />
 
             <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">
@@ -669,20 +667,20 @@ export default function DaoStakingPage() {
                                 <span className="text-2xl font-bold font-mono tracking-tight text-white">
                                     {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                                 </span>
-                                <span className="text-sm font-medium text-slate-400">ZTRO</span>
+                                <span className="text-sm font-medium text-slate-400">Ztaro</span>
                             </div>
                         </div>
                         <div className="border-t border-slate-800/80 pt-2.5 text-xs text-slate-400 space-y-1.5">
                             <div className="flex justify-between">
                                 <span>실제 계약 잔고 (Balance):</span>
                                 <span className="font-mono text-slate-200">
-                                    {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZTRO
+                                    {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })} Ztaro
                                 </span>
                             </div>
                             <div className="flex justify-between">
                                 <span>누적 스테이킹 총합 (Staked):</span>
                                 <span className="font-mono text-slate-200">
-                                    {Number(totalStaked).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZTRO
+                                    {Number(totalStaked).toLocaleString(undefined, { maximumFractionDigits: 2 })} Ztaro
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -705,7 +703,7 @@ export default function DaoStakingPage() {
                             <span className="text-2xl font-bold font-mono tracking-tight text-white">
                                 {Number(totalStaked).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                             </span>
-                            <span className="text-sm font-medium text-slate-400">ZTRO</span>
+                            <span className="text-sm font-medium text-slate-400">Ztaro</span>
                         </div>
                         <p className="mt-1 text-[11px] text-slate-500">
                             현재 풀 내 다수 거버너들이 예치 중인 총량
@@ -720,7 +718,7 @@ export default function DaoStakingPage() {
                             <span className="text-2xl font-bold font-mono tracking-tight text-white">
                                 {Number(userStakingPower).toLocaleString(undefined, { maximumFractionDigits: 2 })}
                             </span>
-                            <span className="text-sm font-medium text-slate-400">ZTRO</span>
+                            <span className="text-sm font-medium text-slate-400">Ztaro</span>
                         </div>
                         <p className="mt-1 text-[11px] text-slate-500">
                             현재 참여 중인 내 온체인 투표 영향력 규모
@@ -747,7 +745,7 @@ export default function DaoStakingPage() {
                     <div className="lg:col-span-5 rounded-2xl border border-slate-800/80 bg-slate-950/80 p-6 flex flex-col gap-6 backdrop-blur-xl">
                         <h3 className="font-display text-lg font-semibold flex items-center gap-2 text-white">
                             <Sparkles className="h-5 w-5 text-indigo-400" />
-                            ZTRO 스테이킹 액션
+                            Ztaro 스테이킹 액션
                         </h3>
 
                         {/* Wallet switch check */}
@@ -778,15 +776,19 @@ export default function DaoStakingPage() {
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-400">
-                                    <span>내 ZTRO 잔액:</span>
+                                    <span>내 Ztaro 잔액:</span>
                                     <span className="font-semibold text-emerald-400">
-                                        {Number(ztroBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} ZTRO
+                                        {Number(ztroBalance).toLocaleString(undefined, { maximumFractionDigits: 4 })} Ztaro
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center text-slate-400">
                                     <span>금고 승인 한도:</span>
                                     <span className="font-mono text-slate-300">
-                                        {Number(allowance).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZTRO
+                                        {/* handleApprove requests an unlimited (MaxUint256) allowance — a 78-digit
+                                            number that's meaningless to show raw, so just say "무제한" for it. */}
+                                        {BigInt(allowance || "0") >= UNLIMITED_ALLOWANCE_THRESHOLD
+                                            ? "무제한"
+                                            : `${Number(allowance).toLocaleString(undefined, { maximumFractionDigits: 2 })} Ztaro`}
                                     </span>
                                 </div>
                             </div>
@@ -795,7 +797,7 @@ export default function DaoStakingPage() {
                         {/* Stake Input options */}
                         <div className="flex flex-col gap-4">
                             <label className="flex flex-col gap-1 text-xs text-slate-400">
-                                스테이킹 금액 (ZTRO)
+                                스테이킹 금액 (Ztaro)
                                 <input
                                     type="text"
                                     placeholder="0.0"
@@ -829,7 +831,7 @@ export default function DaoStakingPage() {
                                         disabled={busy || !account || !isChainCorrect || !stakeAmount}
                                         className="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-2.5"
                                     >
-                                        {busy ? "인증 로컬 조율 중..." : "1단계: ZTRO 토큰 사용 승인 (Approve)"}
+                                        {busy ? "인증 로컬 조율 중..." : "1단계: Ztaro 토큰 사용 승인 (Approve)"}
                                     </Button>
                                 ) : (
                                     <Button
@@ -891,7 +893,7 @@ export default function DaoStakingPage() {
                             {!account ? (
                                 <div className="py-12 flex flex-col items-center justify-center gap-4 text-center">
                                     <div className="text-xs text-slate-500 max-w-sm">
-                                        나의 ZTRO 스테이킹 수량, 락업 만기 현황 및 최종 자산 인출을 확인하려면 개인 Web3 지갑 연동이 필요합니다.
+                                        나의 Ztaro 스테이킹 수량, 락업 만기 현황 및 최종 자산 인출을 확인하려면 개인 Web3 지갑 연동이 필요합니다.
                                     </div>
                                     <Button
                                         onClick={connectAndSwitchToOpBnb}
@@ -904,7 +906,7 @@ export default function DaoStakingPage() {
                                 </div>
                             ) : userStakes.length === 0 ? (
                                 <div className="py-12 text-center text-xs text-slate-500">
-                                    현재 지갑 주소로 참여한 ZTRO 금고 스테이킹 내역이 없습니다.
+                                    현재 지갑 주소로 참여한 Ztaro 금고 스테이킹 내역이 없습니다.
                                 </div>
                             ) : (
                                 <div className="space-y-4 max-h-[500px] overflow-y-auto pr-1 select-none">
@@ -934,7 +936,7 @@ export default function DaoStakingPage() {
                                                     )}
                                                 </div>
                                                 <span className="font-mono text-sm font-bold text-white">
-                                                    {pos.amount.toLocaleString()} ZTRO
+                                                    {pos.amount.toLocaleString()} Ztaro
                                                 </span>
                                             </div>
 
@@ -986,9 +988,9 @@ export default function DaoStakingPage() {
 
                         {/* Extra DAO Voting Info banner */}
                         <div className="rounded-2xl border border-slate-800 bg-slate-950/40 p-6 text-xs text-slate-400 space-y-2">
-                            <h4 className="font-semibold text-slate-200">ZTRO 거버너 위상 및 역할</h4>
+                            <h4 className="font-semibold text-slate-200">Ztaro 거버너 위상 및 역할</h4>
                             <p className="leading-relaxed">
-                                Vault DAO 의 모든 투표권(Voting Power)은 해당 지갑의 누적 활성 스테이킹 ZTRO 수량의 가중치로 구성됩니다. 제안(Proposals)이 발의될 경우, 거버너는 서명 권리를 통해 해당 인출 또는 안건에 찬반 의사를 행사할 수 있습니다. 30일 배수로 락업 기간이 높을수록 리워드 획득 비율과 생태계 참여 지위가 강화됩니다.
+                                Vault DAO 의 모든 투표권(Voting Power)은 해당 지갑의 누적 활성 스테이킹 Ztaro 수량의 가중치로 구성됩니다. 제안(Proposals)이 발의될 경우, 거버너는 서명 권리를 통해 해당 인출 또는 안건에 찬반 의사를 행사할 수 있습니다. 30일 배수로 락업 기간이 높을수록 리워드 획득 비율과 생태계 참여 지위가 강화됩니다.
                             </p>
                         </div>
 
@@ -1018,18 +1020,10 @@ export default function DaoStakingPage() {
                                     {t.daoStakingPage.proposalCreateTitle}
                                 </span>
                                 {isOwner ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <label className="flex flex-col gap-1 text-xs text-slate-400">
-                                            {t.daoStakingPage.proposalRecipientLabel}
-                                            <input
-                                                type="text"
-                                                placeholder="0x..."
-                                                className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white font-mono placeholder-slate-700 focus:outline-none focus:border-indigo-500"
-                                                value={proposalRecipient}
-                                                onChange={(e) => setProposalRecipient(e.target.value)}
-                                                disabled={busy}
-                                            />
-                                        </label>
+                                    <div className="space-y-2">
+                                        <p className="text-[11px] text-slate-500">
+                                            승인된 안건의 자금은 항상 컨트랙트 owner(배포자) 지갑으로 전송됩니다.
+                                        </p>
                                         <div className="flex gap-3 items-end">
                                             <label className="flex-1 flex flex-col gap-1 text-xs text-slate-400">
                                                 {t.daoStakingPage.proposalAmountLabel}
@@ -1044,7 +1038,7 @@ export default function DaoStakingPage() {
                                             </label>
                                             <Button
                                                 onClick={handleCreateProposal}
-                                                disabled={busy || !proposalRecipient || !proposalAmount}
+                                                disabled={busy || !proposalAmount}
                                                 className="bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs h-[34px]"
                                             >
                                                 {t.daoStakingPage.proposalSubmitButton}
@@ -1127,7 +1121,7 @@ export default function DaoStakingPage() {
                                                         </span>
                                                     </div>
                                                     <span className="font-mono text-sm font-bold text-white">
-                                                        {prop.amount.toLocaleString()} ZTRO
+                                                        {prop.amount.toLocaleString()} Ztaro
                                                     </span>
                                                 </div>
 
@@ -1135,7 +1129,7 @@ export default function DaoStakingPage() {
                                                 <div className="space-y-1.5">
                                                     <div className="flex justify-between text-[10px] text-slate-400">
                                                         <span>{t.daoStakingPage.voteStatusLabel.replace("{yes}", prop.yesVotes.toLocaleString()).replace("{no}", prop.noVotes.toLocaleString())}</span>
-                                                        <span>투표 가중치: {totalVotes.toLocaleString()} ZTRO</span>
+                                                        <span>투표 가중치: {totalVotes.toLocaleString()} Ztaro</span>
                                                     </div>
                                                     <div className="w-full h-1.5 bg-slate-950 rounded-full overflow-hidden flex">
                                                         <div className="h-full bg-emerald-500" style={{ width: `${yesPercent}%` }} />

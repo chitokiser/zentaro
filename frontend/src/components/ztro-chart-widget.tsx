@@ -22,11 +22,11 @@ export function ZtroChartWidget() {
                         <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
                     </svg>
                     <h3 className="font-display text-sm font-semibold tracking-wide">
-                        ZTRO/USDT Live Chart
+                        Ztaro/USDT Live Chart
                     </h3>
                 </div>
                 <a
-                    href="https://www.geckoterminal.com/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df"
+                    href="https://www.geckoterminal.com/opbnb/pools/0x5a65805fb99cf5b7e50d567c4029af62531be53c"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex items-center gap-1 rounded-md border border-border/50 px-2.5 py-1 text-[10px] text-muted-foreground transition-colors hover:border-primary/40 hover:text-primary"
@@ -51,7 +51,7 @@ export function ZtroChartWidget() {
                     </div>
                 )}
                 <iframe
-                    title="ZTRO/USDT Chart"
+                    title="Ztaro/USDT Chart"
                     src="https://www.geckoterminal.com/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df?embed=1&info=0&swaps=0"
                     style={{ width: "100%", height: "100%", border: "none" }}
                     onLoad={() => setIsLoaded(true)}

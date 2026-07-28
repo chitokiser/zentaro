@@ -14,9 +14,9 @@ interface IERC20 {
     event Approval(address indexed owner, address indexed spender, uint256 value);
 }
 
-contract ZTRO is IERC20 {
-    string public constant name = "ZenTrao Utility Token";
-    string public constant symbol = "ZTRO";
+contract Zentaro is IERC20 {
+    string public constant name = "Ztaro";
+    string public constant symbol = "Ztaro";
     uint8 public constant decimals = 0;
 
     uint256 private _totalSupply;

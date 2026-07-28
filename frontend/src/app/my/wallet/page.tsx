@@ -318,7 +318,7 @@ export default function WalletPage() {
             <h4 className="font-display text-sm font-semibold text-foreground">결제 비밀번호 보안 설정</h4>
             <p className="text-xs text-muted-foreground mt-0.5">
               {me?.hasPaymentPassword
-                ? "결제 비밀번호가 안전하게 설정되어 있습니다. (USDT 출금, P2P 구매, ZTRO 이체 시 사용)"
+                ? "결제 비밀번호가 안전하게 설정되어 있습니다. (USDT 출금, P2P 구매, Ztaro 이체 시 사용)"
                 : "USDT 출금 및 중요 자산 이체 거래를 위해서 6자리 결제 비밀번호 설정이 필수입니다."
               }
             </p>

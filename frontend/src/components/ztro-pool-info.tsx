@@ -22,7 +22,7 @@ export function ZtroPoolInfo() {
         const fetchPoolData = async () => {
             try {
                 const response = await fetch(
-                    "https://api.geckoterminal.com/api/v2/networks/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df"
+                    "https://api.geckoterminal.com/api/v2/networks/opbnb/pools/0x5a65805fb99cf5b7e50d567c4029af62531be53c"
                 )
                 const resJson = await response.json()
 
@@ -68,7 +68,7 @@ export function ZtroPoolInfo() {
                 <div className="flex items-center gap-2">
                     <div className="h-3 w-3 animate-pulse rounded-full bg-primary/60" />
                     <span className="text-sm text-muted-foreground">
-                        ZTRO/USDT 풀 데이터 동기화 중…
+                        Ztaro/USDT 풀 데이터 동기화 중…
                     </span>
                 </div>
             </div>
@@ -97,7 +97,7 @@ export function ZtroPoolInfo() {
                     </div>
                     <div>
                         <h3 className="font-display text-sm font-semibold tracking-wide">
-                            ZTRO / USDT
+                            Ztaro / USDT
                         </h3>
                         <span className="text-[10px] text-muted-foreground">
                             PancakeSwap V2 · opBNB
@@ -106,7 +106,7 @@ export function ZtroPoolInfo() {
                 </div>
                 <div className="flex items-center gap-3">
                     <a
-                        href="https://pancakeswap.finance/swap?outputCurrency=0xf4e758d3461886f7dd5af3e86f622e171113a568&chain=opbnb"
+                        href="https://pancakeswap.finance/swap?outputCurrency=0xdd98e6425f1fc7ca536cd6bba9674f1e270cb30c&chain=opbnb"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-amber-600 shadow-sm"
@@ -126,6 +126,12 @@ export function ZtroPoolInfo() {
                         <span className="text-[10px] text-emerald-500 font-medium">LIVE</span>
                     </div>
                 </div>
+            </div>
+
+            <div className="border-b border-border/40 bg-amber-500/[0.06] px-5 py-2">
+                <p className="text-[10px] leading-relaxed text-amber-600 dark:text-amber-400">
+                    ⚠ PancakeSwap 직접 거래는 메타마스크 등 개인 Web3 지갑 보유자만 가능합니다. 젠타로 수탁지갑 이용자는 외부 DEX에 직접 연결할 수 없으며, 서비스 내 스테이킹·오크통 거래 등 기본 기능만 이용 가능합니다.
+                </p>
             </div>
 
             {/* Body */}

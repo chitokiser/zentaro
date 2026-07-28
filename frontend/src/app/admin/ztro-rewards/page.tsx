@@ -71,9 +71,9 @@ export default function AdminZtroRewardsPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h2 className="font-display text-xl font-semibold">ZTRO 리워드 QR</h2>
+      <h2 className="font-display text-xl font-semibold">Ztaro 리워드 QR</h2>
       <p className="text-sm text-muted-foreground">
-        발행한 QR을 스캔한 회원의 온체인 지갑으로 <b>기본값 × 랜덤 배율</b> 만큼의 ZTRO가
+        발행한 QR을 스캔한 회원의 온체인 지갑으로 <b>기본값 × 랜덤 배율</b> 만큼의 Ztaro가
         즉시 지급됩니다. 각 QR은 1회만 사용할 수 있습니다.
       </p>
       <div className="rounded-md border border-border/40 bg-secondary/20 px-4 py-3 text-xs text-muted-foreground">
@@ -89,7 +89,7 @@ export default function AdminZtroRewardsPage() {
             <p className="text-sm text-destructive">{poolError}</p>
           ) : (
             <p className="font-display text-2xl font-semibold text-primary">
-              {poolBalance === null ? "불러오는 중..." : `${poolBalance.toLocaleString()} ZTRO`}
+              {poolBalance === null ? "불러오는 중..." : `${poolBalance.toLocaleString()} Ztaro`}
             </p>
           )}
         </div>
@@ -205,7 +205,7 @@ export default function AdminZtroRewardsPage() {
               </div>
               <div className="flex items-center gap-2">
                 {item.amount != null ? (
-                  <span className="text-xs text-muted-foreground">{item.amount} ZTRO</span>
+                  <span className="text-xs text-muted-foreground">{item.amount} Ztaro</span>
                 ) : null}
                 {item.txHash ? (
                   <a

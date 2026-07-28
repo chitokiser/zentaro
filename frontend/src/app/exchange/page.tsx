@@ -224,10 +224,10 @@ export default function ExchangePage() {
               </p>
             ) : null}
 
-            {/* ZTRO Pool Live Data */}
+            {/* Ztaro Pool Live Data */}
             <ZtroPoolInfo />
 
-            {/* ZTRO Live Chart */}
+            {/* Ztaro Live Chart */}
             <ZtroChartWidget />
 
             {/* Staking info */}
@@ -388,7 +388,7 @@ export default function ExchangePage() {
                           <tr key={stake.stakeId} className="border-b border-border/30 last:border-0 hover:bg-muted/10">
                             <td className="py-3 pr-2 font-mono">{stake.stakeId}</td>
                             <td className="py-3 px-2 font-semibold">
-                              {stake.amount.toLocaleString()} ZTRO
+                              {stake.amount.toLocaleString()} Ztaro
                             </td>
                             <td className="py-3 px-2 text-muted-foreground">
                               {new Date(stake.createdAt * 1000).toLocaleDateString()}
@@ -508,8 +508,8 @@ export default function ExchangePage() {
           setPendingRecipient(null)
         }}
         onSuccess={executeTransferOut}
-        title="ZTRO 외부 이체 승인"
-        description={pendingRecipient ? `ZTRO 지갑 이체(${pendingRecipient.substring(0, 6)}...)를 완료하기 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
+        title="Ztaro 외부 이체 승인"
+        description={pendingRecipient ? `Ztaro 지갑 이체(${pendingRecipient.substring(0, 6)}...)를 완료하기 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
         hasPinSet={hasPinSet}
         onPinSetSuccess={() => setHasPinSet(true)}
       />

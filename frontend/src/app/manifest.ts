@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "ZENTARO | Every Bottle Tells a Story",
     short_name: "ZENTARO",
     description:
-      "ZENTARO — 프리미엄 크래프트 증류소. ZTRO 스테이킹, ZENTARO Mall, Bottle Cap Rewards 생태계.",
+      "ZENTARO — 프리미엄 크래프트 증류소. Ztaro 스테이킹, ZENTARO Mall, Bottle Cap Rewards 생태계.",
     start_url: "/",
     scope: "/",
     display: "standalone",

@@ -8,17 +8,16 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Pausable.sol";
 
 /**
- * @title ZTROVaultDAO
- * @notice A vault contract for ZTRO staking and admin reserve proposals.
+ * @title ZtaroVaultDAO
+ * @notice A vault contract for Ztaro staking and DAO withdrawal proposals.
  * @dev Inherits OpenZeppelin's Ownable, Pausable, and ReentrancyGuard.
  */
-contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
+contract ZtaroVaultDAO is Ownable, Pausable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
-    IERC20 public immutable ztro;
+    IERC20 public immutable ztaro;
 
     uint256 public totalStaked;
-    uint256 public adminReserve;
     uint256 public totalReservedProposalAmount;
 
     uint256 public votingPeriod = 7 days;
@@ -58,7 +57,7 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
     mapping(uint256 => mapping(address => bool)) public hasVoted;
     mapping(uint256 => mapping(address => bool)) public voteChoice;
     mapping(address => uint256) public stakingPower;
-    
+
     address[] public stakers;
     mapping(address => uint256) public stakerIndex;
     mapping(uint256 => mapping(address => uint256)) public snapshotPower;
@@ -72,18 +71,15 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
     event VoteCast(uint256 indexed proposalId, address indexed voter, bool support, uint256 votingPower);
     event ProposalExecuted(uint256 indexed proposalId);
     event ProposalCancelled(uint256 indexed proposalId);
-    event AdminReserveChanged(uint256 previousReserve, uint256 newReserve);
-    event AdminReserveDeposited(uint256 amount);
-    event AdminReserveWithdrawn(uint256 amount);
     event ProposalReserved(uint256 proposalId, uint256 amount);
 
-    constructor(address _ztro) Ownable(msg.sender) {
-        require(_ztro != address(0), "ZTRO zero address");
-        ztro = IERC20(_ztro);
+    constructor(address _ztaro) Ownable(msg.sender) {
+        require(_ztaro != address(0), "Ztaro zero address");
+        ztaro = IERC20(_ztaro);
     }
 
-    /// @notice Stake ZTRO tokens for a lock period (30, 90, 180, 365, or 1095 days).
-    /// @param amount Amount of ZTRO to stake.
+    /// @notice Stake Ztaro tokens for a lock period (30, 90, 180, 365, or 1095 days).
+    /// @param amount Amount of Ztaro to stake.
     /// @param lockDays Lock duration in days.
     function stake(uint256 amount, uint256 lockDays)
         external
@@ -97,7 +93,7 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
             "invalid lock period"
         );
 
-        ztro.safeTransferFrom(msg.sender, address(this), amount);
+        ztaro.safeTransferFrom(msg.sender, address(this), amount);
 
         stakeId = ++stakeCounter;
         uint256 lockedUntil = block.timestamp + (lockDays * 1 days);
@@ -169,7 +165,7 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
         emit WithdrawApprovalChanged(address(0), msg.sender, false, block.timestamp);
         emit TransferApprovalChanged(address(0), msg.sender, false, block.timestamp);
 
-        ztro.safeTransfer(recipient, s.amount);
+        ztaro.safeTransfer(recipient, s.amount);
 
         emit TransferCompleted(msg.sender, stakeId, s.amount, recipient);
     }
@@ -202,47 +198,36 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
         emit TransferApprovalChanged(msg.sender, user, approved, block.timestamp);
     }
 
-    /// @notice Deposit tokens into the admin reserve.
-    function depositAdminReserve(uint256 amount) external onlyOwner whenNotPaused nonReentrant {
-        require(amount > 0, "amount > 0");
-        uint256 prev = adminReserve;
-        ztro.safeTransferFrom(msg.sender, address(this), amount);
-        adminReserve = prev + amount;
-        emit AdminReserveChanged(prev, adminReserve);
-        emit AdminReserveDeposited(amount);
+    /// @notice Funds not currently locked in active stakes or already reserved by a
+    /// pending proposal. Any Ztaro held by the contract counts toward this — whether it
+    /// arrived via a plain transfer or otherwise — so nothing can get stuck untracked.
+    function availableReserve() public view returns (uint256) {
+        uint256 balance = ztaro.balanceOf(address(this));
+        uint256 locked = totalStaked + totalReservedProposalAmount;
+        if (balance <= locked) return 0;
+        return balance - locked;
     }
 
-    /// @notice Withdraw free admin reserve directly.
-    /// @param amount Amount to withdraw.
-    function withdrawAdminReserve(uint256 amount) external onlyOwner nonReentrant {
-        require(amount > 0, "amount > 0");
-        require(amount <= adminReserve - totalReservedProposalAmount, "insufficient free reserve");
-        uint256 prev = adminReserve;
-        adminReserve = prev - amount;
-        ztro.safeTransfer(msg.sender, amount);
-        emit AdminReserveChanged(prev, adminReserve);
-        emit AdminReserveWithdrawn(amount);
-    }
-
-    /// @notice Create DAO proposal to withdraw from reserve.
-    /// @param recipient Address to receive proposed funds on execution.
-    /// @param amount Amount of reserve to propose.
-    function createProposal(address recipient, uint256 amount)
+    /// @notice Create DAO proposal to withdraw from the contract's available balance.
+    /// Funds always go to the current owner on execution. Checked against real
+    /// available balance at creation time so a proposal can never request more than
+    /// what actually exists to withdraw.
+    /// @param amount Amount to propose withdrawing.
+    function createProposal(uint256 amount)
         external
         onlyOwner
         whenNotPaused
         returns (uint256 proposalId)
     {
-        require(recipient != address(0), "recipient zero");
         require(amount > 0, "amount > 0");
-        require(totalReservedProposalAmount + amount <= adminReserve, "insufficient reserve");
+        require(amount <= availableReserve(), "insufficient available balance");
 
         proposalId = ++proposalCounter;
         totalReservedProposalAmount += amount;
 
         proposals[proposalId] = Proposal({
             proposalId: proposalId,
-            recipient: recipient,
+            recipient: owner(),
             amount: amount,
             createdAt: block.timestamp,
             deadline: block.timestamp + votingPeriod,
@@ -259,7 +244,7 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
             snapshotPower[proposalId][voter] = stakingPower[voter];
         }
 
-        emit ProposalCreated(proposalId, recipient, amount, proposals[proposalId].deadline);
+        emit ProposalCreated(proposalId, owner(), amount, proposals[proposalId].deadline);
         emit ProposalReserved(proposalId, amount);
         return proposalId;
     }
@@ -299,16 +284,13 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
         require(!p.cancelled, "cancelled");
         require(block.timestamp > p.deadline, "voting not ended");
         require(p.yesVotes >= (p.snapshotTotalStake * 80) / 100, "proposal not passed");
-        require(p.amount <= adminReserve, "insufficient reserve");
+        require(p.amount <= ztaro.balanceOf(address(this)), "insufficient balance");
 
-        uint256 prevReserve = adminReserve;
         p.executed = true;
-        adminReserve -= p.amount;
         totalReservedProposalAmount -= p.amount;
 
-        ztro.safeTransfer(p.recipient, p.amount);
+        ztaro.safeTransfer(p.recipient, p.amount);
 
-        emit AdminReserveChanged(prevReserve, adminReserve);
         emit ProposalExecuted(proposalId);
     }
 
@@ -343,10 +325,10 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
         _unpause();
     }
 
-    /// @notice Emergency token recover. ZTRO is excluded.
+    /// @notice Emergency token recover. Ztaro is excluded.
     function emergencyRecover(address tokenAddress, address recipient, uint256 amount) external onlyOwner {
         require(tokenAddress != address(0), "token zero");
-        require(tokenAddress != address(ztro), "ZTRO cannot be recovered");
+        require(tokenAddress != address(ztaro), "Ztaro cannot be recovered");
         require(recipient != address(0), "recipient zero");
         IERC20(tokenAddress).safeTransfer(recipient, amount);
     }
@@ -377,9 +359,9 @@ contract ZTROVaultDAO is Ownable, Pausable, ReentrancyGuard {
         return totalStaked;
     }
 
-    /// @notice Reserve balance.
+    /// @notice Reserve balance available for new proposals (raw balance minus staked and already-reserved amounts).
     function getReserveBalance() external view returns (uint256) {
-        return adminReserve;
+        return availableReserve();
     }
 
     /// @notice Withdrawal approval status per user.

@@ -60,7 +60,7 @@ export default function BottleCapRewardsPage() {
     fetchZtroRewardPoolBalance()
       .then((data) => setPoolBalance(data.balance))
       .catch((err) => {
-        console.error("Failed to fetch ZTRO pool balance:", err)
+        console.error("Failed to fetch Ztaro pool balance:", err)
       })
   }, [])
 
@@ -306,7 +306,7 @@ export default function BottleCapRewardsPage() {
             </div>
             {poolBalance !== null && (
               <Badge variant="outline" className="self-start text-[11px] font-mono border-primary/30 bg-primary/5 text-primary py-1 px-2.5">
-                {t.bottleCap.poolBalanceLabel || "수량"}: {poolBalance.toLocaleString()} ZTRO
+                {t.bottleCap.poolBalanceLabel || "수량"}: {poolBalance.toLocaleString()} Ztaro
               </Badge>
             )}
           </div>
@@ -329,7 +329,7 @@ export default function BottleCapRewardsPage() {
               {rewardResult ? (
                 <div className="mt-4 flex flex-col items-start gap-2 rounded-md border border-primary/30 bg-secondary/40 px-4 py-3 text-sm">
                   <p className="text-primary">
-                    🎉 {rewardResult.amount} ZTRO {t.bottleCap.qrCongrats}
+                    🎉 {rewardResult.amount} Ztaro {t.bottleCap.qrCongrats}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {t.bottleCap.walletAddressLabel} {rewardResult.walletAddress}

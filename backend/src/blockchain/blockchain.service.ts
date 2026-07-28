@@ -30,7 +30,7 @@ const VAULT_ABI = [
   'function getAllStakes(address user) external view returns (uint256[] memory)',
   'function stakes(uint256 stakeId) external view returns (uint256 stakeId, uint256 amount, uint256 lockedUntil, uint256 createdAt, bool active, bool unstaked, bool transferred)',
   'function totalStaked() external view returns (uint256)',
-  'function adminReserve() external view returns (uint256)',
+  'function availableReserve() external view returns (uint256)',
   'function withdrawApproved(address user) external view returns (bool)',
   'function transferApproved(address user) external view returns (bool)',
   'function setTransferApproval(address user, bool approved) external',

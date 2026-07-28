@@ -15,7 +15,7 @@ export function RewardRoulette() {
         </div>
         <div className="absolute -top-1 left-1/2 h-0 w-0 -translate-x-1/2 border-x-8 border-t-8 border-x-transparent border-t-destructive" />
       </div>
-      <p className="text-sm text-muted-foreground">ZTRO 보상 확인 중...</p>
+      <p className="text-sm text-muted-foreground">Ztaro 보상 확인 중...</p>
     </div>
   )
 }

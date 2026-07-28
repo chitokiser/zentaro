@@ -40,8 +40,8 @@ contract ReentrancyGuard {
 
 
 contract ZtroRewardDispenser is Ownable, ReentrancyGuard {
-    // ZTRO: decimals = 0 (whole-token units). Deployed at
-    // 0xF4E758D3461886f7dD5af3E86f622e171113A568 on opBNB.
+    // Ztaro: decimals = 0 (whole-token units). Address is passed in via the
+    // constructor at deploy time — see ztaro.sol / zentaro.sol.
     IERC20 public immutable ztro;
 
     // Backend hot wallet: pays gas for reward() and is the only address allowed to call it.
@@ -187,6 +187,16 @@ contract ZtroRewardDispenser is Ownable, ReentrancyGuard {
     /// contract too (purely informational, does not move funds itself).
     function notifyFunded(uint256 amount) external onlyOwner {
         emit Funded(msg.sender, amount);
+    }
+
+    /// @notice Owner-only recovery for pool funds (e.g. overfunded pool, retiring the
+    /// contract). Without this, tokens sent to this contract could only ever leave via
+    /// reward() payouts.
+    function withdrawExcess(address to, uint256 amount) external onlyOwner nonReentrant {
+        require(to != address(0), "to zero");
+        require(amount <= ztro.balanceOf(address(this)), "insufficient balance");
+        require(ztro.transfer(to, amount), "transfer fail");
+        emit Swept(to, amount);
     }
 
     function poolBalance() external view returns (uint256) {

@@ -7,7 +7,7 @@ const FLOW = [
   "Bottle Cap",
   "QR",
   "Lottery",
-  "ZTRO Token",
+  "Ztaro Token",
   "Staking",
   "Weekly Reward",
   "Premium Products",

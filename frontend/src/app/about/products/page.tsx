@@ -56,13 +56,13 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
                 "100% 천연 로컬 보태니컬 핸드픽 수확",
                 "소형 구리 증류기(Copper Still) 정밀 증류",
                 "레몬그라스와 카다멈이 연출하는 상쾌한 시트러스 피니시",
-                "병뚜껑 QR 반납 시 ZTRO 토큰/30,000 EXP 즉시 보상",
+                "병뚜껑 QR 반납 시 Ztaro 토큰/30,000 EXP 즉시 보상",
             ],
             en: [
                 "100% organic handpicked local botanicals",
                 "Small-batch precision copper pot distillation",
                 "Refreshing citrus notes driven by lemongrass and fresh cardamom",
-                "Scan cap QR to claim 30,000 EXP or ZTRO tokens instantly",
+                "Scan cap QR to claim 30,000 EXP or Ztaro tokens instantly",
             ],
             vi: [
                 "100% thảo mộc hữu cơ tự nhiên thu hoạch thủ công",
@@ -105,13 +105,13 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
                 "100% 특등급 쌀 수매 원료화",
                 "감압 증류 방식을 통해 알데히드 성분을 극소화하여 취기 최소화",
                 "숨쉬는 옹기 항아리 저온 숙성으로 깊어지는 특유의 누룩 피니시",
-                "병뚜껑 QR 반납 시 ZTRO 토큰/10,000 EXP 즉시 보상",
+                "병뚜껑 QR 반납 시 Ztaro 토큰/10,000 EXP 즉시 보상",
             ],
             en: [
                 "Sourced using 100% top-grade local agricultural rice",
                 "Vacuum distilled at low temperature to eliminate harsh congeners",
                 "Aged in breathable premium clay jars for rich grain esters",
-                "Scan cap QR to claim 10,000 EXP or ZTRO tokens instantly",
+                "Scan cap QR to claim 10,000 EXP or Ztaro tokens instantly",
             ],
             vi: [
                 "Sản xuất từ nguồn gạo sạch nguyên hạt chọn lọc",
@@ -463,9 +463,9 @@ export default function ProductsPromotionalPage() {
                             </h3>
                             <p className="text-zinc-400 text-sm sm:text-base leading-relaxed">
                                 {locale === "ko"
-                                    ? "젠타로는 사용자가 보유한 오크통, 혹은 몰에서 구입한 프렌치 오크통에 젠타로의 스피릿을 채운 뒤, 젠타로 자체 전문 숙성 셀러(Barrel Cellar)에 정식 기탁하여 장기 에이징할 수 있는 고품격 '현물출자 기탁 리워드' 생태계를 제공합니다. 시간이 흐를수록 풍부해지는 알데히드와 황금빛 탄닌 에스테르처럼, 귀하의 기탁 자산도 EXP와 ZTRO 배당으로 매일 두텁게 축적됩니다."
+                                    ? "젠타로는 사용자가 보유한 오크통, 혹은 몰에서 구입한 프렌치 오크통에 젠타로의 스피릿을 채운 뒤, 젠타로 자체 전문 숙성 셀러(Barrel Cellar)에 정식 기탁하여 장기 에이징할 수 있는 고품격 '현물출자 기탁 리워드' 생태계를 제공합니다. 시간이 흐를수록 풍부해지는 알데히드와 황금빛 탄닌 에스테르처럼, 귀하의 기탁 자산도 EXP와 Ztaro 배당으로 매일 두텁게 축적됩니다."
                                     : locale === "vi"
-                                        ? "ZenTaro cung cấp chương trình và hệ sinh thái 'góp vốn hiện vật' độc đáo. Các thùng gỗ sồi sau khi mua hoặc tự mang đến ký gửi sẽ được chứa đầy rượu cốt Gin/Soju thượng hạng và bảo quản nghiêm ngặt tại hầm gỗ chuyên dụng của hãng. Giá trị gia tăng theo thời gian được hoàn trả qua cơ chế chia sẻ EXP và ZTRO định kỳ."
+                                        ? "ZenTaro cung cấp chương trình và hệ sinh thái 'góp vốn hiện vật' độc đáo. Các thùng gỗ sồi sau khi mua hoặc tự mang đến ký gửi sẽ được chứa đầy rượu cốt Gin/Soju thượng hạng và bảo quản nghiêm ngặt tại hầm gỗ chuyên dụng của hãng. Giá trị gia tăng theo thời gian được hoàn trả qua cơ chế chia sẻ EXP và Ztaro định kỳ."
                                         : "Through our unique Barrel Contribution Program, you can store your purchased or owned oak casks filled with ZenTaro spirits directly in our climate-controlled cellars. As the liquid matures, you receive daily EXP dividends and ecosystem rewards based on real-world assets."}
                             </p>
                             <div className="flex flex-wrap gap-4 pt-2">
