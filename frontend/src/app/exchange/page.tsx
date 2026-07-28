@@ -67,7 +67,35 @@ export default function ExchangePage() {
   const load = useCallback(() => {
     fetchExchangeDashboard()
       .then(setDashboard)
-      .catch((err) => setError(err instanceof Error ? err.message : e.genericError))
+      .catch((err) => {
+        const errMsg = err instanceof Error ? err.message : e.genericError
+        setError(errMsg)
+        if (errMsg === "로그인이 필요합니다." || errMsg.includes("Unauthorized")) {
+          // Provide guest dummy state with all required ExchangeDashboard fields so charts load
+          setDashboard({
+            address: "",
+            ztroBalance: 0,
+            usdtBalance: 0,
+            priceUsdt: 0,
+            staked: 0,
+            stakingTime: 0,
+            lastClaim: 0,
+            avgBuyPriceUsdt: 0,
+            pnlUsdt: 0,
+            roiBps: 0,
+            pendingDividendUsdt: 0,
+            effectiveStaked: 0,
+            act: 0,
+            sellFeePercent: 0,
+            stakeLockSeconds: 0,
+            divIntervalSeconds: 0,
+            usdtTokenAddress: "",
+            stakes: [],
+            withdrawApproved: false,
+            transferApproved: false,
+          })
+        }
+      })
     fetchMe()
       .then((me) => setHasPinSet(me.hasPaymentPassword))
       .catch((err) => console.error("Me fetch error:", err))
@@ -97,15 +125,28 @@ export default function ExchangePage() {
     }
   }
 
+  function checkGuestGuard(): boolean {
+    if (error === "로그인이 필요합니다.") {
+      setActionError("로그인이 필요합니다. 상단 프로필에서 로그인을 진행해 주세요.")
+      alert("로그인이 필요한 기능입니다. 로그인 페이지로 이동합니다.")
+      window.location.href = "/my/profile"
+      return true
+    }
+    return false
+  }
+
   function handleStake() {
+    if (checkGuestGuard()) return
     runAction("stake", () => stakeZtro(stakeAmount, stakeMonths))
   }
 
   function handleUnstakeItem(stakeId: number) {
+    if (checkGuestGuard()) return
     runAction(`unstake_${stakeId}`, () => unstakeZtro(stakeId))
   }
 
   function handleTransferItem(stakeId: number) {
+    if (checkGuestGuard()) return
     const recipient = transferRecipients[stakeId]?.trim()
     if (!recipient) {
       setActionError("이체 받을 지갑 주소를 입력해주세요.")
@@ -117,6 +158,7 @@ export default function ExchangePage() {
   }
 
   async function executeTransferOut(paymentPassword?: string) {
+    if (checkGuestGuard()) return
     if (pendingStakeId === null || !pendingRecipient) return
 
     await runAction(`transfer_${pendingStakeId}`, () =>
@@ -128,12 +170,13 @@ export default function ExchangePage() {
   }
 
   async function copyAddress() {
-    if (!dashboard) return
+    if (!dashboard || !dashboard.address) return
     await navigator.clipboard.writeText(dashboard.address)
     setActionMessage(e.addressCopied)
   }
 
   async function handleCreateWallet() {
+    if (checkGuestGuard()) return
     setWalletBusy(true)
     setActionError(null)
     try {
@@ -161,14 +204,7 @@ export default function ExchangePage() {
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
-        {error === "로그인이 필요합니다." ? (
-          <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-            {e.loginRequired}{" "}
-            <Link href="/my/profile" className="text-primary underline underline-offset-4">
-              {e.loginCta}
-            </Link>
-          </div>
-        ) : !dashboard ? (
+        {!dashboard ? (
           error ? (
             <p className="text-sm text-destructive">{error}</p>
           ) : (

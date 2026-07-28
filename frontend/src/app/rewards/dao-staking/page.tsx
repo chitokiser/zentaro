@@ -549,18 +549,40 @@ export default function DaoStakingPage() {
 
                 {/* Top summary cards */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="rounded-xl border border-blue-500/20 bg-slate-900/60 p-6 backdrop-blur-md">
-                        <span className="text-xs font-semibold uppercase tracking-wider text-blue-400/80">
-                            총 Reserve (계약 보유량)
-                        </span>
-                        <div className="mt-2 flex items-baseline gap-1">
-                            <span className="text-2xl font-bold font-mono tracking-tight text-white">
-                                {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                    <div className="rounded-xl border border-blue-500/20 bg-slate-900/60 p-6 backdrop-blur-md flex flex-col gap-3">
+                        <div>
+                            <span className="text-xs font-semibold uppercase tracking-wider text-blue-400/80 block">
+                                총 Reserve (계약 보유량)
                             </span>
-                            <span className="text-sm font-medium text-slate-400">ZTRO</span>
+                            <div className="mt-1 flex items-baseline gap-1">
+                                <span className="text-2xl font-bold font-mono tracking-tight text-white">
+                                    {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                                </span>
+                                <span className="text-sm font-medium text-slate-400">ZTRO</span>
+                            </div>
                         </div>
-                        <p className="mt-1 text-[11px] text-slate-500">
-                            재원 보조용 7억 개 포함 계약에 속해있는 전체 가용 규모
+                        <div className="border-t border-slate-800/80 pt-2.5 text-xs text-slate-400 space-y-1.5">
+                            <div className="flex justify-between">
+                                <span>실제 계약 잔고 (Balance):</span>
+                                <span className="font-mono text-slate-200">
+                                    {Number(lockedContractZtro).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZTRO
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>누적 스테이킹 총합 (Staked):</span>
+                                <span className="font-mono text-slate-200">
+                                    {Number(totalStaked).toLocaleString(undefined, { maximumFractionDigits: 2 })} ZTRO
+                                </span>
+                            </div>
+                            <div className="flex justify-between">
+                                <span>등록된 거버넌스 안건 수:</span>
+                                <span className="font-mono text-slate-200">
+                                    {proposals.length} 개
+                                </span>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-normal">
+                            재원 보조용 7억 개 포함 계약에 속해있는 전체 가용 규모와 활성 거버넌스 수치 대조
                         </p>
                     </div>
 

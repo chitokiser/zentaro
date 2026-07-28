@@ -361,6 +361,11 @@ export default function BarrelReservePage() {
     const [evalBarrelQuality, setEvalBarrelQuality] = useState<number>(0)
 
     const loadData = useCallback(async () => {
+        const token = getToken()
+        if (!token || token === "undefined" || token === "null") {
+            setErrorProfile("로그인이 필요합니다.")
+            return
+        }
         try {
             const wallet = await fetchWallet()
             setExpBalance(wallet.exp)
