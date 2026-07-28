@@ -32,16 +32,13 @@ import {
     ShieldCheck,
     MapPin,
     Truck,
-    Gem,
     Award,
     Layers,
     History,
     FileText,
-    HelpCircle,
     QrCode,
     Calendar,
     AlertTriangle,
-    PenTool,
     CheckCircle2,
     Users,
     Tag,
@@ -125,8 +122,12 @@ const BARREL_SPECS: BarrelSpec[] = [
     }
 ]
 
-const BARREL_STORAGE_FEE_RATE = 0.15
-const P2P_TRADE_FEE_RATE = 0.15
+// Mirrors backend barrelFeeRateForLevel() — used for both the P2P resale cut and the
+// room storage/delivery fee. See /my/benefits "배럴 거래 수수료" column.
+function barrelFeeRateForLevel(level: number): number {
+    if (level <= 1) return 0.15
+    return Math.max(0.05, 0.15 - level / 100)
+}
 
 const FLAVORS = [
     { name: "Vanilla", desc: "Hương trắng ngọt ngào, mềm mại từ quá trình phân giải lignin của gỗ sồi tự nhiên" },
@@ -295,8 +296,8 @@ export default function BarrelReservePage() {
     // User Info & Balances
     const [expBalance, setExpBalance] = useState<number>(0)
     const [zpBalance, setZpBalance] = useState<number>(0)
+    const [memberLevel, setMemberLevel] = useState<number>(1)
     const [stakedZtro, setStakedZtro] = useState<number>(0)
-    const [walletAddress, setWalletAddress] = useState<string>("")
     const [hasPinSet, setHasPinSet] = useState<boolean>(true)
 
     // Purchase PIN control
@@ -360,50 +361,56 @@ export default function BarrelReservePage() {
     const [evalFinish, setEvalFinish] = useState<number>(0)
     const [evalBarrelQuality, setEvalBarrelQuality] = useState<number>(0)
 
-    const loadData = useCallback(async () => {
-        const token = getToken()
-        if (!token || token === "undefined" || token === "null") {
-            setErrorProfile("로그인이 필요합니다.")
-            return
+    const loadData = useCallback(() => {
+        const run = async () => {
+            const token = getToken()
+            if (!token || token === "undefined" || token === "null") {
+                setErrorProfile("로그인이 필요합니다.")
+                return
+            }
+            try {
+                const wallet = await fetchWallet()
+                setExpBalance(wallet.exp)
+                setZpBalance(wallet.ap)
+                setMemberLevel(wallet.level)
+
+                const dashboard = await fetchExchangeDashboard()
+                setStakedZtro(dashboard.staked)
+
+                const myBarrelsList = await fetchMyBarrels()
+                setBarrels(myBarrelsList)
+
+                const me = await fetchMe()
+                setMyUid(me.uid)
+                setAdminLevel(me.adminLevel)
+                setHasPinSet(me.hasPaymentPassword)
+            } catch (err) {
+                console.error("Failed to load user and barrel data:", err)
+                const msg = err instanceof Error ? err.message : "Không thể tải thông tin hội viên."
+                setErrorProfile(msg)
+            }
         }
-        try {
-            const wallet = await fetchWallet()
-            setExpBalance(wallet.exp)
-            setZpBalance(wallet.ap)
-
-            const dashboard = await fetchExchangeDashboard()
-            setStakedZtro(dashboard.staked)
-            setWalletAddress(dashboard.address)
-
-            const myBarrelsList = await fetchMyBarrels()
-            setBarrels(myBarrelsList)
-
-            const me = await fetchMe()
-            setMyUid(me.uid)
-            setAdminLevel(me.adminLevel)
-            setHasPinSet(me.hasPaymentPassword)
-        } catch (err) {
-            console.error("Failed to load user and barrel data:", err)
-            const msg = err instanceof Error ? err.message : "Không thể tải thông tin hội viên."
-            setErrorProfile(msg)
-        }
+        return run()
     }, [])
 
-    const loadPublicGallery = useCallback(async () => {
-        setGalleryLoading(true)
-        setGalleryError(null)
-        try {
-            const [list, pricing] = await Promise.all([fetchPublicBarrels(), fetchBarrelPricingConfig()])
-            setPublicBarrels(list)
-            setDefaultGrowthRate(pricing.annualGrowthRate)
-            setPricePerLiterExp(pricing.pricePerLiterExp)
-            setPricePerLiterZp(pricing.pricePerLiterZp)
-        } catch (err) {
-            console.error("Failed to load public barrel gallery:", err)
-            setGalleryError(err instanceof Error ? err.message : "Không thể tải danh sách bộ sưu tập.")
-        } finally {
-            setGalleryLoading(false)
+    const loadPublicGallery = useCallback(() => {
+        const run = async () => {
+            setGalleryLoading(true)
+            setGalleryError(null)
+            try {
+                const [list, pricing] = await Promise.all([fetchPublicBarrels(), fetchBarrelPricingConfig()])
+                setPublicBarrels(list)
+                setDefaultGrowthRate(pricing.annualGrowthRate)
+                setPricePerLiterExp(pricing.pricePerLiterExp)
+                setPricePerLiterZp(pricing.pricePerLiterZp)
+            } catch (err) {
+                console.error("Failed to load public barrel gallery:", err)
+                setGalleryError(err instanceof Error ? err.message : "Không thể tải danh sách bộ sưu tập.")
+            } finally {
+                setGalleryLoading(false)
+            }
         }
+        return run()
     }, [])
 
     useEffect(() => {
@@ -466,7 +473,7 @@ export default function BarrelReservePage() {
     const handleBarrelAction = async (barrelId: string, action: string, deliveryFee?: number) => {
         const confirmMessage =
             action === "deliver"
-                ? `Bạn có muốn đăng ký giao hàng tận nhà không? Phí lưu kho Barrel Room ${(deliveryFee ?? 0).toLocaleString()} ZP (${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}% giá trị hiện tại) sẽ bị trừ ngay, phí vận chuyển thực tế thanh toán khi nhận hàng.`
+                ? `Bạn có muốn đăng ký giao hàng tận nhà không? Phí lưu kho Barrel Room ${(deliveryFee ?? 0).toLocaleString()} ZP (Lv.${memberLevel} · ${(barrelFeeRateForLevel(memberLevel) * 100).toFixed(0)}% giá trị hiện tại) sẽ bị trừ ngay, phí vận chuyển thực tế thanh toán khi nhận hàng.`
                 : action === "bottle"
                     ? "Bạn có muốn đăng ký đóng chai không? Lưu ý: sau khi đăng ký dịch vụ đóng chai, quyền sở hữu thùng gỗ (oak barrel) sẽ chuyển về ZENTARO — chỉ có rượu đã đóng chai được giao đến khách hàng, thùng gỗ không được giao kèm."
                     : "Bạn có muốn đăng ký dịch vụ bổ sung này không?"
@@ -487,8 +494,8 @@ export default function BarrelReservePage() {
         }
     }
 
-    const handleListForSale = async (barrelId: string, currentValueZp: number) => {
-        if (!confirm(`Bạn có muốn đăng bán thùng này với giá thị trường hiện tại ${currentValueZp.toLocaleString()} ZP không? Giá được tự động tính theo dung tích và thời gian ủ, chủ sở hữu không thể tự đặt giá. Khi giao dịch thành công, ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}% giá trị bán sẽ bị trừ làm phí. Trong thời gian đăng bán, các yêu cầu giao hàng/đóng chai sẽ bị hạn chế.`)) return
+    const handleListForSale = async (barrelId: string, currentValueZtro: number) => {
+        if (!confirm(`Bạn có muốn đăng bán thùng này với giá thị trường hiện tại ${currentValueZtro.toLocaleString()} ZTRO không? Giá được tự động tính theo dung tích và thời gian ủ, chủ sở hữu không thể tự đặt giá. Giao dịch thanh toán hoàn toàn bằng ZTRO on-chain giữa ví lưu ký của hai bên. Khi giao dịch thành công, ${(barrelFeeRateForLevel(memberLevel) * 100).toFixed(0)}% giá trị bán (theo Lv.${memberLevel} của bạn) sẽ bị trừ làm phí. Trong thời gian đăng bán, các yêu cầu giao hàng/đóng chai sẽ bị hạn chế.`)) return
 
         setActionBusy(true)
         setActionError(null)
@@ -525,7 +532,7 @@ export default function BarrelReservePage() {
             alert("Vui lòng đăng nhập để mua thùng.")
             return
         }
-        if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZp.toLocaleString()} ZP để mua thùng này (${barrel.id}) không? Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
+        if (!confirm(`Bạn có muốn thanh toán ${barrel.currentValueZtro.toLocaleString()} ZTRO để mua thùng này (${barrel.id}) không? Giao dịch được thực hiện on-chain trực tiếp từ ví lưu ký của bạn. Giá thị trường thời điểm mua sẽ là giá thanh toán cuối cùng.`)) return
         setPendingBuyBarrel(barrel)
         setIsBuyPinOpen(true)
     }
@@ -1008,7 +1015,7 @@ export default function BarrelReservePage() {
                                 const agingSeconds = agingSecondsFor(barrel.productionDate, barrel.agingEndedAt)
                                 const target = AGING_TARGET_SECONDS[barrel.capacity] ?? 365 * 86400
                                 const progress = agingSeconds / target
-                                const deliveryFee = Math.round(barrel.currentValueZp * BARREL_STORAGE_FEE_RATE)
+                                const deliveryFee = Math.round(barrel.currentValueZp * barrelFeeRateForLevel(memberLevel))
 
                                 return (
                                     <div
@@ -1033,7 +1040,7 @@ export default function BarrelReservePage() {
                                                     {barrel.forSale && (
                                                         <Badge className="mt-1.5 bg-emerald-500 text-black border-none text-[10px] uppercase font-bold flex items-center gap-1 w-fit">
                                                             <Tag className="w-3 h-3" />
-                                                            Đang bán · {barrel.currentValueZp.toLocaleString()} ZP
+                                                            Đang bán · {barrel.currentValueZtro.toLocaleString()} ZTRO
                                                         </Badge>
                                                     )}
                                                 </div>
@@ -1069,7 +1076,10 @@ export default function BarrelReservePage() {
                                             <div className="col-span-2 sm:col-span-1">
                                                 <span className="text-muted-foreground block">Giá thị trường hiện tại (tự động tính)</span>
                                                 <span className="font-mono font-bold text-amber-500">
-                                                    {barrel.currentValueZp.toLocaleString()} ZP
+                                                    {barrel.currentValueZtro.toLocaleString()} ZTRO
+                                                </span>
+                                                <span className="block text-[10px] text-muted-foreground/70">
+                                                    (~{barrel.currentValueZp.toLocaleString()} ZP quy đổi, dùng để tính phí lưu kho)
                                                 </span>
                                             </div>
                                         </div>
@@ -1193,7 +1203,7 @@ export default function BarrelReservePage() {
                                                         size="sm"
                                                         className="flex items-center gap-1 text-[11px] h-8 border-emerald-500/40 text-emerald-400 hover:text-emerald-300"
                                                         disabled={actionBusy}
-                                                        onClick={() => handleListForSale(barrel.id, barrel.currentValueZp)}
+                                                        onClick={() => handleListForSale(barrel.id, barrel.currentValueZtro)}
                                                     >
                                                         <Tag className="w-3.5 h-3.5" />
                                                         Đăng bán theo giá thị trường
@@ -1216,7 +1226,7 @@ export default function BarrelReservePage() {
                             Bộ sưu tập thùng toàn hội viên (Public Collection)
                         </h3>
                         <p className="text-xs text-muted-foreground mt-1">
-                            Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng ZP.
+                            Cùng khám phá các thùng rượu của toàn thể hội viên ZenTaro. Thùng đang đăng bán có thể mua ngay bằng ZTRO (giao dịch on-chain trực tiếp giữa ví lưu ký hai bên).
                         </p>
                     </div>
 
@@ -1271,7 +1281,7 @@ export default function BarrelReservePage() {
                                         </div>
 
                                         <div className="text-[10px] text-center text-muted-foreground">
-                                            Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZp.toLocaleString()} ZP</span>
+                                            Giá thị trường <span className="font-mono font-bold text-amber-500">{pb.currentValueZtro.toLocaleString()} ZTRO</span>
                                         </div>
 
                                         {typeof pb.blendMasterScore === "number" ? (
@@ -1543,7 +1553,7 @@ export default function BarrelReservePage() {
                                 </h4>
                                 <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                                     Giao trọn thùng còn nguyên niêm phong đến tận nhà/cửa hàng của chủ sở hữu bất cứ khi nào bạn muốn, đảm bảo tính nguyên bản.
-                                    Phí lưu kho ({(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}% giá trị hiện tại) bị trừ bằng ZP khi đăng ký, phí vận chuyển thực tế thanh toán riêng khi nhận hàng.
+                                    Phí lưu kho (5~15% giá trị hiện tại, giảm dần theo Lv. thành viên — xem /my/benefits) bị trừ bằng ZP khi đăng ký, phí vận chuyển thực tế thanh toán riêng khi nhận hàng.
                                 </p>
                             </div>
                         </div>
@@ -2246,7 +2256,7 @@ export default function BarrelReservePage() {
                 }}
                 onSuccess={executeBuyBarrel}
                 title="P2P 배럴 구매 승인"
-                description={pendingBuyBarrel ? `${pendingBuyBarrel.currentValueZp.toLocaleString()} ZP 대금 결제를 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
+                description={pendingBuyBarrel ? `${pendingBuyBarrel.currentValueZtro.toLocaleString()} ZTRO 온체인 대금 결제를 위해 6자리 결제 비밀번호를 입력해주세요.` : ""}
                 hasPinSet={hasPinSet}
                 onPinSetSuccess={() => setHasPinSet(true)}
             />

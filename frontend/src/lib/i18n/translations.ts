@@ -459,6 +459,11 @@ const ko = {
     stakingInfo:
       "가지고 있는 ZTRO 토큰을 스테이킹 하세요. 매주 스테이킹한 토큰에 비례하여 EXP를 지급받습니다. 스테이킹한 수량에 따라 그 외 다양한 혜택을 받을 수 있습니다.",
     custodialWalletTitle: "수탁지갑",
+    custodialWalletIntro:
+      "수탁지갑은 ZenTaro가 회원님을 대신해 안전하게 관리하는 온체인 지갑입니다. 메타마스크 같은 개인 지갑을 별도로 설치하지 않아도 ZTRO 스테이킹, 오크통(Barrel Reserve) P2P 거래 등 서비스 내 모든 기능을 바로 이용할 수 있습니다.",
+    custodialWalletExternalNote:
+      "⚠️ 수탁지갑은 외부 개인 지갑으로 직접 출금·이체할 수 없으며, 오로지 젠타로 서비스(스테이킹, 배럴 P2P 거래 등) 내에서만 사용할 수 있습니다.",
+    custodialWalletNoWalletHint: "아직 수탁지갑이 없다면 아래 버튼을 눌러 즉시 발급받으세요.",
     custodialWalletExists: "이미 발급된 수탁지갑이 있습니다.",
     copyAddress: "주소 복사",
     creatingWallet: "생성 중...",
@@ -1156,6 +1161,11 @@ const en: Dict = {
     stakingInfo:
       "Stake your ZTRO tokens. You'll receive EXP each week in proportion to your staked amount, along with a variety of other benefits based on your staked amount.",
     custodialWalletTitle: "Custodial Wallet",
+    custodialWalletIntro:
+      "A custodial wallet is an on-chain wallet that ZenTaro securely manages on your behalf. You can use every in-service feature — ZTRO staking, P2P trading in Barrel Reserve, and more — right away, without installing a personal wallet like MetaMask.",
+    custodialWalletExternalNote:
+      "⚠️ Custodial wallets cannot withdraw or transfer directly to an external personal wallet. They can only be used within ZenTaro services (staking, Barrel Reserve P2P trading, etc.).",
+    custodialWalletNoWalletHint: "Don't have a custodial wallet yet? Click the button below to get one issued instantly.",
     custodialWalletExists: "A custodial wallet has already been issued.",
     copyAddress: "Copy Address",
     creatingWallet: "Creating...",
@@ -1851,6 +1861,11 @@ const vi: Dict = {
     stakingInfo:
       "Hãy staking token ZTRO bạn đang có. Mỗi tuần bạn sẽ nhận được EXP tương ứng với số lượng đã staking, cùng nhiều ưu đãi khác tùy theo số lượng staking.",
     custodialWalletTitle: "Ví lưu ký",
+    custodialWalletIntro:
+      "Ví lưu ký là ví on-chain được ZenTaro quản lý an toàn thay cho bạn. Bạn có thể sử dụng ngay mọi tính năng trong dịch vụ — staking ZTRO, giao dịch P2P tại Barrel Reserve, v.v. — mà không cần cài đặt ví cá nhân như MetaMask.",
+    custodialWalletExternalNote:
+      "⚠️ Ví lưu ký không thể rút hoặc chuyển trực tiếp đến ví cá nhân bên ngoài. Ví chỉ có thể được sử dụng trong các dịch vụ của ZenTaro (staking, giao dịch P2P tại Barrel Reserve, v.v.).",
+    custodialWalletNoWalletHint: "Chưa có ví lưu ký? Nhấn nút bên dưới để được cấp ví ngay lập tức.",
     custodialWalletExists: "Bạn đã có ví lưu ký được cấp.",
     copyAddress: "Sao chép địa chỉ",
     creatingWallet: "Đang tạo...",

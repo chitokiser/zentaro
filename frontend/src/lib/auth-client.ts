@@ -1157,6 +1157,7 @@ export interface BarrelDocument {
   agingEndedAt?: { _seconds: number } | null;
   forSale?: boolean;
   currentValueZp: number;
+  currentValueZtro: number;
   sealStatus: string;
   certNumber: string;
   qrKey: string;
@@ -1179,6 +1180,7 @@ export interface PublicBarrel {
   agingEndedAt?: { _seconds: number } | null;
   forSale: boolean;
   currentValueZp: number;
+  currentValueZtro: number;
   customAnnualGrowthRate: number | null;
   charLevel?: string;
   agingEnvironment?: string;
@@ -1253,7 +1255,7 @@ export async function fetchPublicBarrels(): Promise<PublicBarrel[]> {
   return res.json();
 }
 
-export async function listBarrelForSale(barrelId: string): Promise<{ success: boolean; currentValueZp: number }> {
+export async function listBarrelForSale(barrelId: string): Promise<{ success: boolean; currentValueZtro: number }> {
   const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/list-for-sale`, {
     method: "POST",
     headers: authHeaders(),
@@ -1271,7 +1273,7 @@ export async function cancelBarrelSale(barrelId: string): Promise<{ success: boo
   return res.json();
 }
 
-export async function buyBarrel(barrelId: string, paymentPassword?: string): Promise<{ success: boolean }> {
+export async function buyBarrel(barrelId: string, paymentPassword?: string): Promise<{ success: boolean; priceZtro: number; feeZtro: number; txHash: string }> {
   const res = await fetch(`${API_URL}/token-exchange/barrel/${barrelId}/buy`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },

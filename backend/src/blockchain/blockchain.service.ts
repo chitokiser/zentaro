@@ -20,6 +20,7 @@ const ERC20_ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function allowance(address owner, address spender) view returns (uint256)',
   'function approve(address spender, uint256 amount) returns (bool)',
+  'function transfer(address to, uint256 amount) returns (bool)',
 ];
 
 const VAULT_ABI = [
@@ -32,6 +33,7 @@ const VAULT_ABI = [
   'function adminReserve() external view returns (uint256)',
   'function withdrawApproved(address user) external view returns (bool)',
   'function transferApproved(address user) external view returns (bool)',
+  'function setTransferApproval(address user, bool approved) external',
 ];
 
 const ZTROBANK_ABI = [

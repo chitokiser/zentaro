@@ -32,11 +32,16 @@ const ROOM_AGING_STATUS = '위탁 숙성 중 (Room Aging)';
 /** Time between order/payment and the oak barrel actually being filled and starting to age; no growth or "aging" status during this window. */
 const BARREL_PREP_SECONDS = 24 * 60 * 60;
 
-/** Platform cut on every P2P barrel resale, taken out of the seller's proceeds. */
-const P2P_TRADE_FEE_RATE = 0.15;
-
-/** Barrel room storage fee charged on direct-delivery, as a % of the barrel's live value. */
-const BARREL_STORAGE_FEE_RATE = 0.15;
+/**
+ * Barrel-related fee rate by member level — shared by the P2P resale cut and the
+ * room storage/delivery fee. Mirrors the "배럴 거래 수수료" column on /my/benefits
+ * exactly (Lv.1 15%, Lv.2 13%, ... Lv.10 5%; the -2 step from Lv.1→Lv.2 is real,
+ * every level after that is -1). Frontend copy: frontend/src/app/rewards/barrel-reserve/page.tsx.
+ */
+function barrelFeeRateForLevel(level: number): number {
+  if (level <= 1) return 0.15;
+  return Math.max(0.05, 0.15 - level / 100);
+}
 
 /** Masks an email for display on the public barrel gallery (e.g. "da***@gmail.com"). */
 function maskEmail(email: string | null | undefined): string {
@@ -144,6 +149,18 @@ function totalBarrelValueZp(barrel: any, config: BarrelPricingConfig): number {
   return compounded + (typeof barrel.bonusValueZp === 'number' ? barrel.bonusValueZp : 0);
 }
 
+/**
+ * P2P trade price in ZTRO: the same ZP valuation converted through the live ZTRO/USDT
+ * market price (via ZtroBank.price()), so a barrel's ZTRO price tracks real market value
+ * instead of a separately-configured fixed rate. ZTRO is a whole-number on-chain token
+ * (no 18-decimal scaling) — always rounded to an integer, floor 1.
+ */
+function totalBarrelValueZtro(barrel: any, config: BarrelPricingConfig, ztroPriceUsdt: number): number {
+  const valueUsd = totalBarrelValueZp(barrel, config) / config.usdToZpRate;
+  if (!(ztroPriceUsdt > 0)) return 0;
+  return Math.max(1, Math.round(valueUsd / ztroPriceUsdt));
+}
+
 @Injectable()
 export class TokenExchangeService {
   constructor(
@@ -152,6 +169,14 @@ export class TokenExchangeService {
     private readonly aiWriterService: AiWriterService,
     @Inject(FIRESTORE) private readonly db: Firestore,
   ) { }
+
+  /** Live ZTRO/USDT market price via ZtroBank.price() — read-only, no signer needed. */
+  private async getZtroPriceUsdt(): Promise<number> {
+    const provider = this.blockchain.getProvider();
+    const bank = this.blockchain.getBankContract(provider);
+    const priceWei: bigint = await bank.price();
+    return fmtUsdt(priceWei);
+  }
 
   async dashboard(uid: string) {
     const { address } = await this.walletService.getOrCreateChainWallet(uid);
@@ -871,9 +896,10 @@ export class TokenExchangeService {
   }
 
   async listMyBarrels(uid: string) {
-    const [snap, pricing] = await Promise.all([
+    const [snap, pricing, ztroPriceUsdt] = await Promise.all([
       this.db.collection(COLLECTIONS.ZENTARO_BARRELS).where('userId', '==', uid).get(),
       this.getBarrelPricingConfig(),
+      this.getZtroPriceUsdt(),
     ]);
 
     const list = snap.docs.map((doc) => {
@@ -882,6 +908,7 @@ export class TokenExchangeService {
         ...barrel,
         status: effectiveStatus(barrel),
         currentValueZp: totalBarrelValueZp(barrel, pricing),
+        currentValueZtro: totalBarrelValueZtro(barrel, pricing, ztroPriceUsdt),
       };
     });
     return list.sort((a: any, b: any) => {
@@ -893,9 +920,10 @@ export class TokenExchangeService {
 
   /** Every barrel across every owner, for the public "다른 유저도 볼 수 있는" gallery. Owner email is masked. */
   async listPublicBarrels() {
-    const [snap, pricing] = await Promise.all([
+    const [snap, pricing, ztroPriceUsdt] = await Promise.all([
       this.db.collection(COLLECTIONS.ZENTARO_BARRELS).get(),
       this.getBarrelPricingConfig(),
+      this.getZtroPriceUsdt(),
     ]);
     const barrels = snap.docs.map((doc) => doc.data() as any);
 
@@ -916,6 +944,7 @@ export class TokenExchangeService {
         agingEndedAt: b.agingEndedAt ?? null,
         forSale: b.forSale ?? false,
         currentValueZp: totalBarrelValueZp(b, pricing),
+        currentValueZtro: totalBarrelValueZtro(b, pricing, ztroPriceUsdt),
         customAnnualGrowthRate: typeof b.customAnnualGrowthRate === 'number' ? b.customAnnualGrowthRate : null,
         charLevel: b.charLevel ?? CHAR_LEVEL_DEFAULT,
         agingEnvironment: b.agingEnvironment ?? AGING_ENVIRONMENT_DEFAULT,
@@ -934,8 +963,10 @@ export class TokenExchangeService {
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
     const pricing = await this.getBarrelPricingConfig();
 
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+
     return this.db.runTransaction(async (tx) => {
-      const barrelSnap = await tx.get(barrelRef);
+      const [barrelSnap, walletSnap] = await Promise.all([tx.get(barrelRef), tx.get(walletRef)]);
       if (!barrelSnap.exists) {
         throw new BadRequestException('존재하지 않는 배럴입니다.');
       }
@@ -947,6 +978,7 @@ export class TokenExchangeService {
       if (barrelData.forSale) {
         throw new BadRequestException('판매 등록 중인 배럴은 서비스를 이용할 수 없습니다. 먼저 판매를 취소해주세요.');
       }
+      const memberLevel: number = walletSnap.exists ? (walletSnap.data()!.level ?? 1) : 1;
 
       let nextStatus = barrelData.status;
       let nextSealStatus = barrelData.sealStatus || 'SECURED';
@@ -958,7 +990,8 @@ export class TokenExchangeService {
         historyMessage = 'ZenTaro Barrel Room 위탁 숙성 시작';
       } else if (action === 'deliver') {
         const currentValueZp = totalBarrelValueZp(barrelData, pricing);
-        const fee = Math.round(currentValueZp * BARREL_STORAGE_FEE_RATE);
+        const feeRate = barrelFeeRateForLevel(memberLevel);
+        const fee = Math.round(currentValueZp * feeRate);
         const userSnap = await tx.get(userRef);
         const currentPoints: number = userSnap.data()?.points ?? 0;
         if (currentPoints < fee) {
@@ -973,7 +1006,7 @@ export class TokenExchangeService {
             userId: uid,
             amount: -fee,
             type: 'barrel_delivery_fee',
-            description: `배럴룸 보관료 (${(BARREL_STORAGE_FEE_RATE * 100).toFixed(0)}%, ${barrelData.capacity}, ${barrelId})`,
+            description: `배럴룸 보관료 (Lv.${memberLevel} 기준 ${(feeRate * 100).toFixed(0)}%, ${barrelData.capacity}, ${barrelId})`,
             createdAt: FieldValue.serverTimestamp(),
           });
         }
@@ -1029,9 +1062,9 @@ export class TokenExchangeService {
       throw new BadRequestException('이미 배송/병입이 완료된 배럴은 판매할 수 없습니다.');
     }
     await barrelRef.update({ forSale: true, salePriceZp: null });
-    const pricing = await this.getBarrelPricingConfig();
-    const currentValueZp = totalBarrelValueZp(barrel, pricing);
-    return { success: true, forSale: true, currentValueZp };
+    const [pricing, ztroPriceUsdt] = await Promise.all([this.getBarrelPricingConfig(), this.getZtroPriceUsdt()]);
+    const currentValueZtro = totalBarrelValueZtro(barrel, pricing, ztroPriceUsdt);
+    return { success: true, forSale: true, currentValueZtro };
   }
 
   async cancelBarrelSale(uid: string, barrelId: string) {
@@ -1047,64 +1080,103 @@ export class TokenExchangeService {
     return { success: true, forSale: false };
   }
 
+  /**
+   * P2P barrel resale settles entirely in ZTRO, on-chain, between the buyer's and
+   * seller's custodial wallets — never through the off-chain ZP ledger. Sequence:
+   *   1) Firestore transaction locks the listing (forSale:false + pendingBuyerUid) so
+   *      two buyers can't race the same barrel while the on-chain transfer is in flight.
+   *   2) Buyer's custodial wallet sends the full live ZTRO price to the seller's wallet.
+   *      This is the single point of no return — only after it confirms do we flip
+   *      ownership. If it fails, the lock is rolled back and the barrel goes back on sale.
+   *   3) Ownership + ledger update in a second Firestore transaction.
+   *   4) Best-effort: seller's wallet forwards the platform's level-based fee cut to the
+   *      treasury. This never blocks or reverts the trade — the buyer already has the
+   *      barrel and the seller already has the funds; a failed sweep just needs a retry.
+   */
   async buyBarrel(buyerUid: string, barrelId: string, paymentPassword?: string) {
     await this.verifyPaymentPassword(buyerUid, paymentPassword);
     const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
-    const buyerRef = this.db.collection(COLLECTIONS.USERS).doc(buyerUid);
-    const pricing = await this.getBarrelPricingConfig();
+    const [pricing, ztroPriceUsdt] = await Promise.all([this.getBarrelPricingConfig(), this.getZtroPriceUsdt()]);
 
-    return this.db.runTransaction(async (tx) => {
+    const { sellerUid, price, sellerLevel } = await this.db.runTransaction(async (tx) => {
       const barrelSnap = await tx.get(barrelRef);
       if (!barrelSnap.exists) {
         throw new BadRequestException('존재하지 않는 배럴입니다.');
       }
       const barrel = barrelSnap.data()!;
       if (!barrel.forSale) {
-        throw new BadRequestException('판매 중인 배럴이 아닙니다.');
+        throw new BadRequestException('판매 중인 배럴이 아니거나 이미 다른 거래가 진행 중입니다.');
       }
       if (barrel.userId === buyerUid) {
         throw new BadRequestException('본인 소유 배럴은 구매할 수 없습니다.');
       }
 
       const sellerUid = barrel.userId;
-      // Priced live at the moment of purchase — never a stale stored value.
-      const price = totalBarrelValueZp(barrel, pricing);
-
-      // Apply level-based fee discount for seller: base 15% minus seller's level (min 1%)
       const sellerWalletSnap = await tx.get(this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(sellerUid));
       const sellerLevel: number = sellerWalletSnap.exists ? (sellerWalletSnap.data()!.level ?? 1) : 1;
-      const BASE_RESALE_FEE_RATE = 0.15;
-      const effectiveFeeRate = Math.max(0.01, BASE_RESALE_FEE_RATE - sellerLevel / 100);
-      const fee = Math.round(price * effectiveFeeRate);
-      const sellerReceives = price - fee;
+      // Priced live at the moment of purchase — never a stale stored value.
+      const price = totalBarrelValueZtro(barrel, pricing, ztroPriceUsdt);
 
-      const [buyerSnap, sellerSnap] = await Promise.all([
-        tx.get(buyerRef),
-        tx.get(this.db.collection(COLLECTIONS.USERS).doc(sellerUid)),
+      tx.update(barrelRef, {
+        forSale: false,
+        pendingBuyerUid: buyerUid,
+        pendingBuyerLockedAt: FieldValue.serverTimestamp(),
+      });
+
+      return { sellerUid, price, sellerLevel };
+    });
+
+    const feeRate = barrelFeeRateForLevel(sellerLevel);
+    const fee = Math.round(price * feeRate);
+    const sellerReceives = price - fee;
+
+    let txHash: string;
+    try {
+      const [{ address: buyerAddress, privateKey: buyerPrivateKey }, { address: sellerAddress }] = await Promise.all([
+        this.walletService.getDecryptedPrivateKey(buyerUid),
+        this.walletService.getOrCreateChainWallet(sellerUid),
       ]);
-      const buyerPoints: number = buyerSnap.data()?.points ?? 0;
-      if (buyerPoints < price) {
-        throw new BadRequestException(`ZP 잔액이 부족합니다. (필요: ${price.toLocaleString()} ZP, 보유: ${buyerPoints.toLocaleString()} ZP)`);
-      }
-      if (!sellerSnap.exists) {
-        throw new BadRequestException('판매자 정보를 찾을 수 없습니다.');
+
+      await this.blockchain.ensureGas(buyerAddress);
+      const buyerSigner = this.blockchain.getUserSigner(buyerPrivateKey);
+      const ztro = this.blockchain.getZtroContract(buyerSigner);
+
+      const buyerBalance: bigint = await ztro.balanceOf(buyerAddress);
+      if (buyerBalance < BigInt(price)) {
+        throw new BadRequestException(
+          `ZTRO 잔액이 부족합니다. (필요: ${price.toLocaleString()} ZTRO, 보유: ${buyerBalance.toLocaleString()} ZTRO)`,
+        );
       }
 
-      const sellerRef = this.db.collection(COLLECTIONS.USERS).doc(sellerUid);
-      tx.update(buyerRef, { points: FieldValue.increment(-price) });
-      tx.update(sellerRef, { points: FieldValue.increment(sellerReceives) });
+      const tx = await ztro.transfer(sellerAddress, BigInt(price));
+      const receipt = await tx.wait();
+      txHash = receipt.hash as string;
+    } catch (err) {
+      await barrelRef
+        .update({
+          forSale: true,
+          pendingBuyerUid: FieldValue.delete(),
+          pendingBuyerLockedAt: FieldValue.delete(),
+        })
+        .catch(() => {});
+      if (err instanceof BadRequestException) throw err;
+      console.error('[TokenExchange] buyBarrel on-chain ZTRO transfer failed:', err);
+      throw new BadRequestException('온체인 ZTRO 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
 
+    await this.db.runTransaction(async (tx) => {
       const historyEntry = {
         date: new Date().toISOString(),
         ownerId: buyerUid,
         action: 'sold',
-        message: `${price.toLocaleString()} ZP에 소유권 이전 (수수료 ${fee.toLocaleString()} ZP 차감, 이전 소유자: ${sellerUid})`,
+        message: `${price.toLocaleString()} ZTRO에 소유권 이전 (수수료 ${fee.toLocaleString()} ZTRO 상당, 이전 소유자: ${sellerUid}, tx: ${txHash})`,
       };
-
       tx.update(barrelRef, {
         userId: buyerUid,
         forSale: false,
         salePriceZp: null,
+        pendingBuyerUid: FieldValue.delete(),
+        pendingBuyerLockedAt: FieldValue.delete(),
         ownershipHistory: FieldValue.arrayUnion(historyEntry),
       });
 
@@ -1113,7 +1185,7 @@ export class TokenExchangeService {
         userId: buyerUid,
         amount: -price,
         type: 'barrel_resale',
-        description: `배럴 구매 (${barrelId})`,
+        description: `배럴 구매 (${price.toLocaleString()} ZTRO, ${barrelId}, tx: ${txHash})`,
         createdAt: FieldValue.serverTimestamp(),
       });
       const sellerTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
@@ -1121,21 +1193,38 @@ export class TokenExchangeService {
         userId: sellerUid,
         amount: sellerReceives,
         type: 'barrel_resale',
-        description: `배럴 판매 (${barrelId}, 거래 수수료 ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}% 차감 후 실수령)`,
+        description: `배럴 판매 (${price.toLocaleString()} ZTRO, 거래 수수료 ${(feeRate * 100).toFixed(0)}% 차감 후 실수령 ${sellerReceives.toLocaleString()} ZTRO)`,
         createdAt: FieldValue.serverTimestamp(),
       });
-      if (fee > 0) {
-        const feeTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
-        tx.set(feeTxRef, {
-          userId: sellerUid,
-          amount: -fee,
-          type: 'barrel_resale_fee',
-          description: `배럴 P2P 거래 수수료 ${(P2P_TRADE_FEE_RATE * 100).toFixed(0)}% (${barrelId})`,
-          createdAt: FieldValue.serverTimestamp(),
-        });
-      }
+    });
 
-      return { success: true, barrelId, newOwnerId: buyerUid };
+    if (fee > 0) {
+      this.sweepBarrelResaleFee(sellerUid, fee, barrelId).catch((err) => {
+        console.error('[TokenExchange] barrel resale fee sweep failed:', err);
+      });
+    }
+
+    return { success: true, barrelId, newOwnerId: buyerUid, priceZtro: price, feeZtro: fee, txHash };
+  }
+
+  /** Best-effort platform commission sweep (seller's wallet → treasury); never blocks a trade. */
+  private async sweepBarrelResaleFee(sellerUid: string, fee: number, barrelId: string): Promise<void> {
+    const { address, privateKey } = await this.walletService.getDecryptedPrivateKey(sellerUid);
+    await this.blockchain.ensureGas(address);
+    const signer = this.blockchain.getUserSigner(privateKey);
+    const ztro = this.blockchain.getZtroContract(signer);
+    const treasuryAddress = this.blockchain.getTreasuryAddress();
+
+    const tx = await ztro.transfer(treasuryAddress, BigInt(fee));
+    const receipt = await tx.wait();
+
+    const feeTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+    await feeTxRef.set({
+      userId: sellerUid,
+      amount: -fee,
+      type: 'barrel_resale_fee',
+      description: `배럴 P2P 거래 수수료 (${fee.toLocaleString()} ZTRO, ${barrelId}, tx: ${receipt.hash})`,
+      createdAt: FieldValue.serverTimestamp(),
     });
   }
 

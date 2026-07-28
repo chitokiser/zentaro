@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useCallback } from "react"
-import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { ZtroPoolInfo } from "@/components/ztro-pool-info"
 import { ZtroChartWidget } from "@/components/ztro-chart-widget"
@@ -44,6 +44,7 @@ function formatCountdown(targetMs: number, nowMs: number, e: Dict["exchange"]): 
 }
 
 export default function ExchangePage() {
+  const router = useRouter()
   const { t } = useI18n()
   const e = t.exchange
   const [dashboard, setDashboard] = useState<ExchangeDashboard | null>(null)
@@ -129,7 +130,7 @@ export default function ExchangePage() {
     if (error === "로그인이 필요합니다.") {
       setActionError("로그인이 필요합니다. 상단 프로필에서 로그인을 진행해 주세요.")
       alert("로그인이 필요한 기능입니다. 로그인 페이지로 이동합니다.")
-      window.location.href = "/my/profile"
+      router.push("/my/profile")
       return true
     }
     return false
@@ -239,8 +240,11 @@ export default function ExchangePage() {
             {/* Custodial wallet */}
             <div className="rounded-lg border border-border/60 bg-card p-5">
               <h3 className="font-display text-base font-medium">{e.custodialWalletTitle}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                {e.custodialWalletIntro}
+              </p>
               {dashboard.address ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-emerald-500">{e.custodialWalletExists}</span>
                   <span className="font-mono text-xs text-muted-foreground break-all">
                     {dashboard.address}
@@ -251,6 +255,7 @@ export default function ExchangePage() {
                 </div>
               ) : (
                 <div className="mt-3">
+                  <p className="mb-2 text-xs text-muted-foreground">{e.custodialWalletNoWalletHint}</p>
                   <Button
                     type="button"
                     size="sm"
@@ -262,6 +267,9 @@ export default function ExchangePage() {
                   </Button>
                 </div>
               )}
+              <p className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs leading-relaxed text-amber-600 dark:text-amber-400">
+                {e.custodialWalletExternalNote}
+              </p>
             </div>
 
             {/* Balance / position */}

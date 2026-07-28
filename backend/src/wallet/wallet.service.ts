@@ -552,7 +552,26 @@ export class WalletService {
         cost,
         nextLevelCost: nextLevel < MAX_LEVEL ? expCostForLevel(nextLevel) : null,
       };
+    }).then(async (result) => {
+      // Lv.10 unlocks external ZTRO transfer (see /my/benefits) — approved on-chain,
+      // best-effort: leveling up must still succeed even if this call fails.
+      if (result.level === MAX_LEVEL) {
+        this.autoApproveExternalTransfer(uid).catch((err) => {
+          console.error('[Wallet] auto-approve external transfer failed:', err);
+        });
+      }
+      return result;
     });
+  }
+
+  /** Owner-signed on-chain call granting Lv.10 members permission to transfer ZTRO to an external wallet. */
+  private async autoApproveExternalTransfer(uid: string): Promise<void> {
+    const { address } = await this.getOrCreateChainWallet(uid);
+    const vault = this.blockchain.getVaultContract(this.blockchain.getTreasurySigner());
+    const alreadyApproved: boolean = await vault.transferApproved(address);
+    if (alreadyApproved) return;
+    const tx = await vault.setTransferApproval(address, true);
+    await tx.wait();
   }
 
   /**
