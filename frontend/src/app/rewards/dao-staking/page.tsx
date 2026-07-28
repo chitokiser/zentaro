@@ -41,7 +41,7 @@ const ZTARO_VAULT_CONTRACT_ADDRESS = "0x9c20817B074DAe2298d07cAC587667214eA0DC01
 
 // Ztaro's total supply is 1e9 — any allowance anywhere near MaxUint256 only ever comes
 // from handleApprove's unlimited approve, never a deliberately-sized amount.
-const UNLIMITED_ALLOWANCE_THRESHOLD = 10n ** 30n
+const UNLIMITED_ALLOWANCE_THRESHOLD = BigInt(10) ** BigInt(30)
 
 // ABIs
 const ERC20_ABI = [
