@@ -229,10 +229,12 @@ export default function DaoStakingPage() {
                 vaultContract.proposalCounter()
             ])
 
-            setLockedContractZtro(ethers.formatEther(contractBalance))
-            setTotalStaked(ethers.formatEther(totalStakedWei))
-            setZtroBalance(ethers.formatEther(userZtroBalanceWei))
-            setAllowance(ethers.formatEther(userAllowanceWei))
+            // ZTRO is a 0-decimal token on-chain — raw uint256 values ARE the ZTRO count,
+            // never run them through formatEther/parseEther (that assumes 18 decimals).
+            setLockedContractZtro(contractBalance.toString())
+            setTotalStaked(totalStakedWei.toString())
+            setZtroBalance(userZtroBalanceWei.toString())
+            setAllowance(userAllowanceWei.toString())
 
             setWithdrawApprovedFlag(withdrawFlag)
             setTransferApprovedFlag(transferFlag)
@@ -245,7 +247,7 @@ export default function DaoStakingPage() {
             for (let i = 0; i < stakeIdsLists.length; i++) {
                 const sid = stakeIdsLists[i]
                 const rawStake = await vaultContract.stakes(sid)
-                const amountEth = Number(ethers.formatEther(rawStake[1]))
+                const amountEth = Number(rawStake[1])
                 const lockedUntilSec = Number(rawStake[2])
                 const createdAtSec = Number(rawStake[3])
 
@@ -288,14 +290,14 @@ export default function DaoStakingPage() {
                     proposalItems.push({
                         proposalId: Number(rawProp[0]),
                         recipient: rawProp[1],
-                        amount: Number(ethers.formatEther(rawProp[2])),
+                        amount: Number(rawProp[2]),
                         createdAt: new Date(Number(rawProp[3]) * 1000),
                         deadline: new Date(Number(rawProp[4]) * 1000),
                         executed: rawProp[5],
                         cancelled: rawProp[6],
-                        yesVotes: Number(ethers.formatEther(rawProp[7])),
-                        noVotes: Number(ethers.formatEther(rawProp[8])),
-                        snapshotTotalStake: Number(ethers.formatEther(rawProp[9])),
+                        yesVotes: Number(rawProp[7]),
+                        noVotes: Number(rawProp[8]),
+                        snapshotTotalStake: Number(rawProp[9]),
                         userHasVoted: userVoted,
                         userVoteChoice: userChoice
                     })
@@ -349,6 +351,10 @@ export default function DaoStakingPage() {
             setMessage({ text: "올바른 스테이킹 수량을 지정해 주세요.", type: "error" })
             return
         }
+        if (!Number.isInteger(Number(stakeAmount))) {
+            setMessage({ text: "ZTRO는 소수점 없이 정수 단위로만 스테이킹할 수 있습니다.", type: "error" })
+            return
+        }
         if (typeof window === "undefined" || !window.ethereum || !account) return
         setBusy(true)
         setMessage({ text: "스테이킹 트랜잭션을 준비 중입니다. 지갑 확인 필요...", type: "info" })
@@ -357,7 +363,8 @@ export default function DaoStakingPage() {
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
-            const amountWei = ethers.parseEther(stakeAmount)
+            // ZTRO has 0 decimals on-chain — the raw amount IS the ZTRO count, no parseEther.
+            const amountWei = BigInt(stakeAmount)
             const tx = await vaultContract.stake(amountWei, lockDays)
 
             setMessage({ text: "스테이킹 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
@@ -432,6 +439,10 @@ export default function DaoStakingPage() {
             setMessage({ text: "올바른 인출 수량을 지정해 주세요.", type: "error" })
             return
         }
+        if (!Number.isInteger(Number(proposalAmount))) {
+            setMessage({ text: "ZTRO는 소수점 없이 정수 단위로만 지정할 수 있습니다.", type: "error" })
+            return
+        }
         if (typeof window === "undefined" || !window.ethereum || !account) return
         setBusy(true)
         setMessage({ text: "신규 안건 발의 트랜잭션을 준비 중입니다. 지갑 확인 필요...", type: "info" })
@@ -440,7 +451,8 @@ export default function DaoStakingPage() {
             const signer = await provider.getSigner()
             const vaultContract = new ethers.Contract(ZTRO_VAULT_CONTRACT_ADDRESS, VAULT_ABI, signer)
 
-            const amountWei = ethers.parseEther(proposalAmount)
+            // ZTRO has 0 decimals on-chain — the raw amount IS the ZTRO count, no parseEther.
+            const amountWei = BigInt(proposalAmount)
             const tx = await vaultContract.createProposal(proposalRecipient, amountWei)
 
             setMessage({ text: "안건 발의 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
