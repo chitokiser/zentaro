@@ -52,7 +52,7 @@ export function ZtroChartWidget() {
                 )}
                 <iframe
                     title="Ztaro/USDT Chart"
-                    src="https://www.geckoterminal.com/opbnb/pools/0x7051e230ee85e36702ddbc96f976495c8b8538df?embed=1&info=0&swaps=0"
+                    src="https://www.geckoterminal.com/opbnb/pools/0x5a65805fb99cf5b7e50d567c4029af62531be53c?embed=1&info=0&swaps=0"
                     style={{ width: "100%", height: "100%", border: "none" }}
                     onLoad={() => setIsLoaded(true)}
                     allowFullScreen
