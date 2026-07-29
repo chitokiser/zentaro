@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight, Vote, Check, X, Megaphone } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { getToken, fetchWallet, fetchDaoStakingLinkMessage, linkDaoStakingAddress } from "@/lib/auth-client"
 
 // opBNB details
 interface EthereumProvider {
@@ -67,6 +68,7 @@ const VAULT_ABI = [
     "function vote(uint256 proposalId, bool support) external",
     "function hasVoted(uint256 proposalId, address staker) external view returns (bool)",
     "function voteChoice(uint256 proposalId, address staker) external view returns (bool)",
+    "function getSnapshotPower(uint256 proposalId, address user) external view returns (uint256)",
     "function createProposal(uint256 amount) external returns (uint256)",
     "function executeProposal(uint256 proposalId) external",
     "function cancelProposal(uint256 proposalId) external",
@@ -94,6 +96,7 @@ interface ProposalItem {
     yesVotes: number
     noVotes: number
     snapshotTotalStake: number
+    userSnapshotPower: number
     userHasVoted: boolean
     userVoteChoice: boolean
 }
@@ -128,6 +131,10 @@ export default function DaoStakingPage() {
     // UI state
     const [busy, setBusy] = useState<boolean>(false)
     const [message, setMessage] = useState<{ text: string; type: "success" | "error" | "info" } | null>(null)
+
+    // EXP reward linking (weekly DAO staking dividend requires a signature-linked account)
+    const [daoStakingLinkedAddress, setDaoStakingLinkedAddress] = useState<string | null>(null)
+    const [linkingExpReward, setLinkingExpReward] = useState<boolean>(false)
     // Ticks so proposal-expiry checks below never call Date.now() directly during render.
     const [now, setNow] = useState<number>(() => Date.now())
     useEffect(() => {
@@ -268,6 +275,7 @@ export default function DaoStakingPage() {
                             snapshotTotalStake: Number(rawProp[9]),
                             userHasVoted: false,
                             userVoteChoice: false,
+                            userSnapshotPower: 0,
                         })
                     } catch (e) {
                         console.error(`Failed to load details for proposal #${i}:`, e)
@@ -370,11 +378,13 @@ export default function DaoStakingPage() {
                         const rawProp = await vaultContract.proposals(i)
                         let userVoted = false
                         let userChoice = false
+                        let userSnapshotPower = 0
                         try {
                             userVoted = await vaultContract.hasVoted(i, account)
                             if (userVoted) {
                                 userChoice = await vaultContract.voteChoice(i, account)
                             }
+                            userSnapshotPower = Number(await vaultContract.getSnapshotPower(i, account))
                         } catch (voteErr) {
                             console.warn(`Failed to inspect user vote on proposal #${i}:`, voteErr)
                         }
@@ -391,7 +401,8 @@ export default function DaoStakingPage() {
                             noVotes: Number(rawProp[8]),
                             snapshotTotalStake: Number(rawProp[9]),
                             userHasVoted: userVoted,
-                            userVoteChoice: userChoice
+                            userVoteChoice: userChoice,
+                            userSnapshotPower
                         })
                     } catch (e) {
                         console.error(`Failed to load details for proposal #${i}:`, e)
@@ -412,6 +423,42 @@ export default function DaoStakingPage() {
             refreshStakingDetails()
         }
     }, [account, chainId, refreshStakingDetails])
+
+    // Load whether this logged-in member already linked a wallet for the weekly EXP dividend
+    useEffect(() => {
+        if (!getToken()) return
+        fetchWallet()
+            .then((w) => setDaoStakingLinkedAddress(w.daoStakingAddress))
+            .catch(() => { })
+    }, [])
+
+    // Sign a challenge message proving control of `account`, then link it to this member's
+    // account so the weekly DAO staking EXP cron knows which on-chain stakes are theirs.
+    const handleLinkExpReward = async () => {
+        if (typeof window === "undefined" || !window.ethereum || !account) return
+        if (!getToken()) {
+            setMessage({ text: "EXP 리워드 연동은 ZenTaro 로그인이 필요합니다.", type: "error" })
+            return
+        }
+        const ethereum = window.ethereum
+        setLinkingExpReward(true)
+        setMessage({ text: "지갑 서명을 요청 중입니다...", type: "info" })
+        try {
+            const { message: challenge } = await fetchDaoStakingLinkMessage()
+            const provider = new ethers.BrowserProvider(ethereum)
+            const signer = await provider.getSigner()
+            const signature = await signer.signMessage(challenge)
+
+            await linkDaoStakingAddress(account, signature)
+            setDaoStakingLinkedAddress(account)
+            setMessage({ text: "EXP 리워드 연동 완료! 다음 주간 정산부터 반영됩니다.", type: "success" })
+        } catch (err) {
+            console.error(err)
+            setMessage({ text: walletErrorMessage(err, "EXP 리워드 연동 실패"), type: "error" })
+        } finally {
+            setLinkingExpReward(false)
+        }
+    }
 
     // Execute ERC-20 Approve
     const handleApprove = async () => {
@@ -791,6 +838,22 @@ export default function DaoStakingPage() {
                                             : `${Number(allowance).toLocaleString(undefined, { maximumFractionDigits: 2 })} Ztaro`}
                                     </span>
                                 </div>
+                                <div className="flex justify-between items-center text-slate-400">
+                                    <span>주간 EXP 리워드 연동:</span>
+                                    {daoStakingLinkedAddress?.toLowerCase() === account?.toLowerCase() ? (
+                                        <span className="font-medium text-emerald-400">연동됨</span>
+                                    ) : (
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            disabled={busy || linkingExpReward || !getToken()}
+                                            onClick={handleLinkExpReward}
+                                            className="h-6 px-2 text-[10px]"
+                                        >
+                                            {linkingExpReward ? "서명 대기 중..." : !getToken() ? "로그인 필요" : "연동하기"}
+                                        </Button>
+                                    )}
+                                </div>
                             </div>
                         )}
 
@@ -819,8 +882,8 @@ export default function DaoStakingPage() {
                                     <option value={30}>30일 (1개월)</option>
                                     <option value={90}>90일 (3개월)</option>
                                     <option value={180}>180일 (6개월)</option>
-                                    <option value={365}>365일 (12개월)</option>
-                                    <option value={1095}>1095일 (36개월 / 3년)</option>
+                                    <option value={360}>360일 (12개월)</option>
+                                    <option value={1080}>1080일 (36개월 / 3년)</option>
                                 </select>
                             </label>
 
@@ -1146,29 +1209,36 @@ export default function DaoStakingPage() {
 
                                                 {/* Voting actions */}
                                                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800/80 pt-3">
-                                                    <div className="flex gap-2">
-                                                        <Button
-                                                            onClick={() => handleVote(prop.proposalId, true)}
-                                                            disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
-                                                            className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && prop.userVoteChoice
-                                                                ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
-                                                                : "bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800"
-                                                                }`}
-                                                        >
-                                                            <Check className="h-3.5 w-3.5" />
-                                                            {t.daoStakingPage.voteYesButton}
-                                                        </Button>
-                                                        <Button
-                                                            onClick={() => handleVote(prop.proposalId, false)}
-                                                            disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted}
-                                                            className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && !prop.userVoteChoice
-                                                                ? "bg-rose-600/20 text-rose-400 border border-rose-500/30"
-                                                                : "bg-slate-900 hover:bg-slate-800 text-rose-400 border border-slate-800"
-                                                                }`}
-                                                        >
-                                                            <X className="h-3.5 w-3.5" />
-                                                            {t.daoStakingPage.voteNoButton}
-                                                        </Button>
+                                                    <div className="flex flex-col gap-1.5">
+                                                        <div className="flex gap-2">
+                                                            <Button
+                                                                onClick={() => handleVote(prop.proposalId, true)}
+                                                                disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted || prop.userSnapshotPower <= 0}
+                                                                className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && prop.userVoteChoice
+                                                                    ? "bg-emerald-600/20 text-emerald-400 border border-emerald-500/30"
+                                                                    : "bg-slate-900 hover:bg-slate-800 text-emerald-400 border border-slate-800"
+                                                                    }`}
+                                                            >
+                                                                <Check className="h-3.5 w-3.5" />
+                                                                {t.daoStakingPage.voteYesButton}
+                                                            </Button>
+                                                            <Button
+                                                                onClick={() => handleVote(prop.proposalId, false)}
+                                                                disabled={busy || isExpired || prop.executed || prop.cancelled || prop.userHasVoted || prop.userSnapshotPower <= 0}
+                                                                className={`text-xs px-3 py-1.5 h-8 flex items-center gap-1 ${prop.userHasVoted && !prop.userVoteChoice
+                                                                    ? "bg-rose-600/20 text-rose-400 border border-rose-500/30"
+                                                                    : "bg-slate-900 hover:bg-slate-800 text-rose-400 border border-slate-800"
+                                                                    }`}
+                                                            >
+                                                                <X className="h-3.5 w-3.5" />
+                                                                {t.daoStakingPage.voteNoButton}
+                                                            </Button>
+                                                        </div>
+                                                        {!prop.userHasVoted && !isExpired && !prop.executed && !prop.cancelled && prop.userSnapshotPower <= 0 && (
+                                                            <span className="text-[10px] text-amber-500">
+                                                                투표권 없음 — 이 안건 발의 시점({prop.createdAt.toLocaleDateString()}) 이전에 스테이킹한 물량만 투표할 수 있습니다.
+                                                            </span>
+                                                        )}
                                                     </div>
 
                                                     {/* Admin proposal controls */}

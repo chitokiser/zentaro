@@ -1,4 +1,5 @@
 import { Inject, Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { ethers } from 'ethers';
@@ -24,6 +25,7 @@ export interface WalletView {
   rewardPoint: number;
   tickets: string[];
   nfts: string[];
+  daoStakingAddress: string | null;
 }
 
 // TRANSACTIONS is shared across every aim119 app, so any read here must
@@ -33,6 +35,7 @@ const ZENTARO_TRANSACTION_TYPES = [
   'points_charge',
   'admin_exp_adjustment',
   'staking_exp_reward',
+  'dao_staking_exp_reward',
   'barrel_order',
   'barrel_delivery_fee',
   'barrel_resale',
@@ -68,6 +71,7 @@ const DEFAULT_WALLET = {
   rewardPoint: 0,
   tickets: [] as string[],
   nfts: [] as string[],
+  daoStakingAddress: null as string | null,
 };
 
 @Injectable()
@@ -109,6 +113,7 @@ export class WalletService {
       rewardPoint: wallet.rewardPoint ?? 0,
       tickets: wallet.tickets ?? [],
       nfts: wallet.nfts ?? [],
+      daoStakingAddress: wallet.daoStakingAddress ?? null,
     };
   }
 
@@ -161,6 +166,41 @@ export class WalletService {
     const encPrivateKey = snap.data()!.encPrivateKey as string;
     const privateKey = this.blockchain.decryptPrivateKey(encPrivateKey);
     return { address, privateKey };
+  }
+
+  /** Canonical message a user signs to prove control of an external wallet before it's linked. */
+  daoStakingLinkMessage(uid: string): string {
+    return `Link this wallet to ZenTaro DAO staking rewards for account ${uid}`;
+  }
+
+  /**
+   * Links an external (MetaMask) wallet address to this account for the DAO staking
+   * weekly EXP reward — proven via a signed message so one member can't claim credit
+   * for tokens someone else staked. One address can only ever be linked to one uid.
+   */
+  async linkDaoStakingAddress(uid: string, address: string, signature: string) {
+    const message = this.daoStakingLinkMessage(uid);
+    let recovered: string;
+    try {
+      recovered = ethers.verifyMessage(message, signature);
+    } catch {
+      throw new BadRequestException('서명이 유효하지 않습니다.');
+    }
+    if (recovered.toLowerCase() !== address.toLowerCase()) {
+      throw new BadRequestException('서명이 해당 지갑 주소와 일치하지 않습니다.');
+    }
+
+    const existing = await this.db
+      .collection(COLLECTIONS.ZENTARO_WALLETS)
+      .where('daoStakingAddress', '==', address)
+      .get();
+    if (existing.docs.some((doc) => doc.id !== uid)) {
+      throw new ConflictException('이미 다른 계정에 연동된 지갑 주소입니다.');
+    }
+
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+    await walletRef.set({ daoStakingAddress: address }, { merge: true });
+    return { address };
   }
 
   /**
@@ -671,6 +711,85 @@ export class WalletService {
     const emailByUid = new Map(userSnaps.map((s) => [s.id, s.data()?.email ?? null]));
 
     return rows.map((r) => ({ ...r, email: emailByUid.get(r.userId) ?? null }));
+  }
+
+  /**
+   * Weekly EXP dividend for ZtaroVaultDAO stakers who linked their external wallet via
+   * linkDaoStakingAddress. Mirrors distributeWeeklyStakingRewards below (same weekly
+   * cadence, same "staked x level / 1000" shape) but reads each stake's actual locked
+   * duration from the vault instead of a flat monthly unit, per the documented formula
+   * on /my/benefits: staked Ztaro x level x locked months / 1,000 — paid every week the
+   * stake stays active, so a longer lock keeps earning the same weekly amount for as
+   * long as it's committed. Only counts once total active stake is >= 10,000 Ztaro.
+   */
+  @Cron('0 0 * * 0')
+  async distributeDaoStakingExpRewards() {
+    console.log('[DaoStakingReward] Starting weekly DAO vault staking EXP reward distribution...');
+    const MIN_STAKE_FOR_REWARD = 10000;
+    const SECONDS_PER_MONTH = 30 * 24 * 60 * 60;
+
+    try {
+      const walletsSnap = await this.db.collection(COLLECTIONS.ZENTARO_WALLETS).get();
+      const vault = this.blockchain.getVaultContract(this.blockchain.getProvider());
+
+      let processedCount = 0;
+      let totalExpDistributed = 0;
+
+      for (const walletDoc of walletsSnap.docs) {
+        const uid = walletDoc.id;
+        const walletData = walletDoc.data();
+        const address = walletData.daoStakingAddress as string | undefined;
+        if (!address) continue;
+
+        try {
+          const stakeIds: bigint[] = await vault.getAllStakes(address);
+          const level: number = walletData.level ?? 1;
+          let totalActiveAmount = 0;
+          let expAmount = 0;
+
+          for (const stakeId of stakeIds) {
+            const s = await vault.stakes(stakeId);
+            if (!s.active) continue;
+            const amount = Number(s.amount);
+            const months = Math.max(
+              1,
+              Math.round((Number(s.lockedUntil) - Number(s.createdAt)) / SECONDS_PER_MONTH),
+            );
+            totalActiveAmount += amount;
+            expAmount += Math.floor((amount * level * months) / 1000);
+          }
+
+          if (totalActiveAmount < MIN_STAKE_FOR_REWARD || expAmount <= 0) continue;
+
+          await this.db.runTransaction(async (tx) => {
+            const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+            const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+            tx.set(walletRef, { exp: FieldValue.increment(expAmount) }, { merge: true });
+            tx.set(txRef, {
+              userId: uid,
+              amount: expAmount,
+              type: 'dao_staking_exp_reward',
+              description: `Ztaro DAO 스테이킹 주간 보상 (활성 스테이킹 ${totalActiveAmount.toLocaleString()} Ztaro × Lv.${level} → +${expAmount.toLocaleString()} EXP)`,
+              stakedAmount: totalActiveAmount,
+              level,
+              createdAt: FieldValue.serverTimestamp(),
+            });
+          });
+
+          console.log(`[DaoStakingReward] Distributed ${expAmount} EXP to user ${uid} (Lv.${level}, active staked: ${totalActiveAmount})`);
+          processedCount++;
+          totalExpDistributed += expAmount;
+        } catch (walletErr) {
+          console.error(`[DaoStakingReward] Error processing wallet address ${address}:`, walletErr);
+        }
+      }
+
+      console.log(`[DaoStakingReward] Weekly distribution complete. Processed ${processedCount} users. Total EXP: ${totalExpDistributed}`);
+      return { processedCount, totalExpDistributed };
+    } catch (err) {
+      console.error('[DaoStakingReward] Global DAO staking reward distribution error:', err);
+      throw err;
+    }
   }
 
   /** Direct Firestore read for verifying payment password, avoiding circular AuthService injection. */

@@ -7,6 +7,7 @@ import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 import { AdjustExpDto } from './dto/adjust-exp.dto';
 import { ConvertZpToExpDto } from './dto/convert-zp-to-exp.dto';
 import { WithdrawUsdtDto } from './dto/withdraw-usdt.dto';
+import { LinkDaoStakingAddressDto } from './dto/link-dao-staking-address.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -75,6 +76,19 @@ export class WalletController {
   @Post('convert-zp-to-exp')
   convertZpToExp(@CurrentUser() user: CurrentUserPayload, @Body() dto: ConvertZpToExpDto) {
     return this.walletService.convertZpToExp(user.uid, dto.amount);
+  }
+
+  @Get('dao-staking/link-message')
+  getDaoStakingLinkMessage(@CurrentUser() user: CurrentUserPayload) {
+    return { message: this.walletService.daoStakingLinkMessage(user.uid) };
+  }
+
+  @Post('dao-staking/link-address')
+  linkDaoStakingAddress(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: LinkDaoStakingAddressDto,
+  ) {
+    return this.walletService.linkDaoStakingAddress(user.uid, dto.address, dto.signature);
   }
 
   @Get('admin/members')

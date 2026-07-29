@@ -113,10 +113,27 @@ export interface Wallet {
   rewardPoint: number;
   tickets: string[];
   nfts: string[];
+  daoStakingAddress: string | null;
 }
 
 export async function fetchWallet(): Promise<Wallet> {
   const res = await fetch(`${API_URL}/wallet`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDaoStakingLinkMessage(): Promise<{ message: string }> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/link-message`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function linkDaoStakingAddress(address: string, signature: string): Promise<{ address: string }> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/link-address`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ address, signature }),
+  });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
