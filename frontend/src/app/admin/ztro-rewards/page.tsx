@@ -77,8 +77,8 @@ export default function AdminZtroRewardsPage() {
         즉시 지급됩니다. 각 QR은 1회만 사용할 수 있습니다.
       </p>
       <div className="rounded-md border border-border/40 bg-secondary/20 px-4 py-3 text-xs text-muted-foreground">
-        랜덤 배율 확률표: 1~100 (50%) · 100~500 (30%) · 500~2,500 (10%) · 2,500~5,000 (7%) ·
-        5,000~10,000 (3%). 최대 지급액은 기본값 × 10,000이므로 리워드 풀 잔액을 그 이상으로
+        랜덤 배율 확률표: 1~50 (50%) · 50~100 (30%) · 100~250 (10%) · 250~500 (7%) ·
+        500~1,000 (3%). 최대 지급액은 기본값 × 1,000이므로 리워드 풀 잔액을 그 이상으로
         준비해두세요.
       </div>
 

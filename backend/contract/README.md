@@ -36,11 +36,11 @@ stakers. References the HEX token above at
 - Network: opBNB
 - **Deployed address: `0x9c20817B074DAe2298d07cAC587667214eA0DC01`**
 - Constructor arg: the Ztaro token address above.
-- Owner: `0xE1F72796e5d76193fC38e976B033b5C646e6C230` (the deployer's own wallet — the
-  backend's `RELAYER_PRIVATE_KEY` wallet is deliberately **not** the owner; all
-  owner-only calls (`createProposal`, `executeProposal`, `setWithdrawApproval`,
-  `setTransferApproval`, ...) have to be signed manually from that wallet, e.g. via
-  Remix's "At Address" + Interact tab).
+- Owner: `0xf20250BCe7AD9aD93AF2d7d37D233c8D8126beB5` (confirmed via `owner()` on-chain —
+  the address previously written here was wrong. The backend's `RELAYER_PRIVATE_KEY`
+  wallet is deliberately **not** the owner; all owner-only calls (`createProposal`,
+  `executeProposal`, `setWithdrawApproval`, `setTransferApproval`, ...) have to be signed
+  manually from that wallet, e.g. via Remix's "At Address" + Interact tab).
 
 Staking + DAO withdrawal vault. Users `stake(amount, lockDays)` (lock must be a multiple
 of 30 days, 30–1095), and after the lock expires and the owner grants
@@ -80,8 +80,9 @@ snapshotted stake at proposal-creation time) after the 7-day voting period ends,
   that.)
 - `owner` and `relayer` are **not** the same wallet on this deployment — `relayer` is set
   to the backend's `RELAYER_PRIVATE_KEY` wallet (`0xd0b8E0Dbb658d24cA59aa7108f582daD98Dd2A27`)
-  via `setRelayer()` after deploy, separate from the owner/deployer wallet
-  (`0xE1F72796e5d76193fC38e976B033b5C646e6C230`).
+  via `setRelayer()` after deploy, separate from the owner wallet
+  (`0xf20250BCe7AD9aD93AF2d7d37D233c8D8126beB5`, confirmed via `owner()` on-chain — the
+  address previously written here was wrong).
 - Includes `withdrawExcess(to, amount)` (owner-only) added after the original deploy —
   without it, tokens sent to this contract could only ever leave via `reward()` payouts,
   the same "no rescue path" trap the vault hit.
@@ -92,20 +93,20 @@ multiplier the admin set when issuing that QR batch. The contract draws a random
 multiplier from a weighted tier table and pays out `baseValue x randomMultiplier` Ztaro
 (whole tokens, since Ztaro has `decimals = 0`). Default tiers:
 
-| Range         | Probability |
-|---------------|-------------|
-| 1 – 100       | 50%         |
-| 100 – 500     | 30%         |
-| 500 – 2,500   | 10%         |
-| 2,500 – 5,000 | 7%          |
-| 5,000 – 10,000| 3%          |
+| Range       | Probability |
+|-------------|-------------|
+| 1 – 50      | 50%         |
+| 50 – 100    | 30%         |
+| 100 – 250   | 10%         |
+| 250 – 500   | 7%          |
+| 500 – 1,000 | 3%          |
 
 Owner can retune this table later via `setTiers(...)` (probabilities in bps must sum to
 10000). `requestId = keccak256(bytes(code))` is recorded in `usedRequests` so the same
 code can never pay out twice on-chain, even as a second line of defense behind the
 backend's own single-use Firestore lock.
 
-**Pool sizing:** worst case per redemption is `baseValue x 10,000` — size the funded
+**Pool sizing:** worst case per redemption is `baseValue x 1,000` — size the funded
 pool (and pick `baseValue` at issuance) with that ceiling in mind.
 
 **Randomness caveat:** the on-chain "randomness" (`blockhash`/`timestamp`-derived) is

@@ -84,11 +84,11 @@ contract ZtroRewardDispenser is Ownable, ReentrancyGuard {
         relayer = initialRelayer;
         emit RelayerChanged(address(0), initialRelayer);
 
-        tiers.push(Tier(5000, 1, 100));
-        tiers.push(Tier(3000, 100, 500));
-        tiers.push(Tier(1000, 500, 2500));
-        tiers.push(Tier(700, 2500, 5000));
-        tiers.push(Tier(300, 5000, 10000));
+        tiers.push(Tier(5000, 1, 50));
+        tiers.push(Tier(3000, 50, 100));
+        tiers.push(Tier(1000, 100, 250));
+        tiers.push(Tier(700, 250, 500));
+        tiers.push(Tier(300, 500, 1000));
         emit TiersChanged();
     }
 
