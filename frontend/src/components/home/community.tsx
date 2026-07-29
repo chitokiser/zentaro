@@ -5,7 +5,7 @@ import { useI18n } from "@/lib/i18n/i18n-context"
 
 const CHANNELS = [
   { label: "YouTube", icon: PlayCircle, href: "https://www.youtube.com/@WilliamCater-d8h" },
-  { label: "Instagram", icon: Camera, href: "https://www.instagram.com/jung1922a/" },
+  { label: "Instagram", icon: Camera, href: "https://www.instagram.com/zentaro119/" },
   { label: "Telegram", icon: Send, href: "https://t.me/+Gtu15GAUikliYzg1" },
   { label: "Facebook", icon: MessageCircle, href: "https://www.facebook.com/profile.php?id=61591465442279" },
 ]

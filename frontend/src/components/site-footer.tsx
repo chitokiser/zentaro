@@ -9,7 +9,7 @@ import { Community } from "@/components/home/community"
 
 const SOCIAL_LINKS = [
   { label: "YouTube", href: "https://www.youtube.com/@WilliamCater-d8h", icon: PlayCircle },
-  { label: "Instagram", href: "https://www.instagram.com/jung1922a/", icon: Camera },
+  { label: "Instagram", href: "https://www.instagram.com/zentaro119/", icon: Camera },
   { label: "Telegram", href: "https://t.me/+Gtu15GAUikliYzg1", icon: Send },
   { label: "Facebook", href: "https://www.facebook.com/profile.php?id=61591465442279", icon: MessageCircle },
 ]
