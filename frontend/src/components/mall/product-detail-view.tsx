@@ -52,6 +52,11 @@ export function ProductDetailView({ product }: { product: Product }) {
             </div>
             <p className="font-display text-2xl font-semibold text-primary">
               {product.priceAp.toLocaleString()} ZP
+              {product.priceZtaro ? (
+                <span className="ml-2 text-lg font-medium text-muted-foreground">
+                  · {product.priceZtaro.toLocaleString()} ZTARO (30% 할인)
+                </span>
+              ) : null}
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">{productDescription}</p>
 

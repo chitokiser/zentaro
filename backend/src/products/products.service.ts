@@ -6,6 +6,7 @@ import { COLLECTIONS } from '../common/collections';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { computeZtaroPrice, LUXURY_MALL_CATEGORY, ZtaroPricingService } from './ztaro-pricing.service';
 
 // Supplier info is internal sourcing/business data (who we buy from, at what
 // cost) and must never reach the public storefront API, unlike costAp which
@@ -22,7 +23,17 @@ function stripAdminFields<T extends Record<string, unknown>>(product: T): T {
 
 @Injectable()
 export class ProductsService {
-  constructor(@Inject(FIRESTORE) private readonly db: Firestore) { }
+  constructor(
+    @Inject(FIRESTORE) private readonly db: Firestore,
+    private readonly ztaroPricing: ZtaroPricingService,
+  ) { }
+
+  /** priceZtaro is server-computed only (30%-off ZP price at today's snapshotted rate) — admins never set it directly. */
+  private async luxuryPriceFields(mainCategory: string, priceAp: number) {
+    if (mainCategory !== LUXURY_MALL_CATEGORY) return {};
+    const zpPerZtaro = await this.ztaroPricing.getCurrentZpPerZtaro();
+    return { priceZtaro: computeZtaroPrice(priceAp, zpPerZtaro) };
+  }
 
   async getFeatured(mainCategory?: string) {
     // Filtering by mainCategory at the Firestore level (rather than fetching
@@ -76,6 +87,8 @@ export class ProductsService {
       category: dto.category,
       priceAp: dto.priceAp,
       costAp: dto.costAp,
+      stock: dto.stock ?? 100,
+      ...(await this.luxuryPriceFields(dto.mainCategory, dto.priceAp)),
       imageUrl: dto.imageUrl ?? null,
       description: dto.description ?? dto.name,
       nameEn: dto.nameEn ?? null,
@@ -115,7 +128,15 @@ export class ProductsService {
     if (!snap.exists) {
       throw new NotFoundException('Product not found');
     }
-    await ref.update({ ...dto, updatedAt: FieldValue.serverTimestamp() });
+    const existing = snap.data()!;
+    const mainCategory = dto.mainCategory ?? existing.mainCategory;
+    const priceAp = dto.priceAp ?? existing.priceAp ?? 0;
+
+    await ref.update({
+      ...dto,
+      ...(await this.luxuryPriceFields(mainCategory, priceAp)),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
     return { id: productId };
   }
 

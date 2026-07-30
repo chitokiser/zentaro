@@ -1,4 +1,5 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
@@ -6,6 +7,9 @@ import { COLLECTIONS } from '../common/collections';
 import { CheckoutDto } from './dto/checkout.dto';
 import { OrderStatus } from './dto/update-order-status.dto';
 import { MailService } from '../mail/mail.service';
+import { WalletService } from '../wallet/wallet.service';
+import { BlockchainService } from '../blockchain/blockchain.service';
+import { LUXURY_MALL_CATEGORY } from '../products/ztaro-pricing.service';
 
 const MENTOR_REWARD_RATE = 0.05;
 
@@ -14,6 +18,9 @@ export class OrdersService {
   constructor(
     @Inject(FIRESTORE) private readonly db: Firestore,
     private readonly mailService: MailService,
+    private readonly walletService: WalletService,
+    private readonly blockchain: BlockchainService,
+    private readonly config: ConfigService,
   ) { }
 
   private ordersCol() {
@@ -30,6 +37,10 @@ export class OrdersService {
    * (network calls don't belong inside a Firestore transaction).
    */
   async checkout(uid: string, dto: CheckoutDto) {
+    if (dto.paymentMethod === 'ztaro') {
+      return this.checkoutZtaro(uid, dto);
+    }
+
     // class-transformer instantiates dto.shippingAddress as a ShippingAddressDto
     // (via @Type), and Firestore refuses to serialize objects with a custom
     // prototype — so writes must use a plain-object copy, not the DTO instance.
@@ -277,6 +288,156 @@ export class OrdersService {
       remainingAp: result.remainingAp,
       remainingExp: result.remainingExp,
     };
+  }
+
+  /**
+   * 명품관(Luxury) checkout paid in Ztaro instead of ZP. Every line item must already
+   * carry a priceZtaro (only 명품관-category products have one, fixed daily by
+   * ZtaroPricingService) — mixing in a non-luxury item is rejected outright rather than
+   * silently falling back to ZP for part of the cart.
+   *
+   * Follows the same lock -> on-chain transfer -> confirm/rollback shape as the barrel
+   * P2P ZTRO settlement in token-exchange.service.ts's buyBarrel(): the order is written
+   * as 'pending_payment' first (so nothing else has to guess whether a Ztaro transfer is
+   * in flight), then the buyer's custodial wallet sends the total to the admin wallet,
+   * and only a confirmed tx flips the order to 'paid'. A failed/reverted transfer deletes
+   * the pending order instead of leaving a half-paid record — the buyer's Ztaro never
+   * left their wallet, so there's nothing to reconcile.
+   */
+  private async checkoutZtaro(uid: string, dto: CheckoutDto) {
+    const shippingAddress = {
+      recipientName: dto.shippingAddress.recipientName,
+      phone: dto.shippingAddress.phone,
+      postalCode: dto.shippingAddress.postalCode,
+      addressLine1: dto.shippingAddress.addressLine1,
+      addressLine2: dto.shippingAddress.addressLine2 ?? null,
+      deliveryMemo: dto.shippingAddress.deliveryMemo ?? null,
+    };
+    const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
+    const productRefs = dto.items.map((item) =>
+      this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(item.productId),
+    );
+
+    const { orderRef, totalPriceZtaro, items, buyerEmail } = await this.db.runTransaction(
+      async (tx) => {
+        const [userSnap, ...productSnaps] = await Promise.all([
+          tx.get(userRef),
+          ...productRefs.map((ref) => tx.get(ref)),
+        ]);
+        if (!userSnap.exists) {
+          throw new NotFoundException('User not found');
+        }
+
+        let totalPriceZtaro = 0;
+        const items = dto.items.map((item, idx) => {
+          const snap = productSnaps[idx];
+          if (!snap.exists) {
+            throw new NotFoundException(`Product not found: ${item.productId}`);
+          }
+          const product = snap.data()!;
+          if (product.mainCategory !== LUXURY_MALL_CATEGORY) {
+            throw new BadRequestException(
+              `ZTARO 결제는 명품관 상품만 가능합니다: ${product.name}`,
+            );
+          }
+          const priceZtaro: number = product.priceZtaro ?? 0;
+          totalPriceZtaro += priceZtaro * item.quantity;
+          return {
+            productId: item.productId,
+            quantity: item.quantity,
+            productName: product.name,
+            priceZtaro,
+          };
+        });
+
+        if (totalPriceZtaro <= 0) {
+          throw new BadRequestException('ZTARO 결제 금액을 계산할 수 없습니다.');
+        }
+
+        const orderRef = this.ordersCol().doc();
+        tx.set(orderRef, {
+          userId: uid,
+          items,
+          shippingAddress,
+          paymentMethod: 'ztaro' as const,
+          totalPriceZtaro,
+          status: 'pending_payment',
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+        if (dto.saveAddress) {
+          tx.set(userRef, { shippingAddress }, { merge: true });
+        }
+
+        return { orderRef, totalPriceZtaro, items, buyerEmail: userSnap.data()!.email ?? null };
+      },
+    );
+
+    let txHash: string;
+    try {
+      const adminAddress = this.config.get<string>('ADMIN_ZTARO_ADDRESS');
+      if (!adminAddress) {
+        throw new Error('ADMIN_ZTARO_ADDRESS not configured');
+      }
+      const { address: buyerAddress, privateKey: buyerPrivateKey } =
+        await this.walletService.getDecryptedPrivateKey(uid);
+
+      await this.blockchain.ensureGas(buyerAddress);
+      const buyerSigner = this.blockchain.getUserSigner(buyerPrivateKey);
+      const ztro = this.blockchain.getZtroContract(buyerSigner);
+
+      const buyerBalance: bigint = await ztro.balanceOf(buyerAddress);
+      if (buyerBalance < BigInt(totalPriceZtaro)) {
+        throw new BadRequestException(
+          `ZTARO 잔액이 부족합니다. (필요: ${totalPriceZtaro.toLocaleString()} ZTARO, 보유: ${buyerBalance.toLocaleString()} ZTARO)`,
+        );
+      }
+
+      const tx = await ztro.transfer(adminAddress, BigInt(totalPriceZtaro));
+      const receipt = await tx.wait();
+      txHash = receipt.hash as string;
+    } catch (err) {
+      await orderRef.delete().catch(() => {});
+      if (err instanceof BadRequestException) throw err;
+      console.error('[Orders] checkoutZtaro on-chain ZTARO transfer failed:', err);
+      throw new BadRequestException('온체인 ZTARO 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+    }
+
+    await orderRef.update({
+      status: 'paid',
+      ztaroTxHash: txHash,
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+    await txRef.set({
+      userId: uid,
+      amount: -totalPriceZtaro,
+      type: 'zentaro_mall_purchase_ztaro',
+      description: `ZENTARO Mall (ZTARO 결제): ${items.map((i) => i.productName).join(', ')} (tx: ${txHash})`,
+      orderId: orderRef.id,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+
+    this.mailService
+      .sendOrderNotification({
+        orderId: orderRef.id,
+        buyerEmail,
+        items: items.map((i) => ({
+          productName: i.productName,
+          quantity: i.quantity,
+          priceAp: 0,
+          fulfillmentType: 'direct',
+        })),
+        totalApPaid: 0,
+        totalExpPaid: 0,
+        paymentMethod: 'ztaro',
+        totalZtaroPaid: totalPriceZtaro,
+        shippingAddress,
+      })
+      .catch(() => undefined);
+
+    return { orderId: orderRef.id, totalPriceZtaro, txHash };
   }
 
   async listAll(status?: string) {

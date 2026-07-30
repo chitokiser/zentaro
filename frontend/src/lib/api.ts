@@ -7,6 +7,9 @@ export interface Product {
   category: string;
   priceAp: number;
   costAp?: number;
+  stock?: number;
+  /** Server-computed (30%-off priceAp at today's GeckoTerminal-snapshotted rate) — only set for 명품관 products. */
+  priceZtaro?: number | null;
   fulfillmentType?: "dropshipping" | "direct";
   imageUrl: string | null;
   description: string;

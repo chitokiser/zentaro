@@ -2,6 +2,7 @@ import { Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
+  IsIn,
   IsInt,
   IsOptional,
   IsString,
@@ -37,4 +38,8 @@ export class CheckoutDto {
   @IsOptional()
   @IsBoolean()
   saveAddress?: boolean;
+
+  @IsOptional()
+  @IsIn(['zp', 'ztaro'])
+  paymentMethod?: 'zp' | 'ztaro';
 }

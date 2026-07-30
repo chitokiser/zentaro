@@ -1,4 +1,4 @@
-import { IsArray, IsIn, IsNumber, IsOptional, IsString, Min, MinLength, IsBoolean } from 'class-validator';
+import { IsArray, IsIn, IsInt, IsNumber, IsOptional, IsString, Min, MinLength, IsBoolean } from 'class-validator';
 import { MALL_MAIN_CATEGORIES } from '../../common/mall-categories';
 
 export class CreateDirectProductDto {
@@ -59,6 +59,11 @@ export class CreateDirectProductDto {
   @IsNumber()
   @Min(0)
   costAp: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  stock?: number;
 
   @IsOptional()
   @IsString()

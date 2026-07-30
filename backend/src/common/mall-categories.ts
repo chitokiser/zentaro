@@ -1,4 +1,5 @@
 export const MALL_CATEGORIES = [
+  { main: '명품관', subs: ['식품', '약재', '술', '패션'] },
   {
     main: '위스키',
     subs: [

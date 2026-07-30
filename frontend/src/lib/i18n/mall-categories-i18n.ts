@@ -5,6 +5,12 @@ import type { Locale } from "./translations"
 // locales — display-only, storage/admin dropdowns stay Korean.
 const CATEGORY_TRANSLATIONS: Record<string, { en: string; vi: string }> = {
   // Main categories
+  "명품관": { en: "Luxury", vi: "Hàng cao cấp" },
+  // 명품관 subs
+  "식품": { en: "Food", vi: "Thực phẩm" },
+  "약재": { en: "Medicinal Herbs", vi: "Dược liệu" },
+  "술": { en: "Liquor", vi: "Rượu" },
+  "패션": { en: "Fashion", vi: "Thời trang" },
   "위스키": { en: "Whisky", vi: "Whisky" },
   "와인": { en: "Wine", vi: "Rượu vang" },
   "진(Gin)": { en: "Gin", vi: "Gin" },

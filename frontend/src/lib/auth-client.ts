@@ -387,6 +387,8 @@ export interface AdminProduct {
   badgesVi?: string[];
   priceAp: number;
   costAp?: number;
+  stock?: number;
+  priceZtaro?: number | null;
   fulfillmentType?: FulfillmentType;
   imageUrl: string | null;
   cjProductId?: string;
@@ -464,6 +466,7 @@ export async function createDirectProduct(input: {
   badgesVi?: string[];
   priceAp: number;
   costAp: number;
+  stock?: number;
   supplierName?: string;
   supplierContact?: string;
   supplierCostKrw?: number;
@@ -497,6 +500,7 @@ export async function updateProductAdmin(
     badgesVi: string[];
     priceAp: number;
     costAp: number;
+    stock: number;
     supplierName: string;
     supplierContact: string;
     supplierCostKrw: number;
@@ -683,11 +687,13 @@ export interface CheckoutOrderItem {
   productId: string;
   quantity: number;
   productName: string;
-  fulfillmentType: FulfillmentType;
-  priceAp: number;
-  costAp: number;
-  apPaid: number;
-  expPaid: number;
+  fulfillmentType?: FulfillmentType;
+  priceAp?: number;
+  costAp?: number;
+  apPaid?: number;
+  expPaid?: number;
+  /** Only present on ZTARO-paid (명품관) order lines. */
+  priceZtaro?: number;
 }
 
 export interface AdminOrder {
@@ -695,11 +701,14 @@ export interface AdminOrder {
   userId: string;
   items: CheckoutOrderItem[];
   shippingAddress: ShippingAddress;
-  totalPriceAp: number;
-  totalCostAp: number;
-  totalApPaid: number;
-  totalExpPaid: number;
-  status: "paid" | "shipped" | "delivered" | "cancelled";
+  paymentMethod?: "zp" | "ztaro";
+  totalPriceAp?: number;
+  totalCostAp?: number;
+  totalApPaid?: number;
+  totalExpPaid?: number;
+  totalPriceZtaro?: number;
+  ztaroTxHash?: string;
+  status: "pending_payment" | "paid" | "shipped" | "delivered" | "cancelled";
   createdAt?: { _seconds: number } | null;
 }
 
@@ -708,6 +717,7 @@ export async function checkoutCart(input: {
   expToUse?: number;
   shippingAddress: ShippingAddress;
   saveAddress?: boolean;
+  paymentMethod?: "zp" | "ztaro";
 }) {
   const res = await fetch(`${API_URL}/orders/checkout`, {
     method: "POST",
@@ -717,10 +727,12 @@ export async function checkoutCart(input: {
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json() as Promise<{
     orderId: string;
-    totalApPaid: number;
-    totalExpPaid: number;
-    remainingAp: number;
-    remainingExp: number;
+    totalApPaid?: number;
+    totalExpPaid?: number;
+    remainingAp?: number;
+    remainingExp?: number;
+    totalPriceZtaro?: number;
+    txHash?: string;
   }>;
 }
 

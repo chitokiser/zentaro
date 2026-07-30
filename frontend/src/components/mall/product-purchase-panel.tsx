@@ -30,6 +30,8 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       priceAp: product.priceAp,
       costAp,
       fulfillmentType: (product.fulfillmentType ?? "dropshipping") as "dropshipping" | "direct",
+      mainCategory: product.mainCategory,
+      priceZtaro: product.priceZtaro,
     }
   }
 
@@ -64,6 +66,9 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       )}
       <p className="text-sm text-foreground">
         가격: <span className="font-medium">ZP {product.priceAp.toLocaleString()}</span>
+        {product.priceZtaro ? (
+          <span className="ml-2 text-primary">· ZTARO {product.priceZtaro.toLocaleString()} (30% 할인)</span>
+        ) : null}
       </p>
       <div className="flex gap-2">
         <Button

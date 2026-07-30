@@ -11,6 +11,9 @@ export interface CartItem {
   costAp: number
   fulfillmentType: FulfillmentType
   quantity: number
+  mainCategory?: string
+  /** Only set for 명품관 products — server-computed, fixed for the day. */
+  priceZtaro?: number | null
 }
 
 interface CartContextValue {
@@ -21,6 +24,9 @@ interface CartContextValue {
   clear: () => void
   totalCount: number
   totalPriceAp: number
+  totalPriceZtaro: number
+  /** ZTARO checkout is only offered when every cart line is a priced 명품관 item. */
+  canPayWithZtaro: boolean
 }
 
 const CartContext = createContext<CartContextValue | null>(null)
@@ -75,10 +81,24 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const totalCount = items.reduce((sum, i) => sum + i.quantity, 0)
   const totalPriceAp = items.reduce((sum, i) => sum + i.priceAp * i.quantity, 0)
+  const canPayWithZtaro = items.length > 0 && items.every((i) => (i.priceZtaro ?? 0) > 0)
+  const totalPriceZtaro = canPayWithZtaro
+    ? items.reduce((sum, i) => sum + (i.priceZtaro ?? 0) * i.quantity, 0)
+    : 0
 
   return (
     <CartContext.Provider
-      value={{ items, addItem, removeItem, updateQuantity, clear, totalCount, totalPriceAp }}
+      value={{
+        items,
+        addItem,
+        removeItem,
+        updateQuantity,
+        clear,
+        totalCount,
+        totalPriceAp,
+        totalPriceZtaro,
+        canPayWithZtaro,
+      }}
     >
       {children}
     </CartContext.Provider>

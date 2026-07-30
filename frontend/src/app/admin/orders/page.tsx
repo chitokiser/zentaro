@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { fetchAllOrders, updateOrderStatus, type AdminOrder } from "@/lib/auth-client"
 
 const STATUS_LABEL: Record<string, string> = {
+  pending_payment: "결제 대기",
   paid: "결제완료",
   shipped: "배송중",
   delivered: "배송완료",
@@ -88,12 +89,32 @@ export default function AdminOrdersPage() {
             <ul className="text-xs text-muted-foreground">
               {order.items.map((item) => (
                 <li key={item.productId}>
-                  {item.productName} x{item.quantity} ({item.fulfillmentType}) — {item.priceAp.toLocaleString()} ZP
+                  {item.productName} x{item.quantity}
+                  {item.priceZtaro != null
+                    ? ` — ${item.priceZtaro.toLocaleString()} ZTARO`
+                    : ` (${item.fulfillmentType}) — ${(item.priceAp ?? 0).toLocaleString()} ZP`}
                 </li>
               ))}
             </ul>
-            <p className="text-xs">
-              결제: ZP {order.totalApPaid.toLocaleString()} + EXP {order.totalExpPaid.toLocaleString()}
+            <p className="text-xs flex items-center gap-2">
+              {order.paymentMethod === "ztaro" ? (
+                <>
+                  <Badge variant="outline" className="text-[10px]">ZTARO 결제</Badge>
+                  결제: ZTARO {(order.totalPriceZtaro ?? 0).toLocaleString()}
+                  {order.ztaroTxHash ? (
+                    <a
+                      href={`https://opbnbscan.com/tx/${order.ztaroTxHash}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-primary underline underline-offset-4"
+                    >
+                      tx 보기
+                    </a>
+                  ) : null}
+                </>
+              ) : (
+                <>결제: ZP {(order.totalApPaid ?? 0).toLocaleString()} + EXP {(order.totalExpPaid ?? 0).toLocaleString()}</>
+              )}
             </p>
             <p className="text-xs text-muted-foreground">
               배송지: {order.shippingAddress?.recipientName} / {order.shippingAddress?.phone} / (

@@ -27,17 +27,28 @@ const EMPTY_ADDRESS: ShippingAddress = {
 export default function CheckoutPage() {
   const { t } = useI18n()
   const c = t.checkout
-  const { items, removeItem, updateQuantity, clear, totalPriceAp } = useCart()
+  const { items, removeItem, updateQuantity, clear, totalPriceAp, totalPriceZtaro, canPayWithZtaro } = useCart()
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
   const [expBalance, setExpBalance] = useState(0)
   const [expInputs, setExpInputs] = useState<Record<string, number>>({})
   const [address, setAddress] = useState<ShippingAddress>(EMPTY_ADDRESS)
   const [saveAddress, setSaveAddress] = useState(true)
+  const [paymentMethod, setPaymentMethod] = useState<"zp" | "ztaro">("zp")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [result, setResult] = useState<{ orderId: string; totalApPaid: number; totalExpPaid: number } | null>(null)
+  const [result, setResult] = useState<{
+    orderId: string
+    totalApPaid?: number
+    totalExpPaid?: number
+    totalPriceZtaro?: number
+    txHash?: string
+  } | null>(null)
 
   useEffect(() => onAuthChanged(() => setLoggedIn(Boolean(getToken()))), [])
+
+  useEffect(() => {
+    if (!canPayWithZtaro && paymentMethod === "ztaro") setPaymentMethod("zp")
+  }, [canPayWithZtaro, paymentMethod])
 
   useEffect(() => {
     if (!loggedIn) return
@@ -70,9 +81,10 @@ export default function CheckoutPage() {
     try {
       const res = await checkoutCart({
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-        expToUse: totalExpToUse,
+        expToUse: paymentMethod === "zp" ? totalExpToUse : undefined,
         shippingAddress: address,
         saveAddress,
+        paymentMethod,
       })
       setResult(res)
       clear()
@@ -89,8 +101,22 @@ export default function CheckoutPage() {
         <h1 className="font-display text-2xl font-semibold text-primary">{c.orderCompleteTitle}</h1>
         <p className="mt-2 text-sm text-muted-foreground">{c.orderNumberLabel} {result.orderId}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          {c.paymentPrefix}{result.totalApPaid.toLocaleString()} + <span className="notranslate">EXP</span> {result.totalExpPaid.toLocaleString()}
+          {result.txHash ? (
+            <>{c.paymentPrefix}ZTARO {(result.totalPriceZtaro ?? 0).toLocaleString()}</>
+          ) : (
+            <>{c.paymentPrefix}{(result.totalApPaid ?? 0).toLocaleString()} + <span className="notranslate">EXP</span> {(result.totalExpPaid ?? 0).toLocaleString()}</>
+          )}
         </p>
+        {result.txHash ? (
+          <a
+            href={`https://opbnbscan.com/tx/${result.txHash}`}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-1 block text-xs text-primary underline underline-offset-4"
+          >
+            tx 보기
+          </a>
+        ) : null}
         <Button asChild className="mt-6 bg-primary text-primary-foreground hover:bg-primary/90">
           <Link href="/mall">{c.continueShopping}</Link>
         </Button>
@@ -183,6 +209,30 @@ export default function CheckoutPage() {
         })}
       </section>
 
+      {canPayWithZtaro ? (
+        <section className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-4">
+          <h2 className="text-sm font-semibold">결제수단</h2>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="paymentMethod"
+              checked={paymentMethod === "zp"}
+              onChange={() => setPaymentMethod("zp")}
+            />
+            ZP {totalPriceAp.toLocaleString()}
+          </label>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="radio"
+              name="paymentMethod"
+              checked={paymentMethod === "ztaro"}
+              onChange={() => setPaymentMethod("ztaro")}
+            />
+            ZTARO {totalPriceZtaro.toLocaleString()} (30% 할인)
+          </label>
+        </section>
+      ) : null}
+
       <section className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4">
         <h2 className="text-sm font-semibold">{c.shippingInfoTitle}</h2>
         <input
@@ -231,20 +281,29 @@ export default function CheckoutPage() {
         </label>
       </section>
 
-      <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
-        <div className="flex justify-between">
-          <span className="text-muted-foreground">{c.subtotalLabel}</span>
-          <span>{totalPriceAp.toLocaleString()} ZP</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-muted-foreground"><span className="notranslate">EXP</span> {c.expUsedPrefix} {expBalance.toLocaleString()})</span>
-          <span>-{totalExpToUse.toLocaleString()} <span className="notranslate">EXP</span></span>
-        </div>
-        <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
-          <span>{c.finalPaymentLabel}</span>
-          <span>{totalApToPay.toLocaleString()} ZP</span>
-        </div>
-      </section>
+      {paymentMethod === "ztaro" ? (
+        <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
+          <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
+            <span>{c.finalPaymentLabel}</span>
+            <span>{totalPriceZtaro.toLocaleString()} ZTARO</span>
+          </div>
+        </section>
+      ) : (
+        <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">{c.subtotalLabel}</span>
+            <span>{totalPriceAp.toLocaleString()} ZP</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-muted-foreground"><span className="notranslate">EXP</span> {c.expUsedPrefix} {expBalance.toLocaleString()})</span>
+            <span>-{totalExpToUse.toLocaleString()} <span className="notranslate">EXP</span></span>
+          </div>
+          <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
+            <span>{c.finalPaymentLabel}</span>
+            <span>{totalApToPay.toLocaleString()} ZP</span>
+          </div>
+        </section>
+      )}
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
