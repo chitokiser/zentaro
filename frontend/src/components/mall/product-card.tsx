@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import { updateProductAdmin } from "@/lib/auth-client"
+import { zpToVnd, formatVnd } from "@/lib/currency"
 import type { Product } from "@/lib/api"
 
 interface ProductCardProps {
@@ -161,7 +162,10 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy, on
             )}
           </div>
         ) : (
-          <span className="text-xs text-muted-foreground">{product.priceAp.toLocaleString()} ZP</span>
+          <span className="text-xs text-muted-foreground">
+            {product.priceAp.toLocaleString()} ZP
+            <span className="ml-1 text-[10px]">({formatVnd(zpToVnd(product.priceAp))})</span>
+          </span>
         )}
         {maxExp > 0 ? (
           <span className="text-[11px] text-primary">

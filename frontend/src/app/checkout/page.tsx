@@ -14,6 +14,7 @@ import {
   type ShippingAddress,
 } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import { zpToVnd, formatVnd } from "@/lib/currency"
 
 const EMPTY_ADDRESS: ShippingAddress = {
   recipientName: "",
@@ -163,7 +164,9 @@ export default function CheckoutPage() {
               </div>
               <div className="flex flex-1 flex-col gap-1">
                 <span className="text-sm font-medium">{item.name}</span>
-                <span className="text-xs text-muted-foreground">{item.priceAp.toLocaleString()} ZP</span>
+                <span className="text-xs text-muted-foreground">
+                  {item.priceAp.toLocaleString()} ZP ({formatVnd(zpToVnd(item.priceAp))})
+                </span>
                 <div className="flex items-center gap-2 text-xs">
                   <button
                     type="button"
@@ -300,7 +303,12 @@ export default function CheckoutPage() {
           </div>
           <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
             <span>{c.finalPaymentLabel}</span>
-            <span>{totalApToPay.toLocaleString()} ZP</span>
+            <span>
+              {totalApToPay.toLocaleString()} ZP
+              <span className="ml-1 text-xs font-normal text-muted-foreground">
+                ({formatVnd(zpToVnd(totalApToPay))})
+              </span>
+            </span>
           </div>
         </section>
       )}

@@ -8,6 +8,7 @@ import { useCart } from "@/lib/cart-context"
 import { getToken } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText } from "@/lib/i18n/content"
+import { zpToVnd, formatVnd } from "@/lib/currency"
 import type { Product } from "@/lib/api"
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
@@ -69,6 +70,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
         {product.priceZtaro ? (
           <span className="ml-2 text-primary">· ZTARO {product.priceZtaro.toLocaleString()} (30% 할인)</span>
         ) : null}
+        <span className="ml-2 text-muted-foreground">· {formatVnd(zpToVnd(product.priceAp))}</span>
       </p>
       <div className="flex gap-2">
         <Button

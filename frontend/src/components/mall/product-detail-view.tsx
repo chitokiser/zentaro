@@ -7,6 +7,7 @@ import { ProductPurchasePanel } from "@/components/mall/product-purchase-panel"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
+import { zpToVnd, formatVnd } from "@/lib/currency"
 import type { Product } from "@/lib/api"
 
 export function ProductDetailView({ product }: { product: Product }) {
@@ -57,6 +58,9 @@ export function ProductDetailView({ product }: { product: Product }) {
                   · {product.priceZtaro.toLocaleString()} ZTARO (30% 할인)
                 </span>
               ) : null}
+              <span className="ml-2 text-base font-medium text-muted-foreground">
+                · {formatVnd(zpToVnd(product.priceAp))}
+              </span>
             </p>
             <p className="text-sm leading-relaxed text-muted-foreground">{productDescription}</p>
 

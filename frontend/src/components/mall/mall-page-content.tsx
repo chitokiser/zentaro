@@ -11,6 +11,7 @@ import { useI18n } from "@/lib/i18n/i18n-context"
 import { fetchMe, fetchAllProductsAdmin, deleteProductAdmin, type AdminProduct } from "@/lib/auth-client"
 import { MALL_MAIN_CATEGORIES } from "@/lib/mall-categories"
 import { localizedCategory } from "@/lib/i18n/mall-categories-i18n"
+import { ZP_VND_RATE_LABEL } from "@/lib/currency"
 import type { Product } from "@/lib/api"
 
 function toProduct(p: AdminProduct): Product {
@@ -128,6 +129,7 @@ export function MallPageContent({
         }
       />
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <p className="mb-4 text-xs text-muted-foreground">환율: {ZP_VND_RATE_LABEL} (참고용, 결제는 ZP/ZTARO로만 진행됩니다)</p>
         {/* 상품 검색창 */}
         <div className="mb-8 max-w-md">
           <div className="relative">
