@@ -11,6 +11,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.ngoclinhsam.vn" },
       { protocol: "https", hostname: "anagarwood.com" },
       { protocol: "https", hostname: "saffronvn.vn" },
+      { protocol: "https", hostname: "ledongson.com" },
     ],
   },
 };
