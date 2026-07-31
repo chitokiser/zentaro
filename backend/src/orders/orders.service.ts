@@ -118,7 +118,7 @@ export class OrdersService {
         const costAp: number = product.costAp ?? priceAp;
         const fulfillmentType: string = product.fulfillmentType ?? 'dropshipping';
         const margin = Math.max(0, priceAp - costAp);
-        const lineMaxExp = fulfillmentType === 'dropshipping' ? Math.floor(margin * 0.8) : 0;
+        const lineMaxExp = Math.floor(margin * 0.8);
 
         totalPriceAp += priceAp * item.quantity;
         totalCostAp += costAp * item.quantity;
@@ -382,9 +382,8 @@ export class OrdersService {
           }
           const priceAp: number = product.priceAp ?? 0;
           const costAp: number = product.costAp ?? priceAp;
-          const fulfillmentType: string = product.fulfillmentType ?? 'dropshipping';
           const margin = Math.max(0, priceAp - costAp);
-          const lineMaxExp = fulfillmentType === 'dropshipping' ? Math.floor(margin * 0.8) : 0;
+          const lineMaxExp = Math.floor(margin * 0.8);
 
           totalPriceZtaro += priceZtaro * item.quantity;
           totalExpCap += lineMaxExp * item.quantity;

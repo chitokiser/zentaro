@@ -37,8 +37,7 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy, on
 
   const costAp = product.costAp ?? product.priceAp
   const margin = Math.max(0, product.priceAp - costAp)
-  const isDropshipping = (product.fulfillmentType ?? "dropshipping") === "dropshipping"
-  const maxExp = isDropshipping ? Math.floor(margin * 0.8) : 0
+  const maxExp = Math.floor(margin * 0.8)
 
   async function handleSaveInline() {
     setSaveBusy(true)

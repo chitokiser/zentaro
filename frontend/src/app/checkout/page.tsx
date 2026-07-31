@@ -68,7 +68,7 @@ export default function CheckoutPage() {
 
   function lineMaxExp(item: (typeof items)[number]) {
     const margin = Math.max(0, item.priceAp - item.costAp)
-    return item.fulfillmentType === "dropshipping" ? Math.floor(margin * 0.8) * item.quantity : 0
+    return Math.floor(margin * 0.8) * item.quantity
   }
 
   function setLineExp(productId: string, value: number, max: number) {
