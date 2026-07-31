@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { ethers } from "ethers"
+import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -780,6 +781,7 @@ export default function DaoStakingPage() {
                 eyebrow="DAO Governance"
                 title="Ztaro Vault DAO Staking"
                 description="700,000,000 Ztaro 보증 기금을 기반으로 가동되는 개인 메타마스크 지갑 전용 온체인 스테이킹. Ztaro를 잠금하여 거버넌스 투표권 및 배당 청구 권리를 확보하세요."
+                icon={<Image src="/images/brand/ZtaroToken.png" alt="ZTARO" width={56} height={56} className="rounded-full" />}
             />
 
             <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 space-y-8">

@@ -4,14 +4,17 @@ export function PageHeader({
   eyebrow,
   title,
   description,
+  icon,
 }: {
   eyebrow: string
   title: string
   description?: React.ReactNode
+  icon?: React.ReactNode
 }) {
   return (
     <div className="border-b border-border/60 bg-card/40 py-16">
       <div className="mx-auto max-w-4xl px-4 text-center sm:px-6 lg:px-8">
+        {icon ? <div className="mb-4 flex justify-center">{icon}</div> : null}
         <span className="text-xs font-medium uppercase tracking-[0.4em] text-primary">
           {eyebrow}
         </span>

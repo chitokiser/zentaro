@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { ZtroPoolInfo } from "@/components/ztro-pool-info"
 import { ZtroChartWidget } from "@/components/ztro-chart-widget"
@@ -202,6 +203,9 @@ export default function ExchangePage() {
         eyebrow={e.eyebrow}
         title={e.title}
         description={e.description}
+        icon={
+          <Image src="/images/brand/ZtaroToken.png" alt="ZTARO" width={56} height={56} className="rounded-full" />
+        }
       />
 
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
