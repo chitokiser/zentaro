@@ -7,7 +7,14 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight, Vote, Check, X, Megaphone } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { getToken, fetchWallet, fetchDaoStakingLinkMessage, linkDaoStakingAddress } from "@/lib/auth-client"
+import {
+    getToken,
+    fetchWallet,
+    fetchDaoStakingLinkMessage,
+    linkDaoStakingAddress,
+    fetchDaoStakingBonusClaims,
+    claimDaoStakingBonus,
+} from "@/lib/auth-client"
 
 // opBNB details
 interface EthereumProvider {
@@ -43,6 +50,25 @@ const ZTARO_VAULT_CONTRACT_ADDRESS = "0x9c20817B074DAe2298d07cAC587667214eA0DC01
 // Ztaro's total supply is 1e9 — any allowance anywhere near MaxUint256 only ever comes
 // from handleApprove's unlimited approve, never a deliberately-sized amount.
 const UNLIMITED_ALLOWANCE_THRESHOLD = BigInt(10) ** BigInt(30)
+
+// Mirrors distributeDaoStakingExpRewards() in backend/src/wallet/wallet.service.ts —
+// keep these two in sync if the weekly EXP formula ever changes.
+const DAO_EXP_MIN_ACTIVE_STAKE = 10000
+function monthsForLockDays(days: number): number {
+    return Math.max(1, Math.round(days / 30))
+}
+function estimatedWeeklyDaoExp(amount: number, level: number, days: number): number {
+    if (!amount || amount <= 0) return 0
+    return Math.floor((amount * level * monthsForLockDays(days)) / 1000)
+}
+function monthsFromDates(createdAt: Date, lockedUntil: Date): number {
+    const days = (lockedUntil.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)
+    return monthsForLockDays(days)
+}
+function estimatedLockInBonus(amount: number, level: number, createdAt: Date, lockedUntil: Date): number {
+    if (!amount || amount <= 0) return 0
+    return Math.floor((amount * level * monthsFromDates(createdAt, lockedUntil)) / 1000)
+}
 
 // ABIs
 const ERC20_ABI = [
@@ -135,6 +161,11 @@ export default function DaoStakingPage() {
     // EXP reward linking (weekly DAO staking dividend requires a signature-linked account)
     const [daoStakingLinkedAddress, setDaoStakingLinkedAddress] = useState<string | null>(null)
     const [linkingExpReward, setLinkingExpReward] = useState<boolean>(false)
+    const [walletLevel, setWalletLevel] = useState<number>(1)
+    // One-time lock-in bonus: paid immediately when a stake is claimed, rather than
+    // waiting for the first weekly dividend — rewards the lock-period choice itself.
+    const [claimedStakeIds, setClaimedStakeIds] = useState<Set<number>>(new Set())
+    const [claimingStakeId, setClaimingStakeId] = useState<number | null>(null)
     // Ticks so proposal-expiry checks below never call Date.now() directly during render.
     const [now, setNow] = useState<number>(() => Date.now())
     useEffect(() => {
@@ -428,7 +459,13 @@ export default function DaoStakingPage() {
     useEffect(() => {
         if (!getToken()) return
         fetchWallet()
-            .then((w) => setDaoStakingLinkedAddress(w.daoStakingAddress))
+            .then((w) => {
+                setDaoStakingLinkedAddress(w.daoStakingAddress)
+                setWalletLevel(w.level)
+            })
+            .catch(() => { })
+        fetchDaoStakingBonusClaims()
+            .then((ids) => setClaimedStakeIds(new Set(ids)))
             .catch(() => { })
     }, [])
 
@@ -521,6 +558,29 @@ export default function DaoStakingPage() {
             setMessage({ text: walletErrorMessage(err, "Staking 트랜잭션 실패"), type: "error" })
         } finally {
             setBusy(false)
+        }
+    }
+
+    // Claim the one-time lock-in EXP bonus for a stake (requires EXP reward linking first)
+    const handleClaimBonus = async (stakeId: number) => {
+        if (!getToken()) {
+            setMessage({ text: "EXP 리워드 연동은 ZenTaro 로그인이 필요합니다.", type: "error" })
+            return
+        }
+        setClaimingStakeId(stakeId)
+        setMessage(null)
+        try {
+            const result = await claimDaoStakingBonus(stakeId)
+            setClaimedStakeIds((prev) => new Set(prev).add(stakeId))
+            setMessage({
+                text: `락업 확정 보너스 지급 완료! 스테이킹 #${stakeId} → +${result.bonus.toLocaleString()} EXP (Lv.${result.level} × ${result.months}개월)`,
+                type: "success",
+            })
+        } catch (err) {
+            console.error(err)
+            setMessage({ text: walletErrorMessage(err, "보너스 수령 실패"), type: "error" })
+        } finally {
+            setClaimingStakeId(null)
         }
     }
 
@@ -887,6 +947,35 @@ export default function DaoStakingPage() {
                                 </select>
                             </label>
 
+                            {/* Live weekly EXP estimate for the amount/lock combo currently selected */}
+                            <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/10 p-4 text-xs space-y-2">
+                                <div className="flex justify-between items-center text-slate-300">
+                                    <span className="font-semibold text-emerald-400">예상 주간 EXP 리워드</span>
+                                    <span className="font-mono font-bold text-emerald-400">
+                                        +{estimatedWeeklyDaoExp(Number(stakeAmount || "0"), walletLevel, lockDays).toLocaleString()} EXP / 주
+                                    </span>
+                                </div>
+                                <p className="text-[10px] text-slate-500 leading-relaxed">
+                                    공식: 스테이킹량 × 회원 레벨(Lv.{walletLevel}) × 락업 개월수({monthsForLockDays(lockDays)}개월) ÷ 1,000 — 락업이 만기될 때까지 매주 동일하게 반복 지급됩니다.
+                                    단, 지갑 전체 활성 스테이킹 합계가 {DAO_EXP_MIN_ACTIVE_STAKE.toLocaleString()} Ztaro 이상이고 EXP 리워드 연동을 완료해야 지급 대상이 됩니다.
+                                </p>
+                                <div className="grid grid-cols-5 gap-1 pt-1 text-center">
+                                    {[30, 90, 180, 360, 1080].map((d) => (
+                                        <div
+                                            key={d}
+                                            className={`rounded py-1 border text-[10px] ${d === lockDays
+                                                ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-400 font-semibold"
+                                                : "border-slate-800 text-slate-500"
+                                                }`}
+                                        >
+                                            {d}일
+                                            <br />
+                                            {monthsForLockDays(d)}배수
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
                             <div className="pt-2">
                                 {!isApproved ? (
                                     <Button
@@ -1014,6 +1103,31 @@ export default function DaoStakingPage() {
                                                     <span>{pos.lockedUntil.toLocaleDateString()}</span>
                                                 </div>
                                             </div>
+
+                                            {/* One-time lock-in EXP bonus — rewards the lock period chosen at stake time */}
+                                            {pos.active && (
+                                                <div className="flex justify-between items-center border-t border-slate-800/80 pt-3 text-xs">
+                                                    <span className="text-slate-400">락업 확정 보너스 (일시불)</span>
+                                                    {claimedStakeIds.has(pos.stakeId) ? (
+                                                        <Badge className="bg-emerald-600/20 text-emerald-400 border-emerald-500/20 text-[10px]">
+                                                            수령완료
+                                                        </Badge>
+                                                    ) : daoStakingLinkedAddress?.toLowerCase() !== account?.toLowerCase() ? (
+                                                        <span className="text-[10px] text-slate-500">EXP 리워드 연동 필요</span>
+                                                    ) : (
+                                                        <Button
+                                                            size="sm"
+                                                            onClick={() => handleClaimBonus(pos.stakeId)}
+                                                            disabled={claimingStakeId === pos.stakeId}
+                                                            className="h-7 px-2.5 text-[10px] bg-emerald-600 hover:bg-emerald-500 text-white"
+                                                        >
+                                                            {claimingStakeId === pos.stakeId
+                                                                ? "지급 중..."
+                                                                : `+${estimatedLockInBonus(pos.amount, walletLevel, pos.createdAt, pos.lockedUntil).toLocaleString()} EXP 받기`}
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            )}
 
                                             {/* Actions within current stake card */}
                                             <div className="flex justify-end gap-2 border-t border-slate-800/80 pt-3">

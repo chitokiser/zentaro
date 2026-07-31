@@ -36,6 +36,7 @@ const ZENTARO_TRANSACTION_TYPES = [
   'admin_exp_adjustment',
   'staking_exp_reward',
   'dao_staking_exp_reward',
+  'dao_staking_lockin_bonus',
   'barrel_order',
   'barrel_delivery_fee',
   'barrel_resale',
@@ -61,6 +62,14 @@ const MAX_LEVEL = 10;
 
 function expCostForLevel(level: number): number {
   return level * level * LEVEL_UP_EXP_MULTIPLIER;
+}
+
+/** Shared by the weekly DAO staking dividend and the one-time lock-in bonus below. */
+const DAO_STAKING_SECONDS_PER_MONTH = 30 * 24 * 60 * 60;
+const DAO_STAKING_MIN_ACTIVE_STAKE = 10000;
+
+function daoStakingLockMonths(lockedUntil: number, createdAt: number): number {
+  return Math.max(1, Math.round((lockedUntil - createdAt) / DAO_STAKING_SECONDS_PER_MONTH));
 }
 
 const DEFAULT_WALLET = {
@@ -201,6 +210,92 @@ export class WalletService {
     const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
     await walletRef.set({ daoStakingAddress: address }, { merge: true });
     return { address };
+  }
+
+  /** Stake IDs this member has already claimed a one-time lock-in bonus for. */
+  async listDaoStakingBonusClaims(uid: string): Promise<number[]> {
+    const snap = await this.db
+      .collection(COLLECTIONS.ZENTARO_DAO_STAKE_BONUS_CLAIMS)
+      .where('userId', '==', uid)
+      .get();
+    return snap.docs.map((d) => d.data().stakeId as number);
+  }
+
+  /**
+   * One-time EXP bonus paid the moment a member commits to a lock period, rewarding the
+   * choice itself rather than making them wait for the first weekly dividend
+   * (distributeDaoStakingExpRewards above). Same formula as the weekly reward — staked
+   * amount x level x locked months / 1,000 — but paid once per stakeId, on demand, as
+   * soon as the on-chain stake is visible. Ownership is verified via getAllStakes(address)
+   * since the vault's stakes() read doesn't expose an owner field directly.
+   */
+  async claimDaoStakingLockInBonus(uid: string, stakeId: number) {
+    const walletRef = this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(uid);
+    const walletSnap = await walletRef.get();
+    const walletData = walletSnap.data();
+    const address = walletData?.daoStakingAddress as string | undefined;
+    if (!address) {
+      throw new BadRequestException('DAO 스테이킹 EXP 리워드 연동이 먼저 필요합니다.');
+    }
+
+    const claimRef = this.db
+      .collection(COLLECTIONS.ZENTARO_DAO_STAKE_BONUS_CLAIMS)
+      .doc(`${uid}_${stakeId}`);
+    if ((await claimRef.get()).exists) {
+      throw new ConflictException('이미 보너스를 수령한 스테이킹입니다.');
+    }
+
+    const vault = this.blockchain.getVaultContract(this.blockchain.getProvider());
+    const stakeIds: bigint[] = await vault.getAllStakes(address);
+    if (!stakeIds.some((id) => Number(id) === stakeId)) {
+      throw new BadRequestException('연동된 지갑 소유의 스테이킹이 아닙니다.');
+    }
+
+    const s = await vault.stakes(stakeId);
+    if (!s.active) {
+      throw new BadRequestException('활성 상태의 스테이킹만 보너스를 받을 수 있습니다.');
+    }
+
+    const amount = Number(s.amount);
+    const level: number = walletData?.level ?? 1;
+    const months = daoStakingLockMonths(Number(s.lockedUntil), Number(s.createdAt));
+    const bonus = Math.floor((amount * level * months) / 1000);
+    if (bonus <= 0) {
+      throw new BadRequestException('보너스로 지급할 EXP가 없습니다.');
+    }
+
+    await this.db.runTransaction(async (tx) => {
+      // Re-check inside the transaction to close the race between the exists-check above
+      // and this write (two rapid clicks / requests for the same stake).
+      const claimSnap = await tx.get(claimRef);
+      if (claimSnap.exists) {
+        throw new ConflictException('이미 보너스를 수령한 스테이킹입니다.');
+      }
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(walletRef, { exp: FieldValue.increment(bonus) }, { merge: true });
+      tx.set(claimRef, {
+        userId: uid,
+        stakeId,
+        amount,
+        level,
+        months,
+        bonus,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+      tx.set(txRef, {
+        userId: uid,
+        amount: bonus,
+        type: 'dao_staking_lockin_bonus',
+        description: `Ztaro DAO 스테이킹 락업 확정 보너스 (스테이킹 #${stakeId}, ${amount.toLocaleString()} Ztaro × Lv.${level} × ${months}개월 → +${bonus.toLocaleString()} EXP)`,
+        stakeId,
+        stakedAmount: amount,
+        level,
+        months,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    return { stakeId, bonus, months, level };
   }
 
   /**
@@ -725,8 +820,7 @@ export class WalletService {
   @Cron('0 0 * * 0')
   async distributeDaoStakingExpRewards() {
     console.log('[DaoStakingReward] Starting weekly DAO vault staking EXP reward distribution...');
-    const MIN_STAKE_FOR_REWARD = 10000;
-    const SECONDS_PER_MONTH = 30 * 24 * 60 * 60;
+    const MIN_STAKE_FOR_REWARD = DAO_STAKING_MIN_ACTIVE_STAKE;
 
     try {
       const walletsSnap = await this.db.collection(COLLECTIONS.ZENTARO_WALLETS).get();
@@ -751,10 +845,7 @@ export class WalletService {
             const s = await vault.stakes(stakeId);
             if (!s.active) continue;
             const amount = Number(s.amount);
-            const months = Math.max(
-              1,
-              Math.round((Number(s.lockedUntil) - Number(s.createdAt)) / SECONDS_PER_MONTH),
-            );
+            const months = daoStakingLockMonths(Number(s.lockedUntil), Number(s.createdAt));
             totalActiveAmount += amount;
             expAmount += Math.floor((amount * level * months) / 1000);
           }

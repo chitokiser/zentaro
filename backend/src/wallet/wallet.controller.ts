@@ -8,6 +8,7 @@ import { AdjustExpDto } from './dto/adjust-exp.dto';
 import { ConvertZpToExpDto } from './dto/convert-zp-to-exp.dto';
 import { WithdrawUsdtDto } from './dto/withdraw-usdt.dto';
 import { LinkDaoStakingAddressDto } from './dto/link-dao-staking-address.dto';
+import { ClaimDaoStakingBonusDto } from './dto/claim-dao-staking-bonus.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -89,6 +90,19 @@ export class WalletController {
     @Body() dto: LinkDaoStakingAddressDto,
   ) {
     return this.walletService.linkDaoStakingAddress(user.uid, dto.address, dto.signature);
+  }
+
+  @Get('dao-staking/bonus-claims')
+  listDaoStakingBonusClaims(@CurrentUser() user: CurrentUserPayload) {
+    return this.walletService.listDaoStakingBonusClaims(user.uid);
+  }
+
+  @Post('dao-staking/claim-bonus')
+  claimDaoStakingBonus(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ClaimDaoStakingBonusDto,
+  ) {
+    return this.walletService.claimDaoStakingLockInBonus(user.uid, dto.stakeId);
   }
 
   @Get('admin/members')

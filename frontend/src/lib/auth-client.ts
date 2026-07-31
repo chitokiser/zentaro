@@ -138,6 +138,29 @@ export async function linkDaoStakingAddress(address: string, signature: string):
   return res.json();
 }
 
+export async function fetchDaoStakingBonusClaims(): Promise<number[]> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/bonus-claims`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface DaoStakingBonusClaimResult {
+  stakeId: number;
+  bonus: number;
+  months: number;
+  level: number;
+}
+
+export async function claimDaoStakingBonus(stakeId: number): Promise<DaoStakingBonusClaimResult> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/claim-bonus`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ stakeId }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface LevelUpResult {
   level: number;
   exp: number;
