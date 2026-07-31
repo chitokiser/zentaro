@@ -25,6 +25,7 @@ import {
     type PublicBarrel
 } from "@/lib/auth-client"
 import { BarrelVisual, formatAgingDuration, AGING_TARGET_SECONDS } from "@/components/rewards/barrel-visual"
+import { useZtaroPricingInfo } from "@/lib/use-ztaro-discount"
 import { PaymentPinDialog } from "@/components/payment-pin-dialog"
 import {
     Wine,
@@ -325,12 +326,20 @@ export default function BarrelReservePage() {
     // Admin-configurable initial subscription price per liter (defaults mirror backend DEFAULT_BARREL_PRICING).
     const [pricePerLiterExp, setPricePerLiterExp] = useState<number>(200000)
     const [pricePerLiterZp, setPricePerLiterZp] = useState<number>(200000)
+    const ztaroInfo = useZtaroPricingInfo()
+    const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<"auto" | "exp" | "zp" | "ztaro">("auto")
     const currentSpecStatic = BARREL_SPECS.find(spec => spec.size === selectedSize) || BARREL_SPECS[1]
+    const currentLiters = BARREL_LITERS[currentSpecStatic.size] ?? 0
     const currentSpec = {
         ...currentSpecStatic,
-        expRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * pricePerLiterExp,
-        ztroRequirementValue: (BARREL_LITERS[currentSpecStatic.size] ?? 0) * BARREL_STAKE_PER_LITER_ZTARO,
+        expRequirementValue: currentLiters * pricePerLiterExp,
+        zpCostValue: currentLiters * pricePerLiterZp,
+        ztroRequirementValue: currentLiters * BARREL_STAKE_PER_LITER_ZTARO,
     }
+    const ztaroCostValue = ztaroInfo.zpPerZtaro > 0
+        ? Math.floor((currentSpec.zpCostValue * (1 - ztaroInfo.discountPercent / 100)) / ztaroInfo.zpPerZtaro)
+        : 0
+    const meetsZtaroEligibility = stakedZtro >= ztaroInfo.minStakeZtaro && memberLevel >= ztaroInfo.minLevel
 
     // Live ticking clock, used to compute cumulative aging duration client-side
     const [nowTick, setNowTick] = useState<number>(() => Math.floor(Date.now() / 1000))
@@ -439,12 +448,30 @@ export default function BarrelReservePage() {
         const meetsStakeAndExp = stakedZtro >= ztroNeed && expBalance >= cost
 
         let confirmMessage: string
-        if (meetsStakeAndExp) {
+        if (selectedPaymentMethod === "ztaro") {
+            if (!meetsZtaroEligibility) {
+                alert(`ZTARO 결제 조건이 부족합니다.\n\n필요: ${ztaroInfo.minStakeZtaro.toLocaleString()} ZTARO 이상 스테이킹 + 레벨 ${ztaroInfo.minLevel} 이상\n현재: ${stakedZtro.toLocaleString()} ZTARO 스테이킹, 레벨 ${memberLevel}`)
+                return
+            }
+            confirmMessage = `Bạn có muốn đặt thùng ${currentSpec.label} bằng ZTARO không? ${ztaroCostValue.toLocaleString()} ZTARO sẽ được chuyển on-chain ngay (giảm ${ztaroInfo.discountPercent}% so với ${currentSpec.zpCostValue.toLocaleString()} ZP).`
+        } else if (selectedPaymentMethod === "exp") {
+            if (!meetsStakeAndExp) {
+                alert(`EXP 결제 조건이 부족합니다.\n\n필요: ${ztroNeed.toLocaleString()} Ztaro stake + ${cost.toLocaleString()} EXP\n현재: ${stakedZtro.toLocaleString()} Ztaro, ${expBalance.toLocaleString()} EXP`)
+                return
+            }
             confirmMessage = `Bạn có muốn đặt thùng ${currentSpec.label} không? ${cost.toLocaleString()} EXP sẽ bị trừ ngay khi đăng ký.`
-        } else if (zpBalance >= cost) {
-            confirmMessage = `Bạn chưa đủ điều kiện stake Ztaro hoặc số dư EXP. Bạn có muốn thanh toán ${cost.toLocaleString()} ZP để đặt thùng ${currentSpec.label} thay thế không?`
+        } else if (selectedPaymentMethod === "zp") {
+            if (zpBalance < currentSpec.zpCostValue) {
+                alert(`ZP 잔액이 부족합니다. (필요: ${currentSpec.zpCostValue.toLocaleString()} ZP, 보유: ${zpBalance.toLocaleString()} ZP)`)
+                return
+            }
+            confirmMessage = `Bạn có muốn thanh toán ${currentSpec.zpCostValue.toLocaleString()} ZP để đặt thùng ${currentSpec.label} không?`
+        } else if (meetsStakeAndExp) {
+            confirmMessage = `Bạn có muốn đặt thùng ${currentSpec.label} không? ${cost.toLocaleString()} EXP sẽ bị trừ ngay khi đăng ký.`
+        } else if (zpBalance >= currentSpec.zpCostValue) {
+            confirmMessage = `Bạn chưa đủ điều kiện stake Ztaro hoặc số dư EXP. Bạn có muốn thanh toán ${currentSpec.zpCostValue.toLocaleString()} ZP để đặt thùng ${currentSpec.label} thay thế không?`
         } else {
-            alert(`Bạn chưa đủ điều kiện đặt hàng.\n\n[Cách 1] Cần tối thiểu ${ztroNeed.toLocaleString()} Ztaro stake + ${cost.toLocaleString()} EXP (hiện có: ${stakedZtro.toLocaleString()} Ztaro, ${expBalance.toLocaleString()} EXP)\n[Cách 2] Thanh toán bằng ZP cần ${cost.toLocaleString()} ZP (hiện có: ${zpBalance.toLocaleString()} ZP)`)
+            alert(`Bạn chưa đủ điều kiện đặt hàng.\n\n[Cách 1] Cần tối thiểu ${ztroNeed.toLocaleString()} Ztaro stake + ${cost.toLocaleString()} EXP (hiện có: ${stakedZtro.toLocaleString()} Ztaro, ${expBalance.toLocaleString()} EXP)\n[Cách 2] Thanh toán bằng ZP cần ${currentSpec.zpCostValue.toLocaleString()} ZP (hiện có: ${zpBalance.toLocaleString()} ZP)`)
             return
         }
 
@@ -457,10 +484,16 @@ export default function BarrelReservePage() {
         setActionSuccess(null)
 
         try {
-            const result = await submitBarrelOrder(selectedSize, selectedAgingEnvironment)
+            const result = await submitBarrelOrder(
+                selectedSize,
+                selectedAgingEnvironment,
+                selectedPaymentMethod === "auto" ? undefined : selectedPaymentMethod,
+            )
             const paidLabel = result.paymentMethod === "zp"
                 ? `thanh toán thay thế ${result.paidAmount.toLocaleString()} ZP`
-                : `trừ ${result.paidAmount.toLocaleString()} EXP`
+                : result.paymentMethod === "ztaro"
+                    ? `thanh toán ${result.paidAmount.toLocaleString()} ZTARO`
+                    : `trừ ${result.paidAmount.toLocaleString()} EXP`
             setActionSuccess(`Đặt hàng hoàn tất! Mã thùng riêng: ${result.barrelId} (${paidLabel}). Đã tự động tạo phiếu đặt chỗ và chứng nhận sở hữu.`)
             await loadData()
         } catch (err) {
@@ -871,9 +904,40 @@ export default function BarrelReservePage() {
                                     </span>
                                     <span className="text-muted-foreground block mt-1">Hoặc thanh toán ZP (không cần stake):</span>
                                     <span className="text-emerald-500 font-bold block">
-                                        Trừ ngay {currentSpec.expRequirementValue.toLocaleString()} ZP
+                                        Trừ ngay {currentSpec.zpCostValue.toLocaleString()} ZP
+                                    </span>
+                                    <span className="text-muted-foreground block mt-1">
+                                        Hoặc thanh toán <span className="notranslate">ZTARO</span> (giảm {ztaroInfo.discountPercent}%):
+                                    </span>
+                                    <span className="text-indigo-400 font-bold block">
+                                        Chuyển on-chain {ztaroCostValue.toLocaleString()} <span className="notranslate">ZTARO</span>
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground block">
+                                        (조건: {ztaroInfo.minStakeZtaro.toLocaleString()} ZTARO 이상 스테이킹 + 레벨 {ztaroInfo.minLevel} 이상 —
+                                        현재 {meetsZtaroEligibility ? "충족" : "미충족"})
                                     </span>
                                 </div>
+
+                                <div className="grid grid-cols-3 gap-1.5">
+                                    {([
+                                        { id: "auto", label: "자동" },
+                                        { id: "zp", label: "ZP" },
+                                        { id: "ztaro", label: "ZTARO" },
+                                    ] as const).map((opt) => (
+                                        <button
+                                            key={opt.id}
+                                            type="button"
+                                            onClick={() => setSelectedPaymentMethod(opt.id)}
+                                            className={`text-[11px] py-1.5 rounded-md border transition-colors ${selectedPaymentMethod === opt.id
+                                                ? "border-amber-500 bg-amber-500/10 text-amber-600 font-semibold"
+                                                : "border-border/60 text-muted-foreground hover:border-amber-500/30"
+                                                }`}
+                                        >
+                                            {opt.label}
+                                        </button>
+                                    ))}
+                                </div>
+
                                 <Button
                                     onClick={handleOrderSubmit}
                                     disabled={actionBusy || isNeedLogin}

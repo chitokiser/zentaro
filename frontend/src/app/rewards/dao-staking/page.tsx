@@ -14,6 +14,8 @@ import {
     linkDaoStakingAddress,
     fetchDaoStakingBonusClaims,
     claimDaoStakingBonus,
+    fetchDaoProposalNotes,
+    setDaoProposalNoteAdmin,
 } from "@/lib/auth-client"
 
 // opBNB details
@@ -144,6 +146,9 @@ export default function DaoStakingPage() {
     const [isOwner, setIsOwner] = useState<boolean>(false)
     const [proposals, setProposals] = useState<ProposalItem[]>([])
     const [proposalAmount, setProposalAmount] = useState<string>("")
+    const [proposalPurpose, setProposalPurpose] = useState<string>("")
+    // Off-chain purpose text per proposalId — the on-chain struct has no free-text field.
+    const [proposalNotes, setProposalNotes] = useState<Record<number, string>>({})
 
     // Staking Input
     const [stakeAmount, setStakeAmount] = useState<string>("")
@@ -467,6 +472,9 @@ export default function DaoStakingPage() {
         fetchDaoStakingBonusClaims()
             .then((ids) => setClaimedStakeIds(new Set(ids)))
             .catch(() => { })
+        fetchDaoProposalNotes()
+            .then((notes) => setProposalNotes(Object.fromEntries(notes.map((n) => [n.proposalId, n.purpose]))))
+            .catch(() => { })
     }, [])
 
     // Sign a challenge message proving control of `account`, then link it to this member's
@@ -660,8 +668,21 @@ export default function DaoStakingPage() {
             setMessage({ text: "안건 발의 트랜잭션을 전송하여 승인 대기 중입니다...", type: "info" })
             await tx.wait()
 
+            // proposalCounter() now points at the proposal just created (IDs are sequential).
+            const newProposalId = Number(await vaultContract.proposalCounter())
+            const purpose = proposalPurpose.trim()
+            if (purpose && getToken()) {
+                try {
+                    await setDaoProposalNoteAdmin(newProposalId, purpose)
+                    setProposalNotes((prev) => ({ ...prev, [newProposalId]: purpose }))
+                } catch (noteErr) {
+                    console.error("Failed to save proposal purpose note:", noteErr)
+                }
+            }
+
             setMessage({ text: "DAO 거버넌스 안건 발의 성공!", type: "success" })
             setProposalAmount("")
+            setProposalPurpose("")
             refreshStakingDetails()
         } catch (err) {
             console.error(err)
@@ -1201,6 +1222,19 @@ export default function DaoStakingPage() {
                                         <p className="text-[11px] text-slate-500">
                                             승인된 안건의 자금은 항상 컨트랙트 owner(배포자) 지갑으로 전송됩니다.
                                         </p>
+                                        <label className="flex flex-col gap-1 text-xs text-slate-400">
+                                            토큰 인출 목적 (최대 100자, 오프체인 저장)
+                                            <input
+                                                type="text"
+                                                placeholder="예: Q3 마케팅 예산 집행"
+                                                maxLength={100}
+                                                className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-xs text-white placeholder-slate-700 focus:outline-none focus:border-indigo-500"
+                                                value={proposalPurpose}
+                                                onChange={(e) => setProposalPurpose(e.target.value.slice(0, 100))}
+                                                disabled={busy}
+                                            />
+                                            <span className="text-[10px] text-slate-600 self-end">{proposalPurpose.length}/100</span>
+                                        </label>
                                         <div className="flex gap-3 items-end">
                                             <label className="flex-1 flex flex-col gap-1 text-xs text-slate-400">
                                                 {t.daoStakingPage.proposalAmountLabel}
@@ -1301,6 +1335,13 @@ export default function DaoStakingPage() {
                                                         {prop.amount.toLocaleString()} Ztaro
                                                     </span>
                                                 </div>
+
+                                                {proposalNotes[prop.proposalId] && (
+                                                    <p className="text-xs text-slate-300 bg-slate-950/60 border border-slate-800 rounded-lg px-3 py-2">
+                                                        <span className="text-slate-500">목적: </span>
+                                                        {proposalNotes[prop.proposalId]}
+                                                    </p>
+                                                )}
 
                                                 {/* Progress Bar for vote weights */}
                                                 <div className="space-y-1.5">

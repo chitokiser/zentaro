@@ -151,6 +151,27 @@ export interface DaoStakingBonusClaimResult {
   level: number;
 }
 
+export interface DaoProposalNote {
+  proposalId: number;
+  purpose: string;
+}
+
+export async function fetchDaoProposalNotes(): Promise<DaoProposalNote[]> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/proposal-notes`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setDaoProposalNoteAdmin(proposalId: number, purpose: string): Promise<DaoProposalNote> {
+  const res = await fetch(`${API_URL}/wallet/dao-staking/proposal-notes`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ proposalId, purpose }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function claimDaoStakingBonus(stakeId: number): Promise<DaoStakingBonusClaimResult> {
   const res = await fetch(`${API_URL}/wallet/dao-staking/claim-bonus`, {
     method: "POST",
@@ -1305,11 +1326,15 @@ export interface BarrelPricingConfig {
   pricePerLiterZp: number;
 }
 
-export async function submitBarrelOrder(size: string, agingEnvironment?: string): Promise<{ success: boolean; barrelId: string; certNumber: string; paymentMethod: "exp" | "zp"; paidAmount: number }> {
+export async function submitBarrelOrder(
+  size: string,
+  agingEnvironment?: string,
+  paymentMethod?: "exp" | "zp" | "ztaro",
+): Promise<{ success: boolean; barrelId: string; certNumber: string; paymentMethod: "exp" | "zp" | "ztaro"; paidAmount: number; txHash?: string }> {
   const res = await fetch(`${API_URL}/token-exchange/barrel/order`, {
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
-    body: JSON.stringify({ size, agingEnvironment }),
+    body: JSON.stringify({ size, agingEnvironment, paymentMethod }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
