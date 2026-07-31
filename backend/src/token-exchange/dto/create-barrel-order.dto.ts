@@ -8,4 +8,9 @@ export class CreateBarrelOrderDto {
   @IsOptional()
   @IsIn(AGING_ENVIRONMENTS as unknown as string[])
   agingEnvironment?: string;
+
+  /** Omit to keep the existing auto EXP-then-ZP fallback; pass explicitly to force one method. */
+  @IsOptional()
+  @IsIn(['exp', 'zp', 'ztaro'])
+  paymentMethod?: 'exp' | 'zp' | 'ztaro';
 }

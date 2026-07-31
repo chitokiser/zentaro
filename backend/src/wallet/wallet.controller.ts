@@ -9,6 +9,7 @@ import { ConvertZpToExpDto } from './dto/convert-zp-to-exp.dto';
 import { WithdrawUsdtDto } from './dto/withdraw-usdt.dto';
 import { LinkDaoStakingAddressDto } from './dto/link-dao-staking-address.dto';
 import { ClaimDaoStakingBonusDto } from './dto/claim-dao-staking-bonus.dto';
+import { SetDaoProposalNoteDto } from './dto/set-dao-proposal-note.dto';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 
@@ -103,6 +104,21 @@ export class WalletController {
     @Body() dto: ClaimDaoStakingBonusDto,
   ) {
     return this.walletService.claimDaoStakingLockInBonus(user.uid, dto.stakeId);
+  }
+
+  @Get('dao-staking/proposal-notes')
+  listDaoProposalNotes() {
+    return this.walletService.listDaoProposalNotes();
+  }
+
+  @Post('dao-staking/proposal-notes')
+  @UseGuards(AdminGuard)
+  @RequireAdminLevel(1)
+  setDaoProposalNote(
+    @Body() dto: SetDaoProposalNoteDto,
+    @CurrentUser() user: CurrentUserPayload,
+  ) {
+    return this.walletService.setDaoProposalNote(dto.proposalId, dto.purpose, user.email);
   }
 
   @Get('admin/members')

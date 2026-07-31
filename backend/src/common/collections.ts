@@ -23,4 +23,5 @@ export const COLLECTIONS = {
   ZENTARO_ZTARO_PRICE_SNAPSHOTS: 'zentaro_ztaro_price_snapshots',
   ZENTARO_ZTARO_PRICING_CONFIG: 'zentaro_ztaro_pricing_config',
   ZENTARO_DAO_STAKE_BONUS_CLAIMS: 'zentaro_dao_stake_bonus_claims',
+  ZENTARO_DAO_PROPOSAL_NOTES: 'zentaro_dao_proposal_notes',
 } as const;

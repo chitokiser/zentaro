@@ -73,7 +73,7 @@ export class TokenExchangeController {
   @Post('barrel/order')
   @UseGuards(JwtAuthGuard)
   createBarrelOrder(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateBarrelOrderDto) {
-    return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size, dto.agingEnvironment);
+    return this.tokenExchangeService.createBarrelOrder(user.uid, dto.size, dto.agingEnvironment, dto.paymentMethod);
   }
 
   @Get('barrel/my')

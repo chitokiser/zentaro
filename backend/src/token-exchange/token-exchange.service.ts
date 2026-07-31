@@ -7,6 +7,7 @@ import type { Firestore } from 'firebase-admin/firestore';
 import { WalletService } from '../wallet/wallet.service';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { AiWriterService } from '../ai-writer/ai-writer.service';
+import { ZtaroPricingService, computeZtaroPrice } from '../products/ztaro-pricing.service';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import {
@@ -167,8 +168,26 @@ export class TokenExchangeService {
     private readonly walletService: WalletService,
     private readonly blockchain: BlockchainService,
     private readonly aiWriterService: AiWriterService,
+    private readonly ztaroPricing: ZtaroPricingService,
     @Inject(FIRESTORE) private readonly db: Firestore,
   ) { }
+
+  /**
+   * Same vault-staked figure the mall's ZTARO checkout eligibility gate uses
+   * (orders.service.ts's getStakedZtaro) — the custodial wallet's active ZtaroVault stakes,
+   * distinct from the ZtaroBank "depo" stake the EXP barrel-payment path checks above.
+   */
+  private async getVaultStakedZtaro(uid: string): Promise<number> {
+    const { address } = await this.walletService.getOrCreateChainWallet(uid);
+    const vault = this.blockchain.getVaultContract(this.blockchain.getProvider());
+    const stakeIds: bigint[] = await vault.getAllStakes(address);
+    let total = 0;
+    for (const stakeId of stakeIds) {
+      const s = await vault.stakes(stakeId);
+      if (s.active) total += Number(s.amount);
+    }
+    return total;
+  }
 
   /** Live ZTRO/USDT market price via ZtroBank.price() — read-only, no signer needed. */
   private async getZtroPriceUsdt(): Promise<number> {
@@ -481,7 +500,12 @@ export class TokenExchangeService {
     }
   }
 
-  async createBarrelOrder(uid: string, size: string, agingEnvironment?: string) {
+  async createBarrelOrder(
+    uid: string,
+    size: string,
+    agingEnvironment?: string,
+    requestedPaymentMethod?: 'exp' | 'zp' | 'ztaro',
+  ) {
     const resolvedAgingEnvironment =
       agingEnvironment && (AGING_ENVIRONMENTS as readonly string[]).includes(agingEnvironment)
         ? agingEnvironment
@@ -493,7 +517,9 @@ export class TokenExchangeService {
     }
     // Admin-configurable EXP/ZP price per liter (defaults to 200,000 each), same total either
     // way. Paying with EXP additionally requires 10,000 ZTRO staked per liter; ZP has no
-    // staking requirement.
+    // staking requirement. ZTARO is priced off the same ZP total, discounted by the same
+    // site-wide ZTARO checkout rate as the mall (default 30%, no cost floor — barrels have
+    // no cost-of-goods concept, just this one subscription price).
     const pricing = await this.getBarrelPricingConfig();
     const reqs = {
       stakedZtro: liters * BARREL_STAKE_PER_LITER_ZTRO,
@@ -515,13 +541,49 @@ export class TokenExchangeService {
     const userWalletSnap = await userWalletRef.get();
     const walletData = userWalletSnap.exists ? userWalletSnap.data() : null;
     const currentExp = Number(walletData?.exp || 0);
+    const memberLevel = Number(walletData?.level || 1);
 
     const meetsStakeAndExp = stakedZtro >= reqs.stakedZtro && currentExp >= reqs.expCost;
 
-    let paymentMethod: 'exp' | 'zp';
-    if (meetsStakeAndExp) {
+    let paymentMethod: 'exp' | 'zp' | 'ztaro';
+    if (requestedPaymentMethod === 'ztaro') {
+      paymentMethod = 'ztaro';
+    } else if (requestedPaymentMethod === 'exp') {
+      if (!meetsStakeAndExp) {
+        throw new BadRequestException(
+          `EXP 결제에는 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹 + ${reqs.expCost.toLocaleString()} EXP가 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO, ${currentExp.toLocaleString()} EXP)`,
+        );
+      }
+      paymentMethod = 'exp';
+    } else if (requestedPaymentMethod === 'zp') {
+      paymentMethod = 'zp';
+    } else if (meetsStakeAndExp) {
       paymentMethod = 'exp';
     } else {
+      paymentMethod = 'zp';
+    }
+
+    let ztaroCost = 0;
+    if (paymentMethod === 'ztaro') {
+      const [zpPerZtaro, discountRate, eligibility, vaultStaked] = await Promise.all([
+        this.ztaroPricing.getCurrentZpPerZtaro(),
+        this.ztaroPricing.getDiscountRate(),
+        this.ztaroPricing.getEligibilityConfig(),
+        this.getVaultStakedZtaro(uid),
+      ]);
+      if (vaultStaked < eligibility.minStakeZtaro) {
+        throw new BadRequestException(
+          `ZTARO 결제는 ${eligibility.minStakeZtaro.toLocaleString()} ZTARO 이상 스테이킹한 회원만 가능합니다. (현재 스테이킹: ${vaultStaked.toLocaleString()} ZTARO)`,
+        );
+      }
+      if (memberLevel < eligibility.minLevel) {
+        throw new BadRequestException(`ZTARO 결제는 레벨 ${eligibility.minLevel} 이상 회원만 가능합니다.`);
+      }
+      ztaroCost = computeZtaroPrice(reqs.zpCost, 0, zpPerZtaro, discountRate);
+      if (ztaroCost <= 0) {
+        throw new BadRequestException('ZTARO 결제 금액을 계산할 수 없습니다.');
+      }
+    } else if (paymentMethod === 'zp') {
       const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
       const userSnap = await userRef.get();
       const currentPoints = Number(userSnap.data()?.points || 0);
@@ -530,12 +592,90 @@ export class TokenExchangeService {
           `주문 자격 요건이 부족합니다. 최소 ${reqs.stakedZtro.toLocaleString()} ZTRO 스테이킹 + ${reqs.expCost.toLocaleString()} EXP가 필요하거나, ZP로는 ${reqs.zpCost.toLocaleString()} ZP가 필요합니다. (현재: ${stakedZtro.toLocaleString()} ZTRO, ${currentExp.toLocaleString()} EXP, ${currentPoints.toLocaleString()} ZP)`,
         );
       }
-      paymentMethod = 'zp';
     }
 
     const barrelId = `ZT-REV-${size}-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const certNumber = `CERT-ZT-${Math.random().toString(36).substring(2, 10).toUpperCase()}`;
     const qrKey = Math.random().toString(36).substring(2, 12).toUpperCase();
+
+    const barrelDoc = {
+      id: barrelId,
+      userId: uid,
+      capacity: size,
+      status: 'ordered',
+      createdAt: FieldValue.serverTimestamp(),
+      productionDate: FieldValue.serverTimestamp(),
+      fillingDate: FieldValue.serverTimestamp(),
+      agingEndedAt: null,
+      forSale: false,
+      salePriceZp: null,
+      sealStatus: 'SECURED',
+      certNumber,
+      qrKey,
+      charLevel: CHAR_LEVEL_DEFAULT,
+      agingEnvironment: resolvedAgingEnvironment,
+      enhancements: [],
+      finishing: null,
+      bonusValueZp: 0,
+    };
+
+    if (paymentMethod === 'ztaro') {
+      // Real on-chain transfer, so it must succeed before the barrel is created — unlike
+      // the EXP/ZP paths below, there's no separate wallet mutation to roll back on failure.
+      const adminAddress = process.env.ADMIN_ZTARO_ADDRESS;
+      if (!adminAddress) {
+        throw new Error('ADMIN_ZTARO_ADDRESS not configured');
+      }
+      const { address: buyerAddress, privateKey: buyerPrivateKey } =
+        await this.walletService.getDecryptedPrivateKey(uid);
+      await this.blockchain.ensureGas(buyerAddress);
+      const buyerSigner = this.blockchain.getUserSigner(buyerPrivateKey);
+      const ztro = this.blockchain.getZtroContract(buyerSigner);
+
+      const buyerBalance: bigint = await ztro.balanceOf(buyerAddress);
+      if (buyerBalance < BigInt(ztaroCost)) {
+        throw new BadRequestException(
+          `ZTARO 잔액이 부족합니다. (필요: ${ztaroCost.toLocaleString()} ZTARO, 보유: ${buyerBalance.toLocaleString()} ZTARO)`,
+        );
+      }
+
+      let txHash: string;
+      try {
+        const tx = await ztro.transfer(adminAddress, BigInt(ztaroCost));
+        const receipt = await tx.wait();
+        txHash = receipt.hash as string;
+      } catch (err) {
+        console.error('[TokenExchange] Barrel ZTARO transfer failed:', err);
+        throw new BadRequestException('온체인 ZTARO 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
+      }
+
+      const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
+      const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      await this.db.runTransaction(async (tx) => {
+        tx.set(barrelRef, {
+          ...barrelDoc,
+          ownershipHistory: [
+            {
+              date: new Date().toISOString(),
+              ownerId: uid,
+              ownerAddress: address,
+              action: 'initial_reservation',
+              message: `최초 배럴 예약 및 소유 증명서 발급 완료 (ZTARO 결제 ${ztaroCost.toLocaleString()} ZTARO, tx: ${txHash})`,
+            },
+          ],
+        });
+        tx.set(txRef, {
+          userId: uid,
+          amount: -ztaroCost,
+          type: 'barrel_order',
+          description: `ZenTaro Barrel Reserve ${size} 배럴 주문 및 ZTARO 결제 (tx: ${txHash})`,
+          ztaroTxHash: txHash,
+          createdAt: FieldValue.serverTimestamp(),
+        });
+      });
+
+      return { success: true, barrelId, certNumber, paymentMethod, paidAmount: ztaroCost, txHash };
+    }
 
     await this.db.runTransaction(async (tx) => {
       const txRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
@@ -564,24 +704,7 @@ export class TokenExchangeService {
       // Create new barrel document
       const barrelRef = this.db.collection(COLLECTIONS.ZENTARO_BARRELS).doc(barrelId);
       tx.set(barrelRef, {
-        id: barrelId,
-        userId: uid,
-        capacity: size,
-        status: 'ordered',
-        createdAt: FieldValue.serverTimestamp(),
-        productionDate: FieldValue.serverTimestamp(),
-        fillingDate: FieldValue.serverTimestamp(),
-        agingEndedAt: null,
-        forSale: false,
-        salePriceZp: null,
-        sealStatus: 'SECURED',
-        certNumber,
-        qrKey,
-        charLevel: CHAR_LEVEL_DEFAULT,
-        agingEnvironment: resolvedAgingEnvironment,
-        enhancements: [],
-        finishing: null,
-        bonusValueZp: 0,
+        ...barrelDoc,
         ownershipHistory: [
           {
             date: new Date().toISOString(),

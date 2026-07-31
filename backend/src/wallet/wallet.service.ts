@@ -212,6 +212,31 @@ export class WalletService {
     return { address };
   }
 
+  /**
+   * The on-chain ZtaroVaultDAO proposal struct has no free-text field for "what is this
+   * withdrawal for", and adding one would mean redeploying the (non-upgradeable) vault
+   * contract. Stored off-chain instead, keyed by the on-chain proposalId, purely for
+   * display alongside the proposal list read straight from the contract.
+   */
+  async listDaoProposalNotes(): Promise<Array<{ proposalId: number; purpose: string }>> {
+    const snap = await this.db.collection(COLLECTIONS.ZENTARO_DAO_PROPOSAL_NOTES).get();
+    return snap.docs.map((d) => ({ proposalId: d.data().proposalId, purpose: d.data().purpose }));
+  }
+
+  async setDaoProposalNote(proposalId: number, purpose: string, adminEmail: string) {
+    const ref = this.db.collection(COLLECTIONS.ZENTARO_DAO_PROPOSAL_NOTES).doc(String(proposalId));
+    await ref.set(
+      {
+        proposalId,
+        purpose,
+        updatedBy: adminEmail,
+        updatedAt: FieldValue.serverTimestamp(),
+      },
+      { merge: true },
+    );
+    return { proposalId, purpose };
+  }
+
   /** Stake IDs this member has already claimed a one-time lock-in bonus for. */
   async listDaoStakingBonusClaims(uid: string): Promise<number[]> {
     const snap = await this.db
