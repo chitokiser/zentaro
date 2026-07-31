@@ -736,15 +736,18 @@ export class TokenExchangeService {
   }
 
   async updateBarrelPricingConfig(patch: Partial<BarrelPricingConfig>): Promise<BarrelPricingConfig> {
+    const cleaned: Record<string, number> = {};
     for (const [key, value] of Object.entries(patch)) {
-      if (value !== undefined && (typeof value !== 'number' || !Number.isFinite(value) || value < 0)) {
+      if (value === undefined) continue;
+      if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) {
         throw new BadRequestException(`${key} 값은 0 이상의 숫자여야 합니다.`);
       }
+      cleaned[key] = value;
     }
     const ref = this.db.collection(COLLECTIONS.ZENTARO_BARREL_PRICING_CONFIG).doc('config');
     // Firestore refuses to serialize class instances (e.g. the DTO passed straight in from
-    // the controller) — plain-object it first.
-    await ref.set({ ...patch }, { merge: true });
+    // the controller) or explicit `undefined` values — plain-object and strip both first.
+    await ref.set(cleaned, { merge: true });
     return this.getBarrelPricingConfig();
   }
 
