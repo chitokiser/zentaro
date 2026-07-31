@@ -13,6 +13,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "saffronvn.vn" },
       { protocol: "https", hostname: "ledongson.com" },
       { protocol: "https", hostname: "cdn.hstatic.net" },
+      { protocol: "https", hostname: "cdn.luxshopping.vn" },
     ],
   },
 };
