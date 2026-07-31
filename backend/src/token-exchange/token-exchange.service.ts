@@ -742,7 +742,9 @@ export class TokenExchangeService {
       }
     }
     const ref = this.db.collection(COLLECTIONS.ZENTARO_BARREL_PRICING_CONFIG).doc('config');
-    await ref.set(patch, { merge: true });
+    // Firestore refuses to serialize class instances (e.g. the DTO passed straight in from
+    // the controller) — plain-object it first.
+    await ref.set({ ...patch }, { merge: true });
     return this.getBarrelPricingConfig();
   }
 
