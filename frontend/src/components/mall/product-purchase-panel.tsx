@@ -9,12 +9,14 @@ import { getToken } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText } from "@/lib/i18n/content"
 import { zpToVnd, formatVnd } from "@/lib/currency"
+import { useZtaroDiscountPercent } from "@/lib/use-ztaro-discount"
 import type { Product } from "@/lib/api"
 
 export function ProductPurchasePanel({ product }: { product: Product }) {
   const router = useRouter()
   const { addItem } = useCart()
   const { locale } = useI18n()
+  const ztaroDiscountPercent = useZtaroDiscountPercent()
   const [added, setAdded] = useState(false)
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
 
@@ -68,7 +70,7 @@ export function ProductPurchasePanel({ product }: { product: Product }) {
       <p className="text-sm text-foreground">
         가격: <span className="font-medium">ZP {product.priceAp.toLocaleString()}</span>
         {product.priceZtaro ? (
-          <span className="ml-2 text-primary">· ZTARO {product.priceZtaro.toLocaleString()} (30% 할인)</span>
+          <span className="ml-2 text-primary">· ZTARO {product.priceZtaro.toLocaleString()} ({ztaroDiscountPercent}% 할인)</span>
         ) : null}
         <span className="ml-2 text-muted-foreground">· {formatVnd(zpToVnd(product.priceAp))}</span>
       </p>

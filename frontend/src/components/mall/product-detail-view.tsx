@@ -8,10 +8,12 @@ import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText, localizedList } from "@/lib/i18n/content"
 import { localizedCategory, localizedFulfillment } from "@/lib/i18n/mall-categories-i18n"
 import { zpToVnd, formatVnd } from "@/lib/currency"
+import { useZtaroDiscountPercent } from "@/lib/use-ztaro-discount"
 import type { Product } from "@/lib/api"
 
 export function ProductDetailView({ product }: { product: Product }) {
   const { locale } = useI18n()
+  const ztaroDiscountPercent = useZtaroDiscountPercent()
   const productName = localizedText(locale, product.name, product.nameEn, product.nameVi)
   const productDescription = localizedText(locale, product.description, product.descriptionEn, product.descriptionVi)
   const productBadges = localizedList(locale, product.badges, product.badgesEn, product.badgesVi)
@@ -55,7 +57,7 @@ export function ProductDetailView({ product }: { product: Product }) {
               {product.priceAp.toLocaleString()} ZP
               {product.priceZtaro ? (
                 <span className="ml-2 text-lg font-medium text-muted-foreground">
-                  · {product.priceZtaro.toLocaleString()} ZTARO (30% 할인)
+                  · {product.priceZtaro.toLocaleString()} ZTARO ({ztaroDiscountPercent}% 할인)
                 </span>
               ) : null}
               <span className="ml-2 text-base font-medium text-muted-foreground">

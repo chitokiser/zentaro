@@ -21,4 +21,5 @@ export const COLLECTIONS = {
   ZENTARO_BARRELS: 'zentaro_barrels',
   ZENTARO_BARREL_PRICING_CONFIG: 'zentaro_barrel_pricing_config',
   ZENTARO_ZTARO_PRICE_SNAPSHOTS: 'zentaro_ztaro_price_snapshots',
+  ZENTARO_ZTARO_PRICING_CONFIG: 'zentaro_ztaro_pricing_config',
 } as const;

@@ -6,7 +6,7 @@ import { COLLECTIONS } from '../common/collections';
 import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { computeZtaroPrice, LUXURY_MALL_CATEGORY, ZtaroPricingService } from './ztaro-pricing.service';
+import { computeZtaroPrice, ZtaroPricingService } from './ztaro-pricing.service';
 
 // Supplier info is internal sourcing/business data (who we buy from, at what
 // cost) and must never reach the public storefront API, unlike costAp which
@@ -28,11 +28,13 @@ export class ProductsService {
     private readonly ztaroPricing: ZtaroPricingService,
   ) { }
 
-  /** priceZtaro is server-computed only (30%-off ZP price at today's snapshotted rate) — admins never set it directly. */
-  private async luxuryPriceFields(mainCategory: string, priceAp: number) {
-    if (mainCategory !== LUXURY_MALL_CATEGORY) return {};
-    const zpPerZtaro = await this.ztaroPricing.getCurrentZpPerZtaro();
-    return { priceZtaro: computeZtaroPrice(priceAp, zpPerZtaro) };
+  /** priceZtaro is server-computed only (discounted ZP price at today's snapshotted rate) — admins never set it directly. */
+  private async ztaroPriceFields(priceAp: number, costAp: number) {
+    const [zpPerZtaro, discountRate] = await Promise.all([
+      this.ztaroPricing.getCurrentZpPerZtaro(),
+      this.ztaroPricing.getDiscountRate(),
+    ]);
+    return { priceZtaro: computeZtaroPrice(priceAp, costAp, zpPerZtaro, discountRate) };
   }
 
   async getFeatured(mainCategory?: string) {
@@ -66,6 +68,7 @@ export class ProductsService {
       category: dto.category,
       priceAp: dto.priceAp,
       costAp: dto.costAp,
+      ...(await this.ztaroPriceFields(dto.priceAp, dto.costAp)),
       imageUrl: dto.imageUrl ?? null,
       description: `${dto.name} (CJ Dropshipping · ${dto.cjSellPrice ?? 'n/a'})`,
       cjProductId: dto.cjProductId,
@@ -88,7 +91,7 @@ export class ProductsService {
       priceAp: dto.priceAp,
       costAp: dto.costAp,
       stock: dto.stock ?? 100,
-      ...(await this.luxuryPriceFields(dto.mainCategory, dto.priceAp)),
+      ...(await this.ztaroPriceFields(dto.priceAp, dto.costAp)),
       imageUrl: dto.imageUrl ?? null,
       description: dto.description ?? dto.name,
       nameEn: dto.nameEn ?? null,
@@ -129,12 +132,12 @@ export class ProductsService {
       throw new NotFoundException('Product not found');
     }
     const existing = snap.data()!;
-    const mainCategory = dto.mainCategory ?? existing.mainCategory;
     const priceAp = dto.priceAp ?? existing.priceAp ?? 0;
+    const costAp = dto.costAp ?? existing.costAp ?? priceAp;
 
     await ref.update({
       ...dto,
-      ...(await this.luxuryPriceFields(mainCategory, priceAp)),
+      ...(await this.ztaroPriceFields(priceAp, costAp)),
       updatedAt: FieldValue.serverTimestamp(),
     });
     return { id: productId };

@@ -708,6 +708,8 @@ export interface AdminOrder {
   totalExpPaid?: number;
   totalPriceZtaro?: number;
   ztaroTxHash?: string;
+  /** EXP applied on top of a ZTARO-paid order (extra discount for ZTARO holders). */
+  expUsed?: number;
   status: "pending_payment" | "paid" | "shipped" | "delivered" | "cancelled";
   createdAt?: { _seconds: number } | null;
 }
@@ -734,6 +736,27 @@ export async function checkoutCart(input: {
     totalPriceZtaro?: number;
     txHash?: string;
   }>;
+}
+
+export interface ZtaroPricingConfig {
+  discountRate: number;
+  zpPerZtaro: number;
+}
+
+export async function fetchZtaroPricingConfig(): Promise<ZtaroPricingConfig> {
+  const res = await fetch(`${API_URL}/products/ztaro-pricing-config`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateZtaroDiscountAdmin(discountPercent: number): Promise<ZtaroPricingConfig> {
+  const res = await fetch(`${API_URL}/products/admin/ztaro-pricing-config`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ discountPercent }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
 }
 
 export async function fetchAllOrders(status?: string): Promise<AdminOrder[]> {

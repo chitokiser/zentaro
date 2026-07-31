@@ -3,11 +3,12 @@ import { AuthModule } from '../auth/auth.module';
 import { MailModule } from '../mail/mail.module';
 import { WalletModule } from '../wallet/wallet.module';
 import { BlockchainModule } from '../blockchain/blockchain.module';
+import { ProductsModule } from '../products/products.module';
 import { OrdersService } from './orders.service';
 import { OrdersController } from './orders.controller';
 
 @Module({
-  imports: [AuthModule, MailModule, WalletModule, BlockchainModule],
+  imports: [AuthModule, MailModule, WalletModule, BlockchainModule, ProductsModule],
   controllers: [OrdersController],
   providers: [OrdersService],
 })

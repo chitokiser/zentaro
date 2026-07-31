@@ -15,6 +15,8 @@ import {
 } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { zpToVnd, formatVnd } from "@/lib/currency"
+import { useZtaroPricingInfo } from "@/lib/use-ztaro-discount"
+import { ZtaroBenefitBanner } from "@/components/ztaro-benefit-banner"
 
 const EMPTY_ADDRESS: ShippingAddress = {
   recipientName: "",
@@ -29,6 +31,7 @@ export default function CheckoutPage() {
   const { t } = useI18n()
   const c = t.checkout
   const { items, removeItem, updateQuantity, clear, totalPriceAp, totalPriceZtaro, canPayWithZtaro } = useCart()
+  const { discountPercent: ztaroDiscountPercent, zpPerZtaro } = useZtaroPricingInfo()
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
   const [expBalance, setExpBalance] = useState(0)
   const [expInputs, setExpInputs] = useState<Record<string, number>>({})
@@ -74,6 +77,8 @@ export default function CheckoutPage() {
 
   const totalExpToUse = items.reduce((sum, item) => sum + Math.min(expInputs[item.productId] ?? 0, lineMaxExp(item)), 0)
   const totalApToPay = totalPriceAp - totalExpToUse
+  const ztaroFromExp = zpPerZtaro > 0 ? Math.floor(totalExpToUse / zpPerZtaro) : 0
+  const totalPriceZtaroAfterExp = Math.max(0, totalPriceZtaro - ztaroFromExp)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -82,7 +87,7 @@ export default function CheckoutPage() {
     try {
       const res = await checkoutCart({
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-        expToUse: paymentMethod === "zp" ? totalExpToUse : undefined,
+        expToUse: totalExpToUse,
         shippingAddress: address,
         saveAddress,
         paymentMethod,
@@ -213,6 +218,8 @@ export default function CheckoutPage() {
       </section>
 
       {canPayWithZtaro ? (
+        <>
+        <ZtaroBenefitBanner />
         <section className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-4">
           <h2 className="text-sm font-semibold">결제수단</h2>
           <label className="flex items-center gap-2 text-sm">
@@ -231,9 +238,10 @@ export default function CheckoutPage() {
               checked={paymentMethod === "ztaro"}
               onChange={() => setPaymentMethod("ztaro")}
             />
-            ZTARO {totalPriceZtaro.toLocaleString()} (30% 할인)
+            ZTARO {totalPriceZtaro.toLocaleString()} ({ztaroDiscountPercent}% 할인)
           </label>
         </section>
+        </>
       ) : null}
 
       <section className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card p-4">
@@ -286,9 +294,19 @@ export default function CheckoutPage() {
 
       {paymentMethod === "ztaro" ? (
         <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
+          <div className="flex justify-between">
+            <span className="text-muted-foreground">{c.subtotalLabel}</span>
+            <span>{totalPriceZtaro.toLocaleString()} ZTARO</span>
+          </div>
+          {totalExpToUse > 0 ? (
+            <div className="flex justify-between">
+              <span className="text-muted-foreground"><span className="notranslate">EXP</span> {c.expUsedPrefix} {expBalance.toLocaleString()})</span>
+              <span>-{ztaroFromExp.toLocaleString()} ZTARO (<span className="notranslate">EXP</span> {totalExpToUse.toLocaleString()})</span>
+            </div>
+          ) : null}
           <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
             <span>{c.finalPaymentLabel}</span>
-            <span>{totalPriceZtaro.toLocaleString()} ZTARO</span>
+            <span>{totalPriceZtaroAfterExp.toLocaleString()} ZTARO</span>
           </div>
         </section>
       ) : (
