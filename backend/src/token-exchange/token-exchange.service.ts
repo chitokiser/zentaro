@@ -67,7 +67,7 @@ export interface BarrelPricingConfig {
 // price. All admin-adjustable.
 const DEFAULT_BARREL_PRICING: BarrelPricingConfig = {
   baseUsdPerLiter: 10,
-  usdToZpRate: 10000,
+  usdToZpRate: 26300,
   annualGrowthRate: 0.25,
   pricePerLiterExp: BARREL_PRICE_PER_LITER_EXP,
   pricePerLiterZp: BARREL_PRICE_PER_LITER_ZP,

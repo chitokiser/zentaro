@@ -9,8 +9,8 @@ import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 
-/** 1 USDT = 10,000 ZP, matching the site's other USD-pegged conversions. */
-const USDT_TO_ZP_RATE = 10000;
+/** 1 USDT = 26,300 ZP (1 ZP = 1 VND at the fixed reference rate), matching the site's other USD-pegged conversions. */
+const USDT_TO_ZP_RATE = 26300;
 /** Ignore on-chain dust below this (avoids sweeping/crediting for a few wei of rounding noise). */
 const MIN_USDT_DEPOSIT = 0.01;
 /** Platform fee withheld on every ZP -> USDT withdrawal. */

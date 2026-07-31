@@ -16,7 +16,7 @@ const ZTARO_POOL_URL =
  * out right — the spec's own "discountPrice / 시세" formula only holds once 시세 is
  * expressed in ZP-per-Ztaro terms via this same peg, not raw USD.
  */
-const USDT_TO_ZP_RATE = 10000;
+const USDT_TO_ZP_RATE = 26300;
 
 const DEFAULT_DISCOUNT_RATE = 0.3;
 /** Minimum active vault-staked ZTARO (custodial wallet) required to pay with ZTARO at checkout. */
