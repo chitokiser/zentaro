@@ -11,6 +11,7 @@ import {
   updateProductAdmin,
   fetchAllProductsAdmin,
   deleteProductAdmin,
+  holdProductsMissingImagesAdmin,
   fetchCjProductDetail,
   type CjSearchResultItem,
   type CjProductDetail,
@@ -77,6 +78,8 @@ export default function AdminProductsPage() {
   const [listSearch, setListSearch] = useState("")
   const [listCategoryFilter, setListCategoryFilter] = useState("")
   const [listSortBy, setListSortBy] = useState<"default" | "category" | "name">("default")
+  const [listImageFilter, setListImageFilter] = useState(false)
+  const [holdBusy, setHoldBusy] = useState(false)
 
   const listCategories = useMemo(() => {
     const set = new Set<string>()
@@ -95,6 +98,9 @@ export default function AdminProductsPage() {
     if (listCategoryFilter) {
       list = list.filter((p) => p.mainCategory === listCategoryFilter)
     }
+    if (listImageFilter) {
+      list = list.filter((p) => !p.imageUrl)
+    }
     if (listSortBy === "category") {
       list = [...list].sort((a, b) => {
         const mainCmp = (a.mainCategory ?? "").localeCompare(b.mainCategory ?? "", "ko")
@@ -105,7 +111,7 @@ export default function AdminProductsPage() {
       list = [...list].sort((a, b) => a.name.localeCompare(b.name, "ko"))
     }
     return list
-  }, [products, listSearch, listCategoryFilter, listSortBy])
+  }, [products, listSearch, listCategoryFilter, listSortBy, listImageFilter])
 
   const loadProducts = useCallback(() => {
     fetchAllProductsAdmin()
@@ -371,6 +377,37 @@ export default function AdminProductsPage() {
       setError(err instanceof Error ? err.message : "삭제에 실패했습니다.")
     } finally {
       setBusyId(null)
+    }
+  }
+
+  async function handleToggleHeld(product: AdminProduct) {
+    setBusyId(product.id)
+    setError(null)
+    setMessage(null)
+    try {
+      await updateProductAdmin(product.id, { held: !product.held })
+      setMessage(`"${product.name}"을(를) ${product.held ? "게시" : "보류"}했습니다.`)
+      loadProducts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "변경에 실패했습니다.")
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  async function handleHoldMissingImages() {
+    if (!confirm("이미지가 없는 모든 상품을 보류 처리하시겠습니까? (쇼핑몰에서 숨겨지며, 언제든 개별적으로 다시 게시할 수 있습니다)")) return
+    setHoldBusy(true)
+    setError(null)
+    setMessage(null)
+    try {
+      const res = await holdProductsMissingImagesAdmin()
+      setMessage(`이미지 없는 상품 ${res.held}건을 보류 처리했습니다.`)
+      loadProducts()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "일괄 보류에 실패했습니다.")
+    } finally {
+      setHoldBusy(false)
     }
   }
 
@@ -715,10 +752,24 @@ export default function AdminProductsPage() {
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="font-display text-base font-medium">
-          등록된 상품 ({visibleProducts.length}{visibleProducts.length !== (products?.length ?? 0) ? ` / 전체 ${products?.length ?? 0}` : ""})
-        </h3>
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h3 className="font-display text-base font-medium">
+            등록된 상품 ({visibleProducts.length}{visibleProducts.length !== (products?.length ?? 0) ? ` / 전체 ${products?.length ?? 0}` : ""})
+          </h3>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            disabled={holdBusy}
+            onClick={handleHoldMissingImages}
+          >
+            {holdBusy ? "처리 중..." : "이미지 없는 상품 일괄 보류"}
+          </Button>
+        </div>
+        <p className="mt-1 text-xs text-muted-foreground">
+          보류된 상품은 쇼핑몰(추천 상품, 명품관 등 고객 화면)에 노출되지 않고, 관리자 목록에만 남습니다.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
             className="min-w-[180px] flex-1 rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
             placeholder="상품명 검색"
@@ -744,6 +795,14 @@ export default function AdminProductsPage() {
             <option value="category">카테고리순</option>
             <option value="name">이름순</option>
           </select>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={listImageFilter}
+              onChange={(e) => setListImageFilter(e.target.checked)}
+            />
+            이미지 없는 상품만
+          </label>
         </div>
         <div className="mt-4 flex flex-col gap-2">
           {visibleProducts.length === 0 ? (
@@ -779,6 +838,11 @@ export default function AdminProductsPage() {
                     <Badge variant="secondary" className="text-[10px]">
                       {product.fulfillmentType === "direct" ? "직배송" : "드랍쉬핑"}
                     </Badge>
+                    {product.held ? (
+                      <Badge variant="outline" className="border-destructive/40 text-[10px] text-destructive">
+                        보류중
+                      </Badge>
+                    ) : null}
                   </div>
                   <div className="flex gap-1">
                     <Button
@@ -788,6 +852,14 @@ export default function AdminProductsPage() {
                       onClick={() => handleEdit(product)}
                     >
                       수정
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      disabled={busyId === product.id}
+                      onClick={() => handleToggleHeld(product)}
+                    >
+                      {product.held ? "게시" : "보류"}
                     </Button>
                     <Button
                       size="sm"

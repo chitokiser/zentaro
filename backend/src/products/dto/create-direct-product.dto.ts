@@ -65,6 +65,11 @@ export class CreateDirectProductDto {
   @Min(0)
   stock?: number;
 
+  /** Explicit hold override. When omitted, held auto-follows whether imageUrl is set. */
+  @IsOptional()
+  @IsBoolean()
+  held?: boolean;
+
   @IsOptional()
   @IsString()
   supplierName?: string;

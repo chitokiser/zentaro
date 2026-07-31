@@ -64,6 +64,13 @@ export class ProductsController {
     return this.productsService.getOne(id);
   }
 
+  @Post('admin/hold-missing-images')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  holdProductsMissingImages() {
+    return this.productsService.holdProductsMissingImages();
+  }
+
   @Post('import-cj')
   @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)

@@ -50,7 +50,12 @@ export class ProductsService {
     }
     const snap = await query.limit(500).get();
 
-    return snap.docs.map((doc) => stripAdminFields({ id: doc.id, ...doc.data() }));
+    // held is filtered in JS rather than as a Firestore `where` clause because most
+    // existing product docs predate this field entirely — a `where('held', '==', false)`
+    // query would silently exclude every doc that never got the field written.
+    return snap.docs
+      .filter((doc) => doc.data().held !== true)
+      .map((doc) => stripAdminFields({ id: doc.id, ...doc.data() }));
   }
 
   async listAll() {
@@ -70,6 +75,7 @@ export class ProductsService {
       costAp: dto.costAp,
       ...(await this.ztaroPriceFields(dto.priceAp, dto.costAp)),
       imageUrl: dto.imageUrl ?? null,
+      held: !dto.imageUrl,
       description: `${dto.name} (CJ Dropshipping · ${dto.cjSellPrice ?? 'n/a'})`,
       cjProductId: dto.cjProductId,
       fulfillmentType: 'dropshipping',
@@ -93,6 +99,7 @@ export class ProductsService {
       stock: dto.stock ?? 100,
       ...(await this.ztaroPriceFields(dto.priceAp, dto.costAp)),
       imageUrl: dto.imageUrl ?? null,
+      held: dto.held ?? !dto.imageUrl,
       description: dto.description ?? dto.name,
       nameEn: dto.nameEn ?? null,
       nameVi: dto.nameVi ?? null,
@@ -134,13 +141,28 @@ export class ProductsService {
     const existing = snap.data()!;
     const priceAp = dto.priceAp ?? existing.priceAp ?? 0;
     const costAp = dto.costAp ?? existing.costAp ?? priceAp;
+    const imageUrl = dto.imageUrl !== undefined ? dto.imageUrl : existing.imageUrl;
+    const held = dto.held !== undefined ? dto.held : !imageUrl;
 
     await ref.update({
       ...dto,
+      held,
       ...(await this.ztaroPriceFields(priceAp, costAp)),
       updatedAt: FieldValue.serverTimestamp(),
     });
     return { id: productId };
+  }
+
+  /** Bulk-holds every product that currently has no imageUrl, so it drops out of public listings. */
+  async holdProductsMissingImages(): Promise<{ held: number }> {
+    const snap = await this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).get();
+    const targets = snap.docs.filter((doc) => !doc.data().imageUrl && doc.data().held !== true);
+    if (targets.length === 0) return { held: 0 };
+
+    const batch = this.db.batch();
+    targets.forEach((doc) => batch.update(doc.ref, { held: true, updatedAt: FieldValue.serverTimestamp() }));
+    await batch.commit();
+    return { held: targets.length };
   }
 
   async remove(productId: string) {

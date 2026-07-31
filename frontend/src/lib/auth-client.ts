@@ -393,6 +393,8 @@ export interface AdminProduct {
   imageUrl: string | null;
   cjProductId?: string;
   featured: boolean;
+  /** When true, hidden from public listings (auto-set when imageUrl is missing). */
+  held?: boolean;
   supplierName?: string | null;
   supplierContact?: string | null;
   supplierCostKrw?: number | null;
@@ -473,6 +475,7 @@ export async function createDirectProduct(input: {
   mentorRewardEnabled?: boolean;
   level1MentorRate?: number;
   level2MentorRate?: number;
+  held?: boolean;
 }) {
   const res = await fetch(`${API_URL}/products/direct`, {
     method: "POST",
@@ -507,12 +510,22 @@ export async function updateProductAdmin(
     mentorRewardEnabled: boolean;
     level1MentorRate: number;
     level2MentorRate: number;
+    held: boolean;
   }>,
 ) {
   const res = await fetch(`${API_URL}/products/${id}`, {
     method: "PUT",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function holdProductsMissingImagesAdmin(): Promise<{ held: number }> {
+  const res = await fetch(`${API_URL}/products/admin/hold-missing-images`, {
+    method: "POST",
+    headers: authHeaders(),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
