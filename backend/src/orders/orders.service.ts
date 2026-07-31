@@ -308,6 +308,24 @@ export class OrdersService {
    * the pending order and refunds any EXP already debited — the buyer's Ztaro never left
    * their wallet, so only the EXP debit needs reconciling.
    */
+  /**
+   * Sum of the custodial wallet's currently active vault stakes — the same "staked" figure
+   * shown as `dashboard.staked` on the /exchange page (TokenExchangeService.dashboard()),
+   * reimplemented narrowly here to avoid pulling that whole multi-call dashboard just for
+   * one number on every ZTARO checkout.
+   */
+  private async getStakedZtaro(uid: string): Promise<number> {
+    const { address } = await this.walletService.getOrCreateChainWallet(uid);
+    const vault = this.blockchain.getVaultContract(this.blockchain.getProvider());
+    const stakeIds: bigint[] = await vault.getAllStakes(address);
+    let total = 0;
+    for (const stakeId of stakeIds) {
+      const s = await vault.stakes(stakeId);
+      if (s.active) total += Number(s.amount);
+    }
+    return total;
+  }
+
   private async checkoutZtaro(uid: string, dto: CheckoutDto) {
     const shippingAddress = {
       recipientName: dto.shippingAddress.recipientName,
@@ -323,7 +341,16 @@ export class OrdersService {
       this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(item.productId),
     );
 
-    const zpPerZtaro = await this.ztaroPricing.getCurrentZpPerZtaro();
+    const [zpPerZtaro, eligibility, stakedZtaro] = await Promise.all([
+      this.ztaroPricing.getCurrentZpPerZtaro(),
+      this.ztaroPricing.getEligibilityConfig(),
+      this.getStakedZtaro(uid),
+    ]);
+    if (stakedZtaro < eligibility.minStakeZtaro) {
+      throw new BadRequestException(
+        `ZTARO 결제는 ${eligibility.minStakeZtaro.toLocaleString()} ZTARO 이상 스테이킹한 회원만 가능합니다. (현재 스테이킹: ${stakedZtaro.toLocaleString()} ZTARO)`,
+      );
+    }
 
     const { orderRef, totalPriceZtaro, expUsed, items, buyerEmail } = await this.db.runTransaction(
       async (tx) => {
@@ -334,6 +361,11 @@ export class OrdersService {
         ]);
         if (!userSnap.exists) {
           throw new NotFoundException('User not found');
+        }
+
+        const memberLevel: number = walletSnap.exists ? (walletSnap.data()!.level ?? 1) : 1;
+        if (memberLevel < eligibility.minLevel) {
+          throw new BadRequestException(`ZTARO 결제는 레벨 ${eligibility.minLevel} 이상 회원만 가능합니다.`);
         }
 
         let totalPriceZtaro = 0;

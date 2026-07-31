@@ -7,6 +7,7 @@ import { ImportProductDto } from '../cj/dto/import-product.dto';
 import { CreateDirectProductDto } from './dto/create-direct-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { UpdateZtaroDiscountDto } from './dto/update-ztaro-discount.dto';
+import { UpdateZtaroEligibilityDto } from './dto/update-ztaro-eligibility.dto';
 import { MALL_CATEGORIES } from '../common/mall-categories';
 import { ZtaroPricingService } from './ztaro-pricing.service';
 
@@ -29,11 +30,12 @@ export class ProductsController {
 
   @Get('ztaro-pricing-config')
   async getZtaroPricingConfig() {
-    const [discountRate, zpPerZtaro] = await Promise.all([
+    const [discountRate, zpPerZtaro, eligibility] = await Promise.all([
       this.ztaroPricing.getDiscountRate(),
       this.ztaroPricing.getCurrentZpPerZtaro(),
+      this.ztaroPricing.getEligibilityConfig(),
     ]);
-    return { discountRate, zpPerZtaro };
+    return { discountRate, zpPerZtaro, ...eligibility };
   }
 
   @Post('admin/ztaro-pricing-config')
@@ -41,6 +43,13 @@ export class ProductsController {
   @RequireAdminLevel(1)
   updateZtaroPricingConfig(@Body() dto: UpdateZtaroDiscountDto) {
     return this.ztaroPricing.updateDiscountRate(dto.discountPercent / 100);
+  }
+
+  @Post('admin/ztaro-eligibility-config')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(1)
+  updateZtaroEligibilityConfig(@Body() dto: UpdateZtaroEligibilityDto) {
+    return this.ztaroPricing.updateEligibilityConfig(dto);
   }
 
   @Get()

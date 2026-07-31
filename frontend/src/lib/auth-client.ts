@@ -741,6 +741,10 @@ export async function checkoutCart(input: {
 export interface ZtaroPricingConfig {
   discountRate: number;
   zpPerZtaro: number;
+  /** Minimum active vault-staked ZTARO required to pay with ZTARO at checkout. */
+  minStakeZtaro: number;
+  /** Minimum member level (1-10) required to pay with ZTARO at checkout. */
+  minLevel: number;
 }
 
 export async function fetchZtaroPricingConfig(): Promise<ZtaroPricingConfig> {
@@ -754,6 +758,19 @@ export async function updateZtaroDiscountAdmin(discountPercent: number): Promise
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ discountPercent }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateZtaroEligibilityAdmin(patch: {
+  minStakeZtaro?: number;
+  minLevel?: number;
+}): Promise<ZtaroPricingConfig> {
+  const res = await fetch(`${API_URL}/products/admin/ztaro-eligibility-config`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(patch),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

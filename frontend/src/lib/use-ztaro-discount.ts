@@ -8,9 +8,18 @@ export interface ZtaroDiscountInfo {
   discountPercent: number
   /** How many ZP one ZTARO is worth at today's fixed snapshot rate. 0 while loading. */
   zpPerZtaro: number
+  /** Minimum active vault-staked ZTARO required to pay with ZTARO. Defaults to 1,000,000 while loading. */
+  minStakeZtaro: number
+  /** Minimum member level (1-10) required to pay with ZTARO. Defaults to 2 while loading. */
+  minLevel: number
 }
 
-const DEFAULT_INFO: ZtaroDiscountInfo = { discountPercent: 30, zpPerZtaro: 0 }
+const DEFAULT_INFO: ZtaroDiscountInfo = {
+  discountPercent: 30,
+  zpPerZtaro: 0,
+  minStakeZtaro: 1_000_000,
+  minLevel: 2,
+}
 
 export function useZtaroPricingInfo(): ZtaroDiscountInfo {
   const [info, setInfo] = useState<ZtaroDiscountInfo>(DEFAULT_INFO)
@@ -18,7 +27,12 @@ export function useZtaroPricingInfo(): ZtaroDiscountInfo {
   useEffect(() => {
     fetchZtaroPricingConfig()
       .then((config) =>
-        setInfo({ discountPercent: Math.round(config.discountRate * 100), zpPerZtaro: config.zpPerZtaro }),
+        setInfo({
+          discountPercent: Math.round(config.discountRate * 100),
+          zpPerZtaro: config.zpPerZtaro,
+          minStakeZtaro: config.minStakeZtaro,
+          minLevel: config.minLevel,
+        }),
       )
       .catch(() => undefined)
   }, [])

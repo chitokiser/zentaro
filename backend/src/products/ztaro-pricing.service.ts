@@ -19,6 +19,15 @@ const ZTARO_POOL_URL =
 const USDT_TO_ZP_RATE = 10000;
 
 const DEFAULT_DISCOUNT_RATE = 0.3;
+/** Minimum active vault-staked ZTARO (custodial wallet) required to pay with ZTARO at checkout. */
+const DEFAULT_MIN_STAKE_ZTARO = 1_000_000;
+/** Minimum member level (ZENTARO_WALLETS.level, 1-10) required to pay with ZTARO at checkout. */
+const DEFAULT_MIN_LEVEL = 2;
+
+export interface ZtaroEligibilityConfig {
+  minStakeZtaro: number;
+  minLevel: number;
+}
 
 /** Kept as a label for the original curated category; no longer gates ZTARO pricing/checkout. */
 export const LUXURY_MALL_CATEGORY = '명품관';
@@ -82,13 +91,33 @@ export class ZtaroPricingService {
 
   /** Persists the new discount rate and immediately reprices every product against it. */
   async updateDiscountRate(discountRate: number): Promise<{ discountRate: number }> {
-    await this.discountConfigRef().set({
-      discountRate,
-      updatedAt: FieldValue.serverTimestamp(),
-    });
+    await this.discountConfigRef().set(
+      { discountRate, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
     const zpPerZtaro = await this.getCurrentZpPerZtaro();
     await this.recalcAllProducts(zpPerZtaro, discountRate);
     return { discountRate };
+  }
+
+  /** Admin-configurable ZTARO-checkout eligibility gate (stake amount + member level). */
+  async getEligibilityConfig(): Promise<ZtaroEligibilityConfig> {
+    const snap = await this.discountConfigRef().get();
+    const data = snap.exists ? snap.data()! : {};
+    const minStakeZtaro = data.minStakeZtaro;
+    const minLevel = data.minLevel;
+    return {
+      minStakeZtaro: typeof minStakeZtaro === 'number' && minStakeZtaro >= 0 ? minStakeZtaro : DEFAULT_MIN_STAKE_ZTARO,
+      minLevel: typeof minLevel === 'number' && minLevel >= 1 ? minLevel : DEFAULT_MIN_LEVEL,
+    };
+  }
+
+  async updateEligibilityConfig(patch: Partial<ZtaroEligibilityConfig>): Promise<ZtaroEligibilityConfig> {
+    await this.discountConfigRef().set(
+      { ...patch, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
+    return this.getEligibilityConfig();
   }
 
   /**
