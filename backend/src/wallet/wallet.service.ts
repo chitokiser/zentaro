@@ -9,8 +9,15 @@ import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 
-/** 1 USDT = 26,300 ZP (1 ZP = 1 VND at the fixed reference rate), matching the site's other USD-pegged conversions. */
-const USDT_TO_ZP_RATE = 26300;
+/**
+ * Fallback USD/VND rate used only if the live exchange-rate API is unreachable, so
+ * charging/withdrawal never hard-fails on an outage. Deposits/withdrawals otherwise use
+ * fetchUsdVndRate() below. This is unrelated to product pricing (priceAp), which stays
+ * fixed at 1 ZP = 1 VND regardless of live rate movement — see ztaro-pricing.service.ts.
+ */
+const FALLBACK_USD_VND_RATE = 26300;
+/** Free, no-key exchange-rate API; refreshed on every deposit/withdrawal call. */
+const EXCHANGE_RATE_API_URL = 'https://open.er-api.com/v6/latest/USD';
 /** Ignore on-chain dust below this (avoids sweeping/crediting for a few wei of rounding noise). */
 const MIN_USDT_DEPOSIT = 0.01;
 /** Platform fee withheld on every ZP -> USDT withdrawal. */
@@ -324,11 +331,35 @@ export class WalletService {
   }
 
   /**
+   * Live USD/VND rate (1 ZP = 1 VND, so this doubles as the USD/ZP rate). Queried fresh on
+   * every deposit/withdrawal so charging tracks the real market rate instead of drifting
+   * from a stale constant. Falls back to FALLBACK_USD_VND_RATE if the API is down, so
+   * money movement never blocks on a third-party outage.
+   */
+  private async fetchUsdVndRate(): Promise<number> {
+    try {
+      const res = await fetch(EXCHANGE_RATE_API_URL);
+      if (!res.ok) {
+        throw new Error(`exchange rate API failed: ${res.status}`);
+      }
+      const json: any = await res.json();
+      const rate = Number(json?.rates?.VND);
+      if (!(rate > 0)) {
+        throw new Error('exchange rate API response missing VND rate');
+      }
+      return rate;
+    } catch (err) {
+      console.error('[Wallet] USD/VND exchange rate fetch failed, using fallback rate:', err);
+      return FALLBACK_USD_VND_RATE;
+    }
+  }
+
+  /**
    * Fully automatic USDT top-up: checks the member's own custodial wallet (opBNB) for a
    * USDT balance, sweeps the entire balance to the company treasury address, and credits
-   * ZP at a fixed 1 USDT = 10,000 ZP rate — no admin approval step, unlike the VND/KRW
-   * manual bank-transfer flow. The on-chain sweep is irreversible, so the ZP credit +
-   * deposit record are written immediately after it confirms, using the tx hash to keep
+   * ZP at the live USD/VND rate (see fetchUsdVndRate) — no admin approval step, unlike the
+   * VND/KRW manual bank-transfer flow. The on-chain sweep is irreversible, so the ZP credit
+   * + deposit record are written immediately after it confirms, using the tx hash to keep
    * an auditable link between the on-chain transfer and the off-chain ZP grant.
    */
   async depositUsdt(uid: string, email: string) {
@@ -349,7 +380,8 @@ export class WalletService {
     const tx = await usdt.transfer(treasuryAddress, balanceWei);
     const receipt = await tx.wait();
 
-    const zpAmount = Math.round(usdtAmount * USDT_TO_ZP_RATE);
+    const usdVndRate = await this.fetchUsdVndRate();
+    const zpAmount = Math.round(usdtAmount * usdVndRate);
 
     const userRef = this.db.collection(COLLECTIONS.USERS).doc(uid);
     await this.db.runTransaction(async (fsTx) => {
@@ -363,6 +395,7 @@ export class WalletService {
         depositorName: email,
         currency: 'USDT',
         usdtAmount,
+        exchangeRate: usdVndRate,
         txHash: receipt.hash,
         method: 'onchain_auto',
         refCode: `USDT-${Date.now()}`,
@@ -377,12 +410,12 @@ export class WalletService {
         userId: uid,
         amount: zpAmount,
         type: 'points_charge',
-        description: `USDT 자동 충전 (${usdtAmount} USDT, tx: ${receipt.hash})`,
+        description: `USDT 자동 충전 (${usdtAmount} USDT × ${usdVndRate.toLocaleString()}, tx: ${receipt.hash})`,
         createdAt: FieldValue.serverTimestamp(),
       });
     });
 
-    return { success: true, usdtAmount, zpCredited: zpAmount, txHash: receipt.hash as string };
+    return { success: true, usdtAmount, zpCredited: zpAmount, exchangeRate: usdVndRate, txHash: receipt.hash as string };
   }
 
   /**
@@ -411,7 +444,8 @@ export class WalletService {
       tx.update(userRef, { points: FieldValue.increment(-zpAmount) });
     });
 
-    const grossUsdt = zpAmount / USDT_TO_ZP_RATE;
+    const usdVndRate = await this.fetchUsdVndRate();
+    const grossUsdt = zpAmount / usdVndRate;
     const feeUsdt = grossUsdt * USDT_WITHDRAWAL_FEE_RATE;
     const netUsdt = grossUsdt - feeUsdt;
 
@@ -429,13 +463,14 @@ export class WalletService {
         userId: uid,
         amount: -zpAmount,
         type: 'usdt_withdrawal',
-        description: `USDT 환전 출금: ${zpAmount.toLocaleString()} ZP → ${grossUsdt.toFixed(4)} USDT (수수료 3% = ${feeUsdt.toFixed(4)} USDT 차감) → 실지급 ${netUsdt.toFixed(4)} USDT (tx: ${receipt.hash})`,
+        description: `USDT 환전 출금: ${zpAmount.toLocaleString()} ZP ÷ ${usdVndRate.toLocaleString()} → ${grossUsdt.toFixed(4)} USDT (수수료 3% = ${feeUsdt.toFixed(4)} USDT 차감) → 실지급 ${netUsdt.toFixed(4)} USDT (tx: ${receipt.hash})`,
         createdAt: FieldValue.serverTimestamp(),
       });
 
       return {
         success: true,
         zpDeducted: zpAmount,
+        exchangeRate: usdVndRate,
         grossUsdt,
         feeUsdt,
         netUsdt,

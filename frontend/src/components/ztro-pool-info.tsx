@@ -130,7 +130,7 @@ export function ZtroPoolInfo() {
 
             <div className="border-b border-border/40 bg-amber-500/[0.06] px-5 py-2">
                 <p className="text-[10px] leading-relaxed text-amber-600 dark:text-amber-400">
-                    ⚠ PancakeSwap 직접 거래는 메타마스크 등 개인 Web3 지갑 보유자만 가능합니다. 젠타로 수탁지갑 이용자는 외부 DEX에 직접 연결할 수 없으며, 쇼핑몰 결제·오크통 거래 등에 이용 가능합니다.
+                    ⚠ ZenTaro 수탁지갑(커스터디얼)은 베트남의 가상자산 관련 법령 및 컴플라이언스 정책을 준수하기 위해 외부 DEX와 직접 연동되지 않습니다. 공개 시장 거래는 이용자가 관련 법령을 준수하여 개인 Web3 지갑을 통해 직접 수행해야 합니다.
                 </p>
             </div>
 

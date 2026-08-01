@@ -1,7 +1,9 @@
 /**
  * Fixed ZP -> VND display rate (informational only — VND is never an actual payment
- * currency, ZP/ZTARO checkout amounts are unaffected). Rate: 1 ZP = 1 VND, matching the
- * backend's USDT_TO_ZP_RATE peg (26,300 ZP = 1 USDT = 26,300 VND).
+ * currency, ZP/ZTARO checkout amounts are unaffected). Rate: 1 ZP = 1 VND, matching product
+ * pricing's fixed peg (ztaro-pricing.service.ts's USDT_TO_ZP_RATE). This is intentionally
+ * unrelated to the live USD/VND rate used for USDT deposit/withdrawal charging
+ * (wallet.service.ts's fetchUsdVndRate) — product prices stay fixed regardless of that rate.
  */
 export const VND_PER_10000_ZP = 10000;
 
