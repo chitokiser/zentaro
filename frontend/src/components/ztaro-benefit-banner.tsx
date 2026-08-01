@@ -19,8 +19,8 @@ export function ZtaroBenefitBanner({ className = "" }: { className?: string }) {
       />
       <div>
         <span className="notranslate font-semibold">ZTARO</span> 토큰으로 결제하면 전 상품{" "}
-        <span className="font-semibold">{discountPercent}%</span> 할인이 적용되고,{" "}
-        <span className="notranslate">EXP</span>를 함께 쓰면 그만큼 추가로 더 할인받을 수 있어요.
+        <span className="font-semibold">{discountPercent}%</span> 할인이 적용돼요. (
+        <span className="notranslate">EXP</span> 병행 사용은 불가)
         <span className="mt-1 block text-xs text-primary/70">
           (조건: {minStakeZtaro.toLocaleString()} <span className="notranslate">ZTARO</span> 이상 스테이킹 +
           레벨 {minLevel} 이상 회원)

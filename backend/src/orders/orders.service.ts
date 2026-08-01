@@ -341,8 +341,7 @@ export class OrdersService {
       this.db.collection(COLLECTIONS.ZENTARO_PRODUCTS).doc(item.productId),
     );
 
-    const [zpPerZtaro, eligibility, stakedZtaro] = await Promise.all([
-      this.ztaroPricing.getCurrentZpPerZtaro(),
+    const [eligibility, stakedZtaro] = await Promise.all([
       this.ztaroPricing.getEligibilityConfig(),
       this.getStakedZtaro(uid),
     ]);
@@ -368,8 +367,11 @@ export class OrdersService {
           throw new BadRequestException(`ZTARO 결제는 레벨 ${eligibility.minLevel} 이상 회원만 가능합니다.`);
         }
 
+        if (dto.expToUse) {
+          throw new BadRequestException('ZTARO 결제에는 EXP를 함께 사용할 수 없습니다.');
+        }
+
         let totalPriceZtaro = 0;
-        let totalExpCap = 0;
         const items = dto.items.map((item, idx) => {
           const snap = productSnaps[idx];
           if (!snap.exists) {
@@ -380,13 +382,8 @@ export class OrdersService {
           if (priceZtaro <= 0) {
             throw new BadRequestException(`ZTARO 가격이 설정되지 않은 상품입니다: ${product.name}`);
           }
-          const priceAp: number = product.priceAp ?? 0;
-          const costAp: number = product.costAp ?? priceAp;
-          const margin = Math.max(0, priceAp - costAp);
-          const lineMaxExp = Math.floor(margin * 0.8);
 
           totalPriceZtaro += priceZtaro * item.quantity;
-          totalExpCap += lineMaxExp * item.quantity;
 
           return {
             productId: item.productId,
@@ -400,23 +397,6 @@ export class OrdersService {
           throw new BadRequestException('ZTARO 결제 금액을 계산할 수 없습니다.');
         }
 
-        const expToUse = dto.expToUse ?? 0;
-        const currentExp: number = walletSnap.exists ? (walletSnap.data()!.exp ?? 0) : 0;
-        if (expToUse > totalExpCap) {
-          throw new BadRequestException('마진의 80%를 초과하는 EXP는 사용할 수 없습니다.');
-        }
-        if (expToUse > currentExp) {
-          throw new BadRequestException('EXP 잔액이 부족합니다.');
-        }
-
-        const ztaroFromExp = zpPerZtaro > 0 ? Math.floor(expToUse / zpPerZtaro) : 0;
-        if (ztaroFromExp >= totalPriceZtaro) {
-          throw new BadRequestException(
-            'ZTARO 결제 금액 전액을 EXP로 대체할 수 없습니다. 최소 1 ZTARO 이상은 실제로 결제해야 합니다.',
-          );
-        }
-        totalPriceZtaro = totalPriceZtaro - ztaroFromExp;
-
         const orderRef = this.ordersCol().doc();
         tx.set(orderRef, {
           userId: uid,
@@ -424,14 +404,11 @@ export class OrdersService {
           shippingAddress,
           paymentMethod: 'ztaro' as const,
           totalPriceZtaro,
-          expUsed: expToUse,
+          expUsed: 0,
           status: 'pending_payment',
           createdAt: FieldValue.serverTimestamp(),
           updatedAt: FieldValue.serverTimestamp(),
         });
-        if (expToUse > 0) {
-          tx.set(walletRef, { exp: FieldValue.increment(-expToUse) }, { merge: true });
-        }
         if (dto.saveAddress) {
           tx.set(userRef, { shippingAddress }, { merge: true });
         }
@@ -439,7 +416,7 @@ export class OrdersService {
         return {
           orderRef,
           totalPriceZtaro,
-          expUsed: expToUse,
+          expUsed: 0,
           items,
           buyerEmail: userSnap.data()!.email ?? null,
         };
@@ -473,9 +450,6 @@ export class OrdersService {
       }
     } catch (err) {
       await orderRef.delete().catch(() => {});
-      if (expUsed > 0) {
-        await walletRef.set({ exp: FieldValue.increment(expUsed) }, { merge: true }).catch(() => {});
-      }
       if (err instanceof BadRequestException) throw err;
       console.error('[Orders] checkoutZtaro on-chain ZTARO transfer failed:', err);
       throw new BadRequestException('온체인 ZTARO 전송에 실패했습니다. 잠시 후 다시 시도해주세요.');
@@ -497,17 +471,6 @@ export class OrdersService {
       orderId: orderRef.id,
       createdAt: FieldValue.serverTimestamp(),
     });
-    if (expUsed > 0) {
-      const expTxRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
-      await expTxRef.set({
-        userId: uid,
-        amount: -expUsed,
-        type: 'zentaro_mall_purchase',
-        description: `ZENTARO Mall (ZTARO 결제 + EXP 추가할인): ${productNames}`,
-        orderId: orderRef.id,
-        createdAt: FieldValue.serverTimestamp(),
-      });
-    }
 
     this.mailService
       .sendOrderNotification({

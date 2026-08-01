@@ -31,7 +31,7 @@ export default function CheckoutPage() {
   const { t } = useI18n()
   const c = t.checkout
   const { items, removeItem, updateQuantity, clear, totalPriceAp, totalPriceZtaro, canPayWithZtaro } = useCart()
-  const { discountPercent: ztaroDiscountPercent, zpPerZtaro } = useZtaroPricingInfo()
+  const { discountPercent: ztaroDiscountPercent } = useZtaroPricingInfo()
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
   const [expBalance, setExpBalance] = useState(0)
   const [expInputs, setExpInputs] = useState<Record<string, number>>({})
@@ -54,6 +54,12 @@ export default function CheckoutPage() {
     if (!canPayWithZtaro && paymentMethod === "ztaro") setPaymentMethod("zp")
   }, [canPayWithZtaro, paymentMethod])
 
+  // ZTARO checkout cannot be combined with EXP at all — clear any entered EXP amounts
+  // when switching to it, so a leftover input can't sneak into the submit payload.
+  useEffect(() => {
+    if (paymentMethod === "ztaro") setExpInputs({})
+  }, [paymentMethod])
+
   useEffect(() => {
     if (!loggedIn) return
     fetchWallet()
@@ -75,13 +81,10 @@ export default function CheckoutPage() {
     setExpInputs((prev) => ({ ...prev, [productId]: Math.max(0, Math.min(value, max)) }))
   }
 
+  // ZTARO checkout never allows EXP, so this is always 0 while paymentMethod === "ztaro"
+  // (expInputs is cleared on switch, see effect above).
   const totalExpToUse = items.reduce((sum, item) => sum + Math.min(expInputs[item.productId] ?? 0, lineMaxExp(item)), 0)
   const totalApToPay = totalPriceAp - totalExpToUse
-  const ztaroFromExp = zpPerZtaro > 0 ? Math.floor(totalExpToUse / zpPerZtaro) : 0
-  // EXP can discount a ZTARO order, but can't fully replace it — some ZTARO must actually
-  // be transferred on-chain, matching the same rule enforced server-side in checkoutZtaro().
-  const ztaroFullyCoveredByExp = paymentMethod === "ztaro" && totalPriceZtaro > 0 && ztaroFromExp >= totalPriceZtaro
-  const totalPriceZtaroAfterExp = Math.max(0, totalPriceZtaro - ztaroFromExp)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -90,7 +93,7 @@ export default function CheckoutPage() {
     try {
       const res = await checkoutCart({
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
-        expToUse: totalExpToUse,
+        expToUse: paymentMethod === "ztaro" ? undefined : totalExpToUse,
         shippingAddress: address,
         saveAddress,
         paymentMethod,
@@ -199,7 +202,9 @@ export default function CheckoutPage() {
                     {c.removeItem}
                   </button>
                 </div>
-                {max > 0 ? (
+                {paymentMethod === "ztaro" ? (
+                  <span className="text-[11px] text-muted-foreground">ZTARO 결제는 EXP를 함께 사용할 수 없어요.</span>
+                ) : max > 0 ? (
                   <label className="mt-1 flex flex-col gap-1 text-[11px] text-muted-foreground">
                     {c.useExpPrefix} <span className="notranslate">EXP</span> {c.useExpMaxPrefix} {max.toLocaleString()}{c.useExpMaxSuffix}
                     <input
@@ -301,21 +306,10 @@ export default function CheckoutPage() {
             <span className="text-muted-foreground">{c.subtotalLabel}</span>
             <span>{totalPriceZtaro.toLocaleString()} ZTARO</span>
           </div>
-          {totalExpToUse > 0 ? (
-            <div className="flex justify-between">
-              <span className="text-muted-foreground"><span className="notranslate">EXP</span> {c.expUsedPrefix} {expBalance.toLocaleString()})</span>
-              <span>-{ztaroFromExp.toLocaleString()} ZTARO (<span className="notranslate">EXP</span> {totalExpToUse.toLocaleString()})</span>
-            </div>
-          ) : null}
           <div className="mt-2 flex justify-between border-t border-border/60 pt-2 text-base font-semibold">
             <span>{c.finalPaymentLabel}</span>
-            <span>{totalPriceZtaroAfterExp.toLocaleString()} ZTARO</span>
+            <span>{totalPriceZtaro.toLocaleString()} ZTARO</span>
           </div>
-          {ztaroFullyCoveredByExp ? (
-            <p className="mt-1 text-xs text-destructive">
-              EXP로 ZTARO 결제 금액 전액을 대체할 수 없어요. 최소 1 ZTARO는 실제로 결제해야 하니 EXP 사용량을 줄여주세요.
-            </p>
-          ) : null}
         </section>
       ) : (
         <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
@@ -341,7 +335,7 @@ export default function CheckoutPage() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <Button type="submit" disabled={busy || ztaroFullyCoveredByExp} className="bg-primary text-primary-foreground hover:bg-primary/90">
+      <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
         {busy ? c.submitting : c.submitButton}
       </Button>
     </form>
