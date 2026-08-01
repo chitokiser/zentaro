@@ -190,7 +190,13 @@ const ko = {
     eyebrow: "ZENTARO",
     title: "Contact",
     description: "문의하기",
-    body: "문의 채널 정보가 준비 중입니다.",
+    body: "아래 연락처로 문의해주세요.",
+    phoneLabel: "전화",
+    phone: "0396340222",
+    emailLabel: "이메일",
+    email: "phuclochd8386@gmail.com",
+    addressLabel: "주소",
+    address: "Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
   },
   community: {
     eyebrow: "ZENTARO",
@@ -625,6 +631,10 @@ const ko = {
       ceoMessage: "CEO 인사말",
       visionMission: "Vision & Mission",
     },
+    visionStatement:
+      "신뢰받는 베트남 대표 쌀술 브랜드로 자리매김하는 것 — 전통 증류 기술을 현대 기술과 품질 기준으로 끌어올리고, 책임감 있는 음주 문화를 만들어갑니다.",
+    missionStatement:
+      "베트남 전통 증류 기법을 지키면서, 원산지가 명확한 깨끗하고 안전한 고품질 제품을 제공합니다. 베트남의 정체성이 담긴 맛과 향을 전하고, 건전한 음주 문화를 확산합니다.",
     visionMissionList: [
       "ZenTaro 시그니처 증류주 브랜드 개발",
       "지역 특산물을 활용한 프리미엄 보태니컬 제품 개발",
@@ -892,7 +902,13 @@ const en: Dict = {
     eyebrow: "ZENTARO",
     title: "Contact",
     description: "Contact Us",
-    body: "Contact channel information is being prepared.",
+    body: "Please reach us through the channels below.",
+    phoneLabel: "Phone",
+    phone: "0396340222",
+    emailLabel: "Email",
+    email: "phuclochd8386@gmail.com",
+    addressLabel: "Address",
+    address: "Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
   },
   community: {
     eyebrow: "ZENTARO",
@@ -1327,6 +1343,10 @@ const en: Dict = {
       ceoMessage: "CEO Message",
       visionMission: "Vision & Mission",
     },
+    visionStatement:
+      "To become a leading, trusted Vietnamese rice-spirit brand — elevating traditional distilling with modern technology and quality standards, and fostering a culture of responsible drinking.",
+    missionStatement:
+      "To preserve traditional Vietnamese distilling techniques while delivering clean, safe, high-quality products with a clear origin — sharing the taste and character of Vietnam, and promoting a responsible drinking culture.",
     visionMissionList: [
       "Development of the ZenTaro signature distilled spirits brand",
       "Development of premium botanical products using local specialty ingredients",
@@ -1592,7 +1612,13 @@ const vi: Dict = {
     eyebrow: "ZENTARO",
     title: "Contact",
     description: "Liên hệ",
-    body: "Thông tin kênh liên hệ đang được chuẩn bị.",
+    body: "Vui lòng liên hệ qua các kênh dưới đây.",
+    phoneLabel: "Điện thoại",
+    phone: "0396340222",
+    emailLabel: "Email",
+    email: "phuclochd8386@gmail.com",
+    addressLabel: "Địa chỉ",
+    address: "Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
   },
   community: {
     eyebrow: "ZENTARO",
@@ -2027,6 +2053,10 @@ const vi: Dict = {
       ceoMessage: "Thông điệp từ CEO",
       visionMission: "Tầm nhìn & Sứ mệnh",
     },
+    visionStatement:
+      "Trở thành thương hiệu rượu gạo Việt Nam uy tín hàng đầu — nâng tầm kỹ thuật chưng cất truyền thống bằng công nghệ và tiêu chuẩn chất lượng hiện đại, xây dựng văn hóa uống có trách nhiệm.",
+    missionStatement:
+      "Gìn giữ kỹ thuật chưng cất truyền thống của Việt Nam, đồng thời mang đến sản phẩm sạch, an toàn, chất lượng cao với nguồn gốc rõ ràng — lan tỏa hương vị và bản sắc Việt, thúc đẩy văn hóa uống rượu văn minh, có trách nhiệm.",
     visionMissionList: [
       "Phát triển thương hiệu rượu chưng cất đặc trưng ZenTaro",
       "Phát triển sản phẩm thảo mộc cao cấp sử dụng đặc sản địa phương",

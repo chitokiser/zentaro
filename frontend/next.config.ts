@@ -17,6 +17,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn.tgdd.vn" },
       { protocol: "https", hostname: "cdnv2.tgdd.vn" },
       { protocol: "https", hostname: "emartmall.com.vn" },
+      { protocol: "https", hostname: "ruouphucloc.vn" },
     ],
   },
 };

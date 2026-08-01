@@ -23,6 +23,8 @@ export default function CompanyPage() {
         <CeoMessage />
       </Section>
       <Section id="vision-mission" title={c.sections.visionMission} className="border-t border-border/60">
+        <p className="mb-4">{c.visionStatement}</p>
+        <p className="mb-6 text-muted-foreground">{c.missionStatement}</p>
         <ul className="list-disc space-y-2 pl-5">
           {c.visionMissionList.map((item) => (
             <li key={item}>{item}</li>
