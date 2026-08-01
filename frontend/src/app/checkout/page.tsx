@@ -78,6 +78,9 @@ export default function CheckoutPage() {
   const totalExpToUse = items.reduce((sum, item) => sum + Math.min(expInputs[item.productId] ?? 0, lineMaxExp(item)), 0)
   const totalApToPay = totalPriceAp - totalExpToUse
   const ztaroFromExp = zpPerZtaro > 0 ? Math.floor(totalExpToUse / zpPerZtaro) : 0
+  // EXP can discount a ZTARO order, but can't fully replace it — some ZTARO must actually
+  // be transferred on-chain, matching the same rule enforced server-side in checkoutZtaro().
+  const ztaroFullyCoveredByExp = paymentMethod === "ztaro" && totalPriceZtaro > 0 && ztaroFromExp >= totalPriceZtaro
   const totalPriceZtaroAfterExp = Math.max(0, totalPriceZtaro - ztaroFromExp)
 
   async function handleSubmit(e: React.FormEvent) {
@@ -308,6 +311,11 @@ export default function CheckoutPage() {
             <span>{c.finalPaymentLabel}</span>
             <span>{totalPriceZtaroAfterExp.toLocaleString()} ZTARO</span>
           </div>
+          {ztaroFullyCoveredByExp ? (
+            <p className="mt-1 text-xs text-destructive">
+              EXP로 ZTARO 결제 금액 전액을 대체할 수 없어요. 최소 1 ZTARO는 실제로 결제해야 하니 EXP 사용량을 줄여주세요.
+            </p>
+          ) : null}
         </section>
       ) : (
         <section className="flex flex-col gap-1 rounded-lg border border-border/60 bg-card p-4 text-sm">
@@ -333,7 +341,7 @@ export default function CheckoutPage() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <Button type="submit" disabled={busy} className="bg-primary text-primary-foreground hover:bg-primary/90">
+      <Button type="submit" disabled={busy || ztaroFullyCoveredByExp} className="bg-primary text-primary-foreground hover:bg-primary/90">
         {busy ? c.submitting : c.submitButton}
       </Button>
     </form>

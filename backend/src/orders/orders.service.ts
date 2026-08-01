@@ -410,7 +410,12 @@ export class OrdersService {
         }
 
         const ztaroFromExp = zpPerZtaro > 0 ? Math.floor(expToUse / zpPerZtaro) : 0;
-        totalPriceZtaro = Math.max(0, totalPriceZtaro - ztaroFromExp);
+        if (ztaroFromExp >= totalPriceZtaro) {
+          throw new BadRequestException(
+            'ZTARO 결제 금액 전액을 EXP로 대체할 수 없습니다. 최소 1 ZTARO 이상은 실제로 결제해야 합니다.',
+          );
+        }
+        totalPriceZtaro = totalPriceZtaro - ztaroFromExp;
 
         const orderRef = this.ordersCol().doc();
         tx.set(orderRef, {
