@@ -12,7 +12,7 @@ export interface CartItem {
   fulfillmentType: FulfillmentType
   quantity: number
   mainCategory?: string
-  /** Only set for 명품관 products — server-computed, fixed for the day. */
+  /** Server-computed, fixed for the day; unset only for products with no ZTARO price configured. */
   priceZtaro?: number | null
 }
 
@@ -25,7 +25,7 @@ interface CartContextValue {
   totalCount: number
   totalPriceAp: number
   totalPriceZtaro: number
-  /** ZTARO checkout is only offered when every cart line is a priced 명품관 item. */
+  /** ZTARO checkout is only offered when every cart line has a ZTARO price set. */
   canPayWithZtaro: boolean
 }
 

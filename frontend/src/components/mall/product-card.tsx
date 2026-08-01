@@ -63,6 +63,7 @@ export function ProductCard({ product, isAdmin, onEdit, onDelete, deleteBusy, on
       priceAp: product.priceAp,
       costAp,
       fulfillmentType: (product.fulfillmentType ?? "dropshipping") as "dropshipping" | "direct",
+      priceZtaro: product.priceZtaro,
     }
   }
 
