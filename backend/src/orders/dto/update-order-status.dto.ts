@@ -1,6 +1,6 @@
 import { IsIn } from 'class-validator';
 
-export const ORDER_STATUSES = ['paid', 'shipped', 'delivered', 'cancelled'] as const;
+export const ORDER_STATUSES = ['paid', 'preparing', 'shipped', 'delivered', 'cancelled'] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
 export class UpdateOrderStatusDto {

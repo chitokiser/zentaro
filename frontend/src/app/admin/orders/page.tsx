@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { fetchAllOrders, updateOrderStatus, type AdminOrder } from "@/lib/auth-client"
@@ -8,17 +8,35 @@ import { fetchAllOrders, updateOrderStatus, type AdminOrder } from "@/lib/auth-c
 const STATUS_LABEL: Record<string, string> = {
   pending_payment: "결제 대기",
   paid: "결제완료",
+  preparing: "배송준비",
   shipped: "배송중",
   delivered: "배송완료",
   cancelled: "취소",
 }
 
 const NEXT_STATUS: Record<string, string | null> = {
-  paid: "shipped",
+  paid: "preparing",
+  preparing: "shipped",
   shipped: "delivered",
   delivered: null,
   cancelled: null,
 }
+
+/** Tab order mirrors the real fulfillment pipeline: payment -> prep -> ship -> deliver. */
+const STATUS_TABS = ["all", "pending_payment", "paid", "preparing", "shipped", "delivered", "cancelled"] as const
+type StatusTab = (typeof STATUS_TABS)[number]
+
+const TAB_LABEL: Record<StatusTab, string> = {
+  all: "전체",
+  pending_payment: STATUS_LABEL.pending_payment,
+  paid: STATUS_LABEL.paid,
+  preparing: STATUS_LABEL.preparing,
+  shipped: STATUS_LABEL.shipped,
+  delivered: STATUS_LABEL.delivered,
+  cancelled: STATUS_LABEL.cancelled,
+}
+
+const REFRESH_INTERVAL_MS = 30000
 
 function formatDate(order: AdminOrder) {
   const seconds = order.createdAt?._seconds
@@ -30,6 +48,7 @@ export default function AdminOrdersPage() {
   const [orders, setOrders] = useState<AdminOrder[] | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
+  const [activeTab, setActiveTab] = useState<StatusTab>("all")
 
   const load = useCallback(() => {
     fetchAllOrders()
@@ -39,7 +58,24 @@ export default function AdminOrdersPage() {
 
   useEffect(() => {
     load()
+    // Auto-refresh so newly placed/paid orders show up without a manual reload.
+    const interval = setInterval(load, REFRESH_INTERVAL_MS)
+    return () => clearInterval(interval)
   }, [load])
+
+  const counts = useMemo(() => {
+    const c: Record<string, number> = { all: orders?.length ?? 0 }
+    for (const status of STATUS_TABS) {
+      if (status === "all") continue
+      c[status] = orders?.filter((o) => o.status === status).length ?? 0
+    }
+    return c
+  }, [orders])
+
+  const visibleOrders = useMemo(() => {
+    if (!orders) return orders
+    return activeTab === "all" ? orders : orders.filter((o) => o.status === activeTab)
+  }, [orders, activeTab])
 
   async function handleAdvance(order: AdminOrder) {
     const next = NEXT_STATUS[order.status]
@@ -74,10 +110,34 @@ export default function AdminOrdersPage() {
       <h2 className="font-display text-xl font-semibold">주문 관리</h2>
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
+      <div className="flex flex-wrap gap-2">
+        {STATUS_TABS.map((tab) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => setActiveTab(tab)}
+            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+              activeTab === tab
+                ? "border-primary bg-primary text-primary-foreground"
+                : "border-border/60 bg-card text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {TAB_LABEL[tab]}
+            <span
+              className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] ${
+                activeTab === tab ? "bg-primary-foreground/20" : "bg-secondary"
+              }`}
+            >
+              {counts[tab] ?? 0}
+            </span>
+          </button>
+        ))}
+      </div>
+
       <div className="flex flex-col gap-3">
         {orders === null ? <p className="text-sm text-muted-foreground">불러오는 중...</p> : null}
-        {orders?.length === 0 ? <p className="text-sm text-muted-foreground">주문이 없습니다.</p> : null}
-        {orders?.map((order) => (
+        {visibleOrders?.length === 0 ? <p className="text-sm text-muted-foreground">해당 상태의 주문이 없습니다.</p> : null}
+        {visibleOrders?.map((order) => (
           <div key={order.id} className="flex flex-col gap-2 rounded-lg border border-border/60 bg-card p-4 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="font-medium">주문 #{order.id.slice(0, 8)}</span>

@@ -767,7 +767,7 @@ export interface AdminOrder {
   ztaroTxHash?: string;
   /** EXP applied on top of a ZTARO-paid order (extra discount for ZTARO holders). */
   expUsed?: number;
-  status: "pending_payment" | "paid" | "shipped" | "delivered" | "cancelled";
+  status: "pending_payment" | "paid" | "preparing" | "shipped" | "delivered" | "cancelled";
   createdAt?: { _seconds: number } | null;
 }
 
