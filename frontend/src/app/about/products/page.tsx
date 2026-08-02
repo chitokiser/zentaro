@@ -465,6 +465,8 @@ export default function ProductsPromotionalPage() {
                     </div>
                 </div>
 
+                {selectedProduct.id === "zentaro-origin" ? <BrandTastingNotes locale={locale} /> : null}
+
                 <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
 
                 {/* Oak Cask Maturation Ecosystem - Bottom Feature Callout */}
@@ -554,6 +556,142 @@ function AromaParticles() {
                     {p.emoji}
                 </span>
             ))}
+        </div>
+    )
+}
+
+interface TastingNote {
+    title: { ko: string; en: string; vi: string }
+    body: { ko: string; en: string; vi: string }
+    rating: number
+}
+
+const ORIGIN_TASTING_NOTES: TastingNote[] = [
+    {
+        title: { ko: "부드러운 첫인상", en: "A Gentle First Impression", vi: "Ấn tượng đầu mềm mại" },
+        body: {
+            ko: "첫 잔을 코에 가까이 가져가면 잘 익은 배와 풋사과를 연상시키는 깨끗한 과실향이 먼저 올라온다. 입안에서는 예상보다 훨씬 부드럽고, 알코올 자극보다 향의 층이 먼저 느껴진다. 오크 숙성을 하지 않았다는 사실이 믿기지 않을 정도로 여운이 길다. 증류식 소주의 새로운 가능성을 보여주는 술이다.",
+            en: "Bring the first glass close to your nose and a clean fruit aroma reminiscent of ripe pear and green apple rises first. On the palate it's far softer than expected — the layers of aroma register before any alcohol bite. The finish lingers so long it's hard to believe there's no oak aging behind it. A spirit that shows a new direction for distilled soju.",
+            vi: "Đưa ly rượu gần mũi, hương trái cây trong trẻo gợi nhớ lê chín và táo xanh dâng lên trước tiên. Trong miệng, rượu mềm mại hơn nhiều so với dự đoán, các tầng hương thơm cảm nhận được trước cả vị cay của cồn. Hậu vị kéo dài đến mức khó tin rằng rượu không hề ủ sồi. Một loại rượu mở ra hướng đi mới cho soju chưng cất.",
+        },
+        rating: 4.8,
+    },
+    {
+        title: { ko: "깔끔함의 완성", en: "Clean, Perfected", vi: "Sự tinh khiết trọn vẹn" },
+        body: {
+            ko: "향료나 감미료를 사용하지 않았다는 설명을 듣고 마셔보니 왜 그런 자신감이 있었는지 이해된다. 인위적인 단맛 없이 쌀에서 오는 깨끗한 질감과 에스테르 향이 자연스럽게 이어진다. 깔끔한 피니시 덕분에 음식과 함께 마셔도 부담이 없다.",
+            en: "Knowing it contains no added flavoring or sweeteners before tasting it, I understand where that confidence comes from. Without any artificial sweetness, the clean texture from the rice and the ester aroma flow together naturally. Thanks to the clean finish, it never feels heavy when paired with food.",
+            vi: "Biết trước rượu không dùng hương liệu hay chất tạo ngọt, khi nếm thử mới hiểu vì sao lại tự tin đến vậy. Không có vị ngọt nhân tạo, kết cấu sạch từ gạo và hương ester hòa quyện tự nhiên. Nhờ hậu vị sạch, uống cùng món ăn cũng không hề nặng nề.",
+        },
+        rating: 4.7,
+    },
+    {
+        title: { ko: "쌀이 만든 향", en: "An Aroma Made by Rice", vi: "Hương thơm từ gạo" },
+        body: {
+            ko: "증류식 소주에서 이렇게 풍부한 과실향을 느껴본 것은 처음이다. 배와 청사과 향이 은은하게 이어지고 뒤에서는 흰 꽃 같은 향도 살짝 느껴진다. 오크향 대신 원료 본연의 향이 살아 있다는 점이 가장 큰 매력이다.",
+            en: "This is the first time I've tasted such a rich fruit aroma in a distilled soju. Notes of pear and green apple carry through gently, with a faint white-flower character behind them. What I love most is that the raw ingredient's own aroma comes through instead of oak.",
+            vi: "Đây là lần đầu tiên tôi cảm nhận được hương trái cây phong phú đến vậy trong một loại soju chưng cất. Hương lê và táo xanh thoảng nhẹ nối tiếp nhau, phía sau còn thoáng chút hương hoa trắng. Điểm hấp dẫn nhất là hương thơm nguyên bản của nguyên liệu được giữ lại thay vì hương gỗ sồi.",
+        },
+        rating: 4.9,
+    },
+    {
+        title: { ko: "위스키와 다른 매력", en: "A Different Charm from Whisky", vi: "Nét quyến rũ khác biệt so với whisky" },
+        body: {
+            ko: "위스키처럼 바닐라와 오크 향을 기대한다면 전혀 다른 술이다. 대신 훨씬 깨끗하고 산뜻한 향을 즐길 수 있다. 두 번의 증류가 만들어낸 부드러운 질감과 긴 여운은 가격 이상의 만족감을 준다.",
+            en: "If you're expecting vanilla and oak like a whisky, this is a completely different spirit. Instead, you get a far cleaner, crisper aroma. The smooth texture and long finish created by two distillations deliver satisfaction well beyond the price.",
+            vi: "Nếu mong đợi hương vani và gỗ sồi như whisky, đây là một loại rượu hoàn toàn khác. Thay vào đó là hương thơm trong trẻo, sảng khoái hơn nhiều. Kết cấu mềm mại và hậu vị dài do hai lần chưng cất tạo ra mang lại sự hài lòng vượt xa mức giá.",
+        },
+        rating: 4.6,
+    },
+    {
+        title: { ko: "식사와 가장 잘 어울리는 증류주", en: "The Spirit That Pairs Best with a Meal", vi: "Rượu chưng cất hợp với bữa ăn nhất" },
+        body: {
+            ko: "회, 해산물, 구운 고기와 함께 마셔봤다. 향이 강하지만 음식의 맛을 덮지 않고 오히려 감칠맛을 살려준다. 소주처럼 편하게 마실 수 있으면서도 향은 훨씬 풍부하다. 데일리 프리미엄 증류주라는 표현이 잘 어울린다.",
+            en: "I tried it with sashimi, seafood, and grilled meat. The aroma is strong but never covers the food's flavor — if anything, it brings out the umami. It drinks as easily as regular soju, yet the aroma is far richer. 'Everyday premium spirit' is exactly the right description.",
+            vi: "Tôi đã uống cùng sashimi, hải sản và thịt nướng. Hương thơm mạnh nhưng không át đi vị của món ăn, ngược lại còn làm nổi bật vị umami. Uống dễ chịu như soju thông thường nhưng hương thơm phong phú hơn nhiều. Cụm từ 'rượu chưng cất cao cấp hằng ngày' quả thực rất hợp.",
+        },
+        rating: 4.8,
+    },
+    {
+        title: { ko: "향을 위한 두 번의 증류", en: "Two Distillations for the Aroma", vi: "Hai lần chưng cất vì hương thơm" },
+        body: {
+            ko: "첫 모금에서는 은은한 배 향, 이어서 풋사과의 상쾌함이 느껴진다. 시간이 지나면서 쌀의 고소한 느낌도 살아난다. 거친 알코올 자극이 거의 없어 도수가 믿기지 않을 정도로 마시기 편하다.",
+            en: "The first sip brings a gentle pear aroma, followed by the crispness of green apple. As it opens up, the nutty character of rice comes through too. There's almost no harsh alcohol bite, making it dangerously easy to drink for its ABV.",
+            vi: "Ngụm đầu tiên mang đến hương lê thoảng nhẹ, tiếp theo là sự sảng khoái của táo xanh. Khi rượu 'mở', vị béo bùi của gạo cũng hiện ra. Gần như không có vị cay gắt của cồn, dễ uống đến mức khó tin so với nồng độ.",
+        },
+        rating: 4.9,
+    },
+    {
+        title: { ko: "숙성하지 않은 깊이", en: "Depth Without Aging", vi: "Chiều sâu không cần ủ" },
+        body: {
+            ko: "오크통에서 몇 년을 보내지 않았음에도 향의 깊이가 상당하다. 숙성으로 복잡함을 만드는 대신, 증류 기술로 향을 끌어낸 술이라는 설명이 그대로 이해된다. 기술이 만든 향이라는 표현이 가장 잘 어울린다.",
+            en: "Even without years spent in an oak barrel, the aroma has real depth. It's easy to understand the claim that this spirit draws out its aroma through distillation skill rather than the complexity of aging. 'Aroma made by craft' fits it best.",
+            vi: "Dù không trải qua nhiều năm trong thùng sồi, chiều sâu hương thơm vẫn rất đáng kể. Có thể hiểu ngay lời giải thích rằng thay vì tạo độ phức tạp qua thời gian ủ, rượu này khai thác hương thơm bằng kỹ thuật chưng cất. Cụm từ 'hương thơm do kỹ thuật tạo nên' là hợp nhất.",
+        },
+        rating: 4.7,
+    },
+    {
+        title: { ko: "장인의 손길이 느껴지는 술", en: "A Spirit with a Craftsman's Touch", vi: "Rượu mang dấu ấn bàn tay nghệ nhân" },
+        body: {
+            ko: "연간 생산량이 제한된 이유를 마셔보면 알 수 있다. 컷을 세심하게 가져간 흔적이 느껴지고, 끝맛까지 매우 정돈되어 있다. 대량생산 소주에서는 찾기 어려운 섬세함이 인상적이다.",
+            en: "Taste it once and you understand why the annual production is limited. You can feel the care taken in the cut, and even the very last note stays composed. A delicacy that's hard to find in mass-produced soju.",
+            vi: "Chỉ cần nếm thử là hiểu vì sao sản lượng hàng năm bị giới hạn. Có thể cảm nhận được sự tỉ mỉ trong từng lát cắt, hậu vị đến cuối vẫn rất gọn gàng. Sự tinh tế khó tìm thấy ở soju sản xuất đại trà để lại ấn tượng sâu sắc.",
+        },
+        rating: 4.8,
+    },
+    {
+        title: { ko: "향으로 기억되는 소주", en: "A Soju Remembered by Its Aroma", vi: "Soju được nhớ đến qua hương thơm" },
+        body: {
+            ko: "첫 향이 강렬하기보다 깨끗하고 우아하다. 잔을 비운 뒤에도 과실향이 오래 남아 다음 잔을 자연스럽게 찾게 만든다. '증류식 소주도 이렇게 향이 풍부할 수 있구나'라는 생각이 들었다.",
+            en: "The first aroma is elegant and clean rather than intense. Even after the glass is empty, the fruit aroma lingers long enough to make you reach for the next pour naturally. It made me realize distilled soju really can be this aromatic.",
+            vi: "Hương đầu tiên thanh lịch, trong trẻo hơn là mạnh mẽ. Ngay cả khi cạn ly, hương trái cây vẫn lưu lại lâu, khiến người ta tự nhiên muốn rót thêm ly nữa. Tôi nhận ra rằng soju chưng cất cũng có thể thơm phong phú đến vậy.",
+        },
+        rating: 4.9,
+    },
+    {
+        title: { ko: "새로운 프리미엄 증류식 소주", en: "A New Premium Distilled Soju", vi: "Chuẩn mực mới cho soju chưng cất cao cấp" },
+        body: {
+            ko: "위스키를 대신하려는 술이 아니라, 증류식 소주의 새로운 기준을 제시하는 제품이다. 쌀, 물, 코지, 효모만으로 이 정도의 향과 부드러움을 구현했다는 점이 놀랍다. 가격까지 고려하면 매우 경쟁력 있는 프리미엄 증류주라고 평가하고 싶다.",
+            en: "This isn't trying to replace whisky — it sets a new standard for distilled soju. It's remarkable that rice, water, koji, and yeast alone achieve this level of aroma and smoothness. Factoring in the price, I'd call it a highly competitive premium spirit.",
+            vi: "Đây không phải loại rượu muốn thay thế whisky, mà là sản phẩm đặt ra chuẩn mực mới cho soju chưng cất. Thật đáng kinh ngạc khi chỉ từ gạo, nước, men koji và men rượu mà tạo nên hương thơm và độ mềm mại đến vậy. Xét cả về giá, tôi đánh giá đây là loại rượu chưng cất cao cấp rất cạnh tranh.",
+        },
+        rating: 4.8,
+    },
+]
+
+function BrandTastingNotes({ locale }: { locale: Locale }) {
+    const title =
+        locale === "ko" ? "ZENTARO 공식 테이스팅 노트" : locale === "vi" ? "Ghi chú thử rượu chính thức từ ZENTARO" : "Official ZENTARO Tasting Notes"
+    const subtitle =
+        locale === "ko"
+            ? "ZENTARO 테이스팅팀이 남긴 공식 시음 코멘트입니다. 아래 실제 회원 후기와는 별도로 제공됩니다."
+            : locale === "vi"
+                ? "Đây là nhận xét thử rượu chính thức từ đội ngũ nếm thử ZENTARO, được hiển thị riêng biệt với đánh giá thực tế của thành viên bên dưới."
+                : "Official tasting comments from the ZENTARO tasting team, shown separately from the genuine member reviews below."
+
+    return (
+        <div className="mt-16 rounded-3xl border border-amber-500/20 bg-card/30 p-8 backdrop-blur-sm sm:p-12">
+            <div>
+                <Badge className="bg-amber-500/15 text-amber-500 border border-amber-500/30 text-xs font-mono select-none">
+                    {locale === "ko" ? "브랜드 테이스팅 노트" : locale === "vi" ? "Ghi chú thương hiệu" : "Brand Tasting Notes"}
+                </Badge>
+                <h3 className="mt-3 font-display text-2xl font-bold tracking-tight text-foreground">{title}</h3>
+                <p className="mt-1.5 text-xs text-muted-foreground">{subtitle}</p>
+            </div>
+            <div className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
+                {ORIGIN_TASTING_NOTES.map((note, idx) => (
+                    <div key={idx} className="rounded-xl border border-border/60 bg-background/40 p-4">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="text-sm font-semibold text-foreground">{note.title[locale]}</span>
+                            <div className="flex items-center gap-1.5">
+                                <StarRating value={note.rating} />
+                                <span className="text-xs text-muted-foreground">{note.rating.toFixed(1)}</span>
+                            </div>
+                        </div>
+                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{note.body[locale]}</p>
+                    </div>
+                ))}
+            </div>
         </div>
     )
 }
