@@ -101,8 +101,8 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             vi: "Nghệ thuật chưng cất kép — không ủ sồi, chỉ hai lần chưng cất qua tĩnh đồng",
         },
         specs: {
-            abv: "25% / 41%",
-            volume: "500ml",
+            abv: "17%",
+            volume: "350ml",
             reward: "10,000 EXP",
         },
         desc: {
