@@ -167,6 +167,24 @@
   animation: barrel-glow-pulse 2.8s ease-in-out infinite;
 }
 
+@keyframes aroma-particle-float {
+  0% { transform: translate(0, 12px) scale(0.5) rotate(0deg); opacity: 0; }
+  12% { opacity: 0.9; }
+  55% { transform: translate(var(--aroma-drift-x, 14px), -70px) scale(1) rotate(14deg); opacity: 0.85; }
+  100% { transform: translate(calc(var(--aroma-drift-x, 14px) * 1.7), -160px) scale(0.65) rotate(26deg); opacity: 0; }
+}
+
+.aroma-particle {
+  position: absolute;
+  bottom: 8%;
+  pointer-events: none;
+  animation-name: aroma-particle-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  will-change: transform, opacity;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.25));
+}
+
 .barrel-bubble {
   animation: barrel-bubble-rise 3.2s ease-in infinite;
 }

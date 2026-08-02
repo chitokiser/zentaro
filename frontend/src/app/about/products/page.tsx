@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { ArrowRight, Award, Beaker, Check, HelpCircle, Info, Sparkles, Star, Trash2 } from "lucide-react"
@@ -353,6 +353,7 @@ export default function ProductsPromotionalPage() {
                         ) : (
                             <div className="flex items-center justify-center text-zinc-500">No Image</div>
                         )}
+                        {selectedProduct.id === "zentaro-origin" ? <AromaParticles /> : null}
                     </div>
 
                     {/* Right Column: Descriptions & Tech Specs */}
@@ -517,6 +518,42 @@ export default function ProductsPromotionalPage() {
                     </div>
                 </div>
             </div>
+        </div>
+    )
+}
+
+const AROMA_PARTICLES = [
+    { emoji: "🍏", left: "10%", delay: "0s", duration: "6s", driftX: "10px", size: "text-lg" },
+    { emoji: "🌾", left: "20%", delay: "1.2s", duration: "7s", driftX: "-14px", size: "text-base" },
+    { emoji: "🍐", left: "32%", delay: "2.4s", duration: "6.5s", driftX: "16px", size: "text-lg" },
+    { emoji: "🍏", left: "46%", delay: "0.6s", duration: "7.5s", driftX: "-10px", size: "text-base" },
+    { emoji: "🌾", left: "56%", delay: "3s", duration: "6s", driftX: "12px", size: "text-sm" },
+    { emoji: "🍐", left: "66%", delay: "1.8s", duration: "7s", driftX: "-16px", size: "text-lg" },
+    { emoji: "🍏", left: "76%", delay: "3.6s", duration: "6.8s", driftX: "8px", size: "text-sm" },
+    { emoji: "🌾", left: "86%", delay: "2.1s", duration: "7.2s", driftX: "-12px", size: "text-base" },
+    { emoji: "🍐", left: "40%", delay: "4.2s", duration: "6.3s", driftX: "18px", size: "text-sm" },
+    { emoji: "🌾", left: "14%", delay: "5s", duration: "6.9s", driftX: "-8px", size: "text-lg" },
+] as const
+
+function AromaParticles() {
+    return (
+        <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+            {AROMA_PARTICLES.map((p, idx) => (
+                <span
+                    key={idx}
+                    className={`aroma-particle ${p.size} select-none`}
+                    style={
+                        {
+                            left: p.left,
+                            animationDelay: p.delay,
+                            animationDuration: p.duration,
+                            "--aroma-drift-x": p.driftX,
+                        } as CSSProperties
+                    }
+                >
+                    {p.emoji}
+                </span>
+            ))}
         </div>
     )
 }
