@@ -346,6 +346,12 @@ export async function fetchExchangeDashboard(): Promise<ExchangeDashboard> {
   return res.json();
 }
 
+export async function fetchPancakePoolBalance(): Promise<{ balance: number }> {
+  const res = await fetch(`${API_URL}/token-exchange/pancake-pool-balance`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function buyZtro(amount: number, maxPayUsdt?: number) {
   const res = await fetch(`${API_URL}/token-exchange/buy`, {
     method: "POST",

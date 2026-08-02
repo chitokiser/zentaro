@@ -197,6 +197,12 @@ export class TokenExchangeService {
     return fmtUsdt(priceWei);
   }
 
+  /** Live ZTARO balance sitting in the PancakeSwap Ztaro/USDT pool. */
+  async pancakePoolBalance() {
+    const balance = await this.blockchain.getPancakePoolZtaroBalance();
+    return { balance: Number(balance) };
+  }
+
   async dashboard(uid: string) {
     const { address } = await this.walletService.getOrCreateChainWallet(uid);
 

@@ -165,6 +165,11 @@ export class TokenExchangeController {
     });
   }
 
+  @Get('pancake-pool-balance')
+  pancakePoolBalance() {
+    return this.tokenExchangeService.pancakePoolBalance();
+  }
+
   @Get('barrel-pricing-config')
   getBarrelPricingConfig() {
     return this.tokenExchangeService.getBarrelPricingConfig();

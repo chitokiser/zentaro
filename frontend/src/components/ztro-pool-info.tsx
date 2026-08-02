@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { fetchPancakePoolBalance } from "@/lib/auth-client"
 
 interface PoolPairData {
     priceUsd: string
@@ -17,6 +18,18 @@ export function ZtroPoolInfo() {
     const [poolData, setPoolData] = useState<PoolPairData | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(false)
+    const [ztaroBalance, setZtaroBalance] = useState<number | null>(null)
+
+    useEffect(() => {
+        const fetchZtaroBalance = () => {
+            fetchPancakePoolBalance()
+                .then((res) => setZtaroBalance(res.balance))
+                .catch(() => {})
+        }
+        fetchZtaroBalance()
+        const intervalId = setInterval(fetchZtaroBalance, 30000)
+        return () => clearInterval(intervalId)
+    }, [])
 
     useEffect(() => {
         const fetchPoolData = async () => {
@@ -135,7 +148,18 @@ export function ZtroPoolInfo() {
             </div>
 
             {/* Body */}
-            <div className="grid grid-cols-2 gap-px bg-border/30 sm:grid-cols-4">
+            <div className="grid grid-cols-2 gap-px bg-border/30 sm:grid-cols-5">
+                {/* ZTARO in pool */}
+                <div className="bg-card px-4 py-3.5">
+                    <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                        ZTARO Balance
+                    </p>
+                    <p className="mt-1 font-display text-lg font-bold tabular-nums">
+                        {ztaroBalance === null ? "…" : ztaroBalance.toLocaleString()}
+                    </p>
+                    <p className="mt-0.5 text-[10px] text-muted-foreground">풀 내 ZTARO 보유량</p>
+                </div>
+
                 {/* Price */}
                 <div className="bg-card px-4 py-3.5">
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">

@@ -16,6 +16,9 @@ const REWARD_DISPENSER_ABI = [
   'function poolBalance() external view returns (uint256)',
 ];
 
+/** PancakeSwap V2 Ztaro/USDT pair on opBNB — public LP address, same one the price snapshot cron reads. */
+const PANCAKE_ZTRO_USDT_POOL = '0x5a65805fb99cf5b7e50d567c4029af62531be53c';
+
 const ERC20_ABI = [
   'function balanceOf(address account) view returns (uint256)',
   'function allowance(address owner, address spender) view returns (uint256)',
@@ -133,6 +136,12 @@ export class BlockchainService {
       this.provider,
     );
     return contract.poolBalance();
+  }
+
+  /** Live ZTARO balance held by the PancakeSwap V2 Ztaro/USDT LP — read-only. */
+  async getPancakePoolZtaroBalance(): Promise<bigint> {
+    const ztro = this.getZtroContract(this.provider);
+    return ztro.balanceOf(PANCAKE_ZTRO_USDT_POOL);
   }
 
   /** Generates a fresh, offline keypair — no RPC call. */
