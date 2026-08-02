@@ -119,7 +119,7 @@ export function ZtroPoolInfo() {
                 </div>
                 <div className="flex items-center gap-3">
                     <a
-                        href="https://pancakeswap.finance/swap?outputCurrency=0xdd98e6425f1fc7ca536cd6bba9674f1e270cb30c&chain=opbnb"
+                        href="https://pancakeswap.finance/swap?outputCurrency=0x9e5AAC1Ba1a2e6aEd6b32689DFcF62A509Ca96f3&chain=opBNB&inputCurrency=0xdD98e6425f1fc7Ca536cd6bba9674f1E270cB30C"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex items-center gap-1.5 rounded-md bg-amber-500 px-3 py-1.5 text-xs font-semibold text-black transition-colors hover:bg-amber-600 shadow-sm"
