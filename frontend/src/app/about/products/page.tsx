@@ -290,11 +290,18 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
     },
 ]
 
+const ORDERED_PRODUCTS = [...BRAND_PRODUCTS].sort((a, b) => {
+    if (a.id === "zentaro-origin") return -1
+    if (b.id === "zentaro-origin") return 1
+    return 0
+})
+
 export default function ProductsPromotionalPage() {
     const { t, locale } = useI18n()
-    const [activeTab, setActiveTab] = useState(BRAND_PRODUCTS[0].id)
+    const [activeTab, setActiveTab] = useState(ORDERED_PRODUCTS[0].id)
 
-    const selectedProduct = BRAND_PRODUCTS.find((p) => p.id === activeTab) || BRAND_PRODUCTS[0]
+    const selectedProduct = BRAND_PRODUCTS.find((p) => p.id === activeTab) || ORDERED_PRODUCTS[0]
+    const isComingSoon = selectedProduct.id !== "zentaro-origin"
 
     return (
         <div className="bg-background text-foreground min-h-screen">
@@ -322,7 +329,7 @@ export default function ProductsPromotionalPage() {
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
                 {/* Navigation Tabs - Glassmorphism style */}
                 <div className="flex flex-wrap justify-center gap-3 mb-16">
-                    {BRAND_PRODUCTS.map((prod) => (
+                    {ORDERED_PRODUCTS.map((prod) => (
                         <button
                             key={prod.id}
                             onClick={() => setActiveTab(prod.id)}
@@ -332,6 +339,11 @@ export default function ProductsPromotionalPage() {
                                 }`}
                         >
                             {prod.category[locale]}
+                            {prod.id !== "zentaro-origin" ? (
+                                <span className="ml-1.5 text-[10px] font-normal opacity-70">
+                                    ({locale === "ko" ? "준비중" : locale === "vi" ? "Sắp ra mắt" : "Coming soon"})
+                                </span>
+                            ) : null}
                         </button>
                     ))}
                 </div>
@@ -354,6 +366,13 @@ export default function ProductsPromotionalPage() {
                             <div className="flex items-center justify-center text-zinc-500">No Image</div>
                         )}
                         {selectedProduct.id === "zentaro-origin" ? <AromaParticles /> : null}
+                        {isComingSoon ? (
+                            <div className="absolute inset-0 z-20 flex items-center justify-center bg-zinc-950/50 backdrop-blur-[1px]">
+                                <Badge className="bg-zinc-900/90 text-white border border-white/20 text-xs px-3 py-1 uppercase tracking-widest font-mono select-none">
+                                    {locale === "ko" ? "출시 준비중" : locale === "vi" ? "Sắp ra mắt" : "Coming Soon"}
+                                </Badge>
+                            </div>
+                        ) : null}
                     </div>
 
                     {/* Right Column: Descriptions & Tech Specs */}
@@ -378,6 +397,24 @@ export default function ProductsPromotionalPage() {
                             </p>
                         </div>
 
+                        {isComingSoon ? (
+                            <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-secondary/20 px-6 py-8 text-center sm:text-left">
+                                <Sparkles className="h-8 w-8 shrink-0 text-amber-500" />
+                                <div>
+                                    <p className="text-lg font-bold text-foreground">
+                                        {locale === "ko" ? "출시 준비중입니다" : locale === "vi" ? "Sản phẩm đang được chuẩn bị ra mắt" : "Coming Soon"}
+                                    </p>
+                                    <p className="mt-1 text-sm text-muted-foreground">
+                                        {locale === "ko"
+                                            ? "더 완성도 높은 모습으로 곧 찾아뵙겠습니다. 현재는 명품 증류식 소주 ZENTARO ORIGIN만 만나보실 수 있어요."
+                                            : locale === "vi"
+                                                ? "Chúng tôi sẽ sớm ra mắt với phiên bản hoàn thiện nhất. Hiện tại chỉ có ZENTARO ORIGIN sẵn sàng phục vụ quý khách."
+                                                : "We're putting the finishing touches on this one. For now, ZENTARO ORIGIN is the only product available."}
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            <>
                         {/* Tech Specs Badge Container */}
                         <div className="flex flex-wrap gap-2 py-2 border-y border-border/60">
                             {selectedProduct.specs.abv && (
@@ -462,12 +499,17 @@ export default function ProductsPromotionalPage() {
                                 </Button>
                             )}
                         </div>
+                            </>
+                        )}
                     </div>
                 </div>
 
-                {selectedProduct.id === "zentaro-origin" ? <BrandTastingNotes locale={locale} /> : null}
-
-                <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
+                {!isComingSoon ? (
+                    <>
+                        <BrandTastingNotes locale={locale} />
+                        <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
+                    </>
+                ) : null}
 
                 {/* Oak Cask Maturation Ecosystem - Bottom Feature Callout */}
                 <div className="mt-24 p-8 sm:p-12 rounded-3xl bg-zinc-950 border border-amber-500/20 text-white relative overflow-hidden">
