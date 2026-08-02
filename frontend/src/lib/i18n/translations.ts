@@ -23,6 +23,7 @@ const ko = {
       lab: "실험실",
       business: "사업부 소개",
       products: "우리 제품 소개",
+      smartContract: "스마트컨트랙트 공개",
     },
     service: { label: "서비스" },
     serviceItems: {
@@ -252,6 +253,38 @@ const ko = {
       labTitle: "실험실",
       labBody:
         "증류 장비, 측정 장비(비중계·굴절계·pH미터), 계량 장비, 원료 가공 장비를 갖춘 실험 공간에서 신제품과 향료 연구가 이루어집니다.",
+    },
+    smartContract: {
+      eyebrow: "ZENTARO 소개",
+      title: "Smart Contract",
+      description: "ZTARO 스마트컨트랙트 공개 및 기술 리포트",
+      introTitle: "컨트랙트 공개",
+      introBody:
+        "ZENTARO의 온체인 시스템은 4개의 opBNB(Chain ID 204) 스마트컨트랙트로 구성됩니다. 아래 주소는 모두 실제 배포된 컨트랙트이며, opBNBScan에서 누구나 직접 조회할 수 있습니다. 업그레이드 가능한 프록시 구조를 쓰지 않으므로, 배포 후 로직이 임의로 바뀌지 않습니다.",
+      disclaimerTitle: "감사(Audit)가 아닙니다",
+      disclaimerBody:
+        "이 페이지와 기술 리포트는 외부 감사기관의 보안 감사 결과가 아니라, 배포된 소스코드와 온체인 상태를 직접 읽고 정리한 기술 문서입니다. 제3자 보안 감사가 진행된 적이 있는지는 확인되지 않았습니다.",
+      tableTitle: "배포된 컨트랙트",
+      colName: "이름",
+      colAddress: "주소",
+      colPurpose: "역할",
+      contracts: [
+        { name: "Zentaro Token", purpose: "ERC-20 유틸리티 토큰(Ztaro), 고정 발행량 10억 개" },
+        { name: "ZtaroVaultDAO", purpose: "락업 스테이킹, 거버넌스 투표 및 안건 실행" },
+        { name: "ZentaroBank", purpose: "USDT 기준 Ztaro 매수/매도/스테이킹/배당" },
+        { name: "ZtroRewardDispenser", purpose: "QR(병뚜껑) 스캔 리워드 랜덤 지급" },
+      ],
+      factsTitle: "핵심 사실",
+      facts: [
+        "총 발행량 1,000,000,000 Ztaro — 추가 발행(mint) 함수 없음, 소각 함수 없음",
+        "4개 컨트랙트 모두 업그레이드 불가능한 일반 컨트랙트 (프록시 패턴 미사용)",
+        "거버넌스 안건은 투표 마감(7일) 이전에는 정족수를 채워도 실행 불가",
+        "락업 해제 후 스테이킹 인출도 관리자 사전 승인이 필요한 2단계 통제 구조",
+      ],
+      verifyStatusTitle: "소스코드 검증 상태",
+      verifyStatusBody:
+        "opBNBScan 소스코드 검증(Verify)을 준비 중입니다. 검증이 완료되면 각 주소 페이지에서 소스코드를 직접 확인할 수 있습니다.",
+      viewOnExplorer: "opBNBScan에서 보기",
     },
     business: {
       eyebrow: "ZENTARO 소개",
@@ -735,6 +768,7 @@ const en: Dict = {
       lab: "Laboratory",
       business: "Business Divisions",
       products: "Our Products Showcase",
+      smartContract: "Smart Contract Disclosure",
     },
     service: { label: "Services" },
     serviceItems: {
@@ -964,6 +998,38 @@ const en: Dict = {
       labTitle: "Laboratory",
       labBody:
         "New product and fragrance research takes place in a lab space equipped with distillation equipment, measurement instruments (hydrometer, refractometer, pH meter), weighing equipment, and raw material processing equipment.",
+    },
+    smartContract: {
+      eyebrow: "About ZENTARO",
+      title: "Smart Contract",
+      description: "ZTARO smart contract disclosure & technical report",
+      introTitle: "Contract Disclosure",
+      introBody:
+        "ZENTARO's on-chain system consists of 4 smart contracts on opBNB (Chain ID 204). The addresses below are all live, deployed contracts anyone can inspect directly on opBNBScan. None of them use an upgradeable proxy pattern, so their logic cannot be changed after deployment.",
+      disclaimerTitle: "This is not an audit",
+      disclaimerBody:
+        "This page and the underlying technical report are not the result of a third-party security audit — they are a technical summary compiled by directly reading the deployed source code and on-chain state. Whether a third-party security audit has ever been performed is not confirmed.",
+      tableTitle: "Deployed Contracts",
+      colName: "Name",
+      colAddress: "Address",
+      colPurpose: "Purpose",
+      contracts: [
+        { name: "Zentaro Token", purpose: "ERC-20 utility token (Ztaro), fixed supply of 1 billion" },
+        { name: "ZtaroVaultDAO", purpose: "Lock-up staking, governance voting and proposal execution" },
+        { name: "ZentaroBank", purpose: "USDT-denominated Ztaro buy/sell/stake/dividend" },
+        { name: "ZtroRewardDispenser", purpose: "Randomized QR (bottle cap) reward payouts" },
+      ],
+      factsTitle: "Key Facts",
+      facts: [
+        "Fixed total supply of 1,000,000,000 Ztaro — no mint function, no burn function",
+        "All 4 contracts are non-upgradeable (no proxy pattern)",
+        "Governance proposals cannot execute before the 7-day voting deadline, even at quorum",
+        "Withdrawing unlocked stakes still requires prior admin approval — a 2-step control",
+      ],
+      verifyStatusTitle: "Source Verification Status",
+      verifyStatusBody:
+        "opBNBScan source verification is in progress. Once complete, the source code will be viewable directly on each contract's address page.",
+      viewOnExplorer: "View on opBNBScan",
     },
     business: {
       eyebrow: "About ZENTARO",
@@ -1445,6 +1511,7 @@ const vi: Dict = {
       lab: "Phòng thí nghiệm",
       business: "Giới thiệu các mảng kinh doanh",
       products: "Giới thiệu sản phẩm",
+      smartContract: "Công bố hợp đồng thông minh",
     },
     service: { label: "Dịch vụ" },
     serviceItems: {
@@ -1674,6 +1741,38 @@ const vi: Dict = {
       labTitle: "Phòng thí nghiệm",
       labBody:
         "Nghiên cứu sản phẩm mới và hương liệu được thực hiện trong không gian thí nghiệm trang bị thiết bị chưng cất, thiết bị đo lường (tỷ trọng kế, khúc xạ kế, máy đo pH), thiết bị cân đong và thiết bị xử lý nguyên liệu.",
+    },
+    smartContract: {
+      eyebrow: "Về ZENTARO",
+      title: "Smart Contract",
+      description: "Công bố hợp đồng thông minh ZTARO & báo cáo kỹ thuật",
+      introTitle: "Công bố hợp đồng",
+      introBody:
+        "Hệ thống on-chain của ZENTARO gồm 4 hợp đồng thông minh trên opBNB (Chain ID 204). Các địa chỉ dưới đây đều là hợp đồng đã triển khai thực tế, ai cũng có thể tra cứu trực tiếp trên opBNBScan. Không hợp đồng nào dùng mô hình proxy có thể nâng cấp, nên logic không thể thay đổi sau khi triển khai.",
+      disclaimerTitle: "Đây không phải là báo cáo kiểm toán (audit)",
+      disclaimerBody:
+        "Trang này và báo cáo kỹ thuật liên quan không phải là kết quả kiểm toán bảo mật từ bên thứ ba — đây là tài liệu kỹ thuật được tổng hợp từ việc đọc trực tiếp mã nguồn đã triển khai và trạng thái on-chain. Việc đã từng có kiểm toán bảo mật bên thứ ba hay chưa vẫn chưa được xác nhận.",
+      tableTitle: "Hợp đồng đã triển khai",
+      colName: "Tên",
+      colAddress: "Địa chỉ",
+      colPurpose: "Vai trò",
+      contracts: [
+        { name: "Zentaro Token", purpose: "Token tiện ích ERC-20 (Ztaro), tổng cung cố định 1 tỷ" },
+        { name: "ZtaroVaultDAO", purpose: "Staking khóa hạn, bỏ phiếu quản trị và thực thi đề xuất" },
+        { name: "ZentaroBank", purpose: "Mua/bán/staking/chia cổ tức Ztaro tính theo USDT" },
+        { name: "ZtroRewardDispenser", purpose: "Trả thưởng ngẫu nhiên qua quét mã QR (nắp chai)" },
+      ],
+      factsTitle: "Sự thật cốt lõi",
+      facts: [
+        "Tổng cung cố định 1.000.000.000 Ztaro — không có hàm phát hành thêm (mint), không có hàm đốt (burn)",
+        "Cả 4 hợp đồng đều không thể nâng cấp (không dùng mô hình proxy)",
+        "Đề xuất quản trị không thể thực thi trước hạn bỏ phiếu 7 ngày, kể cả khi đã đủ túc số",
+        "Rút staking đã hết khóa vẫn cần quản trị viên phê duyệt trước — cơ chế kiểm soát 2 lớp",
+      ],
+      verifyStatusTitle: "Trạng thái xác minh mã nguồn",
+      verifyStatusBody:
+        "Đang chuẩn bị xác minh mã nguồn (Verify) trên opBNBScan. Sau khi hoàn tất, mã nguồn sẽ được xem trực tiếp trên trang từng địa chỉ hợp đồng.",
+      viewOnExplorer: "Xem trên opBNBScan",
     },
     business: {
       eyebrow: "Về ZENTARO",
