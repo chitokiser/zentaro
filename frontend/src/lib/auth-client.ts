@@ -1486,3 +1486,40 @@ export async function setBarrelEvaluationAdmin(
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  userId: string;
+  email: string;
+  rating: number;
+  comment: string;
+  createdAt?: { _seconds: number } | null;
+}
+
+export async function fetchProductReviews(
+  productId: string,
+): Promise<{ reviews: ProductReview[]; average: number; count: number }> {
+  const res = await fetch(`${API_URL}/product-reviews?productId=${encodeURIComponent(productId)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function submitProductReview(productId: string, rating: number, comment: string): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/product-reviews`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ productId, rating, comment }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deleteProductReview(id: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/product-reviews/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

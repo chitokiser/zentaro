@@ -21,6 +21,7 @@ import { BottleCapsModule } from './bottle-caps/bottle-caps.module';
 import { BlockchainModule } from './blockchain/blockchain.module';
 import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
 import { TokenExchangeModule } from './token-exchange/token-exchange.module';
+import { ProductReviewsModule } from './product-reviews/product-reviews.module';
 
 @Module({
   imports: [
@@ -45,6 +46,7 @@ import { TokenExchangeModule } from './token-exchange/token-exchange.module';
     BlockchainModule,
     ZtroRewardsModule,
     TokenExchangeModule,
+    ProductReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

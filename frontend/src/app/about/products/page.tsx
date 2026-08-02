@@ -1,14 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Award, Beaker, Check, HelpCircle, Info, Sparkles } from "lucide-react"
+import { ArrowRight, Award, Beaker, Check, HelpCircle, Info, Sparkles, Star, Trash2 } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
+import type { Locale } from "@/lib/i18n/translations"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
+import {
+    getToken,
+    onAuthChanged,
+    fetchMe,
+    fetchProductReviews,
+    submitProductReview,
+    deleteProductReview,
+    type ProductReview,
+} from "@/lib/auth-client"
 
 interface ProductBrandInfo {
     id: string
@@ -86,9 +96,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             vi: "Premium Distilled Soju",
         },
         tagline: {
-            ko: "국산 쌀 100%와 전통 누룩으로 옹기 숙성한 정통 명주",
-            en: "Traditional Korean single-source rice spirit aged in clay pots",
-            vi: "Soju chưng cất truyền thống được ủ đằm trong chum đất nung",
+            ko: "오크 없이, 구리 증류기 두 번의 증류만으로 완성한 향의 예술",
+            en: "The Art of Double Distillation — no oak, just two passes through a copper pot still",
+            vi: "Nghệ thuật chưng cất kép — không ủ sồi, chỉ hai lần chưng cất qua tĩnh đồng",
         },
         specs: {
             abv: "25% / 41%",
@@ -96,34 +106,40 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             reward: "10,000 EXP",
         },
         desc: {
-            ko: "최적의 발효주를 만들어내는 전통 방식을 고조시켜 한국산 특등급 쌀과 직접 디딘 통밀 누룩만을 사용하여 감미했습니다. 단 한 방울의 화학 첨가물도 허용하지 않고 감압 증류하여 찌꺼기 없는 깔끔한 목 넘김을 완성하였으며, 베트남 하노이 젠타로 셀러의 옹기 항아리에서 장기 저온 숙성을 거쳐 은은한 막걸리 원액의 고소한 감칠맛과 묵직한 바디감을 완성했습니다.",
-            en: "A noble spirit crafted purely with hand-steeped traditional wheat starter and top-grade single-origin rice. Free from any chemical additives, it undergoes low-temperature vacuum distillation for unparalleled clarity, and is slow-aged in traditional breathable clay jars to unlock deep grain umami and a smooth texture.",
-            vi: "Sản phẩm chưng cất thượng hạng tinh tuyển từ 100% gạo thơm chất lượng cao kết hợp men bánh truyền thống. Hệ thống chưng cất áp suất giảm loại bỏ hoàn toàn độc tố, kết hợp thời gian ủ dài trong các chum sành đất nung mang lại vị ngọt hậu tự nhiên của lúa chín.",
+            ko: "오직 쌀과 발효, 그리고 구리 증류기(Copper Pot Still)에서 두 번의 증류로 향을 완성하는 프리미엄 수제 증류식 소주입니다. 오크 숙성 없이도 위스키에 견줄 만큼 깊고 풍부한 향을 구현했습니다. 몇 년씩 오크통에서 나무 향을 빌려오는 대신, 전통적인 구리 증류기에서 두 차례 정성껏 증류하고, 정밀한 컷(Heads, Hearts, Tails) 기술을 통해 배와 풋사과를 연상시키는 에스테르 향을 최대한 살렸습니다. 그 결과 숙성에 의존하지 않고도 깨끗하면서도 입체적인 향과 부드러운 질감을 완성했으며, 위스키보다 더욱 합리적인 가격으로 즐길 수 있습니다.\n\n베이스는 2019년 필리핀 마닐라 World Rice Conference에서 '세계 최고의 쌀'로 선정된 ST25 품종입니다. 여기에 구연산 생성 능력이 뛰어난 흑국균(Black Koji)으로 당화를 진행하고, 선별한 효모를 사용하여 깨끗하고 안정적인 발효를 완성했습니다. 흑국균이 만드는 구연산은 발효 중 잡균의 증식을 억제하고, 효모는 쌀의 당을 알코올과 풍부한 과실향으로 바꾸어 젠타로 오리진만의 섬세한 향을 만들어냅니다.\n\n발효를 마친 술은 전통 구리 증류기(Copper Pot Still)에서 두 차례 증류됩니다. 1차 증류로 얻은 원주를 다시 한 번 증류하며, 재증류 과정에서는 가장 향이 풍부한 하트 컷(Heart Cut)을 중심으로 컷을 깊게 가져가 배·풋사과 계열의 에스테르 향을 최대한 담아냅니다. 구리는 황화합물과 같은 불쾌한 향을 줄이고 증류주의 향을 더욱 깨끗하고 부드럽게 다듬는 특성이 있어, 젠타로 오리진 특유의 맑고 우아한 향을 완성하는 중요한 역할을 합니다. 이 과정에서 함께 따라오는 거친 맛은 저온 여과와 활성탄 처리를 통해 선택적으로 제거합니다. 향은 최대한 보존하고, 결점만 덜어내는 것이 젠타로 오리진의 철학입니다.\n\n젠타로 오리진은 오크통에서 숙성하지 않습니다. 대신 스테인리스 탱크에서 충분한 정치(靜置) 과정을 거쳐 술을 안정시키고, 두 번의 증류와 정밀한 여과 공정으로 완성된 향을 그대로 유지합니다. 시간이 만들어내는 것은 나무 향이 아니라, 쌀과 발효, 그리고 증류 기술이 빚어낸 본연의 풍미입니다.\n\n젠타로 오리진은 대량생산 소주가 아닙니다. 연간 10만 병(약 35,000리터) 이하만 생산하며, 이는 PHUC LOC 증류소의 전체 생산 능력 중 일부만을 배정한 한정 생산 제품입니다. 더 많이 만들 수 없어서가 아니라, 품질을 위해 더 만들지 않기로 선택했습니다. 증류 컷 하나, 여과 한 번까지 장인의 손으로 확인하는 수작업 공정을 고집하기 때문에 생산량을 쉽게 늘릴 수 없습니다.\n\n첫 향에서는 잘 익은 배와 풋사과를 연상시키는 은은한 에스테르 향이 펼쳐지고, 이어서 깨끗한 쌀의 풍미와 부드러운 질감이 조화를 이룹니다. 향료도, 색소도, 감미료도 넣지 않았습니다. 오직 쌀과 물, 흑국균, 효모, 그리고 구리 증류기에서의 두 번의 증류. 그것이 젠타로 오리진의 모든 것입니다.",
+            en: "A premium handcrafted distilled soju built on nothing but rice, fermentation, and two passes through a traditional copper pot still. Without a single day of oak aging, it achieves an aroma deep and layered enough to rival whisky. Instead of borrowing wood character from years in an oak barrel, we distill twice with meticulous care in a traditional copper pot still, using precise cutting (heads, hearts, tails) to preserve pear- and green-apple-like ester aromas at their fullest. The result is a clean yet multidimensional aroma and a smooth texture achieved without relying on aging — offered at a far more accessible price than whisky.\n\nThe base is ST25 rice, named 'the world's best rice' at the 2019 World Rice Conference in Manila, Philippines. Saccharification is carried out with Black Koji, prized for its strong citric-acid production, then fermented with selected yeast for a clean, stable result. The citric acid Black Koji produces suppresses unwanted microbial growth during fermentation, while the yeast converts the rice's sugars into alcohol and rich fruity aromas, creating ZENTARO Origin's signature delicate character.\n\nOnce fermentation is complete, the spirit is distilled twice in a traditional copper pot still. The raw spirit from the first distillation is distilled again, with the cut taken deep around the aromatic Heart Cut to capture as much of the pear and green-apple ester character as possible. Copper reduces harsh notes like sulfur compounds and refines the spirit into something cleaner and smoother — a key part of what gives ZENTARO Origin its clear, elegant character. The coarse notes that come along the way are selectively removed through cold filtration and activated-carbon treatment. Preserving the aroma while trimming only the flaws — that is ZENTARO Origin's philosophy.\n\nZENTARO Origin is not aged in oak. Instead, it rests in stainless steel tanks long enough to stabilize, keeping the aroma achieved through double distillation and precise filtration exactly as it is. What time creates here is not wood character, but the natural flavor born purely from rice, fermentation, and distillation craft.\n\nZENTARO Origin is not mass-produced soju. We make no more than 100,000 bottles (about 35,000 liters) a year — a limited allocation of PHUC LOC Distillery's total capacity. Not because we can't make more, but because we chose not to, for the sake of quality. Every cut of the distillation and every round of filtration is checked by hand, which naturally limits how much we can produce.\n\nThe first note opens with a subtle ester aroma reminiscent of ripe pear and green apple, followed by clean rice character and a smooth texture in harmony. No added fragrance, no coloring, no sweeteners. Only rice, water, Black Koji, yeast, and two distillations through a copper pot still. That is everything ZENTARO Origin is.",
+            vi: "Rượu soju chưng cất thủ công cao cấp chỉ từ gạo, lên men và hai lần chưng cất qua tĩnh đồng truyền thống (Copper Pot Still). Không cần ủ sồi, hương vị vẫn sâu và phong phú không kém whisky. Thay vì mượn hương gỗ từ nhiều năm ủ trong thùng sồi, chúng tôi chưng cất hai lần tỉ mỉ qua tĩnh đồng truyền thống, kết hợp kỹ thuật cắt lát chính xác (Heads, Hearts, Tails) để giữ trọn hương ester gợi nhớ lê và táo xanh. Kết quả là hương thơm trong trẻo nhưng đa chiều và kết cấu mềm mại mà không cần dựa vào thời gian ủ — với mức giá hợp lý hơn nhiều so với whisky.\n\nNguyên liệu nền là giống gạo ST25 — được vinh danh 'gạo ngon nhất thế giới' tại Hội nghị Gạo Thế giới 2019 tại Manila, Philippines. Quá trình đường hóa sử dụng men Khúc Đen (Black Koji) với khả năng sinh axit citric vượt trội, kết hợp men rượu chọn lọc để lên men sạch và ổn định. Axit citric do Black Koji tạo ra ức chế sự phát triển của vi khuẩn lạ trong quá trình lên men, còn men rượu chuyển hóa đường trong gạo thành cồn và hương trái cây phong phú, tạo nên nét tinh tế đặc trưng của ZENTARO Origin.\n\nSau khi lên men xong, rượu được chưng cất hai lần qua tĩnh đồng truyền thống. Rượu thô từ lần chưng cất đầu tiên được chưng cất lại lần nữa, với phần cắt tập trung sâu vào Heart Cut giàu hương thơm nhất để giữ trọn hương ester gợi nhớ lê và táo xanh. Đồng có đặc tính giảm các hợp chất lưu huỳnh khó chịu và làm hương rượu trong trẻo, mềm mại hơn — đóng vai trò quan trọng trong việc hoàn thiện hương thơm thanh lịch đặc trưng của ZENTARO Origin. Vị thô đi kèm trong quá trình này được loại bỏ có chọn lọc qua lọc lạnh và xử lý than hoạt tính. Giữ trọn hương thơm, chỉ loại bỏ khuyết điểm — đó là triết lý của ZENTARO Origin.\n\nZENTARO Origin không ủ trong thùng sồi. Thay vào đó, rượu được để lắng đủ lâu trong bồn thép không gỉ để ổn định, giữ nguyên hương thơm đã hoàn thiện qua hai lần chưng cất và lọc tinh xảo. Thứ mà thời gian tạo ra ở đây không phải là hương gỗ, mà là hương vị nguyên bản được tạo nên từ gạo, lên men và kỹ thuật chưng cất.\n\nZENTARO Origin không phải soju sản xuất đại trà. Chúng tôi chỉ sản xuất tối đa 100.000 chai (khoảng 35.000 lít) mỗi năm — một phần hạn chế trong tổng năng lực sản xuất của Nhà máy PHUC LOC. Không phải vì không thể sản xuất nhiều hơn, mà vì chúng tôi chọn không làm nhiều hơn, để giữ chất lượng. Từng lát cắt chưng cất, từng lần lọc đều được nghệ nhân kiểm tra bằng tay, nên sản lượng khó có thể tăng dễ dàng.\n\nHương đầu tiên mở ra với hương ester thoảng nhẹ gợi nhớ lê chín và táo xanh, tiếp nối là hương gạo sạch và kết cấu mềm mại hòa quyện. Không hương liệu, không phẩm màu, không chất tạo ngọt. Chỉ có gạo, nước, men Khúc Đen, men rượu, và hai lần chưng cất qua tĩnh đồng. Đó là tất cả những gì làm nên ZENTARO Origin.",
         },
         features: {
             ko: [
-                "100% 특등급 쌀 수매 원료화",
-                "감압 증류 방식을 통해 알데히드 성분을 극소화하여 취기 최소화",
-                "숨쉬는 옹기 항아리 저온 숙성으로 깊어지는 특유의 누룩 피니시",
+                "세계 최고쌀 'ST25' 100% 사용 (2019 World Rice Conference 선정)",
+                "흑국균(Black Koji) 당화로 잡균 억제, 깨끗한 발효",
+                "구리 단식 증류기 2회 증류 + 정밀 하트컷(Heart Cut)",
+                "오크 숙성 없이 스테인리스 정치만으로 향 보존",
+                "연간 10만 병(약 35,000리터) 한정 생산",
                 "병뚜껑 QR 반납 시 Ztaro 토큰/10,000 EXP 즉시 보상",
             ],
             en: [
-                "Sourced using 100% top-grade local agricultural rice",
-                "Vacuum distilled at low temperature to eliminate harsh congeners",
-                "Aged in breathable premium clay jars for rich grain esters",
+                "Uses 100% ST25 rice, named the world's best rice at the 2019 World Rice Conference",
+                "Black Koji saccharification suppresses unwanted microbes for a clean fermentation",
+                "Double distilled in a copper pot still with a precise Heart Cut",
+                "No oak aging — aroma preserved through stainless steel resting alone",
+                "Limited to 100,000 bottles (about 35,000L) per year",
                 "Scan cap QR to claim 10,000 EXP or Ztaro tokens instantly",
             ],
             vi: [
-                "Sản xuất từ nguồn gạo sạch nguyên hạt chọn lọc",
-                "Công nghệ chưng cất chân không loại bỏ đau đầu và tạp chất",
-                "Ủ già trong chum sành tự nhiên tạo vị êm sâu tròn đầy",
-                "Quét mã QR nắp chai đổi ngay 10.000 EXP vào ví mua sắm",
+                "Sử dụng 100% gạo ST25 — vinh danh gạo ngon nhất thế giới tại Hội nghị Gạo Thế giới 2019",
+                "Đường hóa bằng men Khúc Đen (Black Koji) ức chế vi khuẩn lạ, lên men sạch",
+                "Chưng cất kép qua tĩnh đồng với kỹ thuật Heart Cut chính xác",
+                "Không ủ sồi — hương thơm được giữ nguyên chỉ nhờ để lắng trong bồn thép không gỉ",
+                "Giới hạn 100.000 chai (khoảng 35.000 lít) mỗi năm",
+                "Quét mã QR nắp chai nhận ngay 10.000 EXP tích luỹ",
             ],
         },
         ingredients: {
-            ko: "쌀 100%, 누룩, 정제수",
-            en: "Rice 100%, Wheat yeast starter, Purified water",
-            vi: "Gạo thơm 100%, Men bánh tự nhiên, Nước tinh khiết",
+            ko: "ST25 쌀 100%, 흑국균(Black Koji), 효모, 정제수",
+            en: "ST25 rice 100%, Black Koji, Yeast, Purified water",
+            vi: "Gạo ST25 100%, Men Khúc Đen (Black Koji), Men rượu, Nước tinh khiết",
         },
     },
     {
@@ -396,9 +412,11 @@ export default function ProductsPromotionalPage() {
                         </div>
 
                         {/* Description Text */}
-                        <p className="text-muted-foreground text-sm sm:text-base leading-relaxed">
-                            {selectedProduct.desc[locale]}
-                        </p>
+                        <div className="space-y-3 text-muted-foreground text-sm sm:text-base leading-relaxed">
+                            {selectedProduct.desc[locale].split("\n\n").map((paragraph, idx) => (
+                                <p key={idx}>{paragraph}</p>
+                            ))}
+                        </div>
 
                         {/* Ingredients Section */}
                         <div className="flex gap-2 items-start bg-secondary/30 p-4 rounded-xl text-xs">
@@ -445,6 +463,8 @@ export default function ProductsPromotionalPage() {
                         </div>
                     </div>
                 </div>
+
+                <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
 
                 {/* Oak Cask Maturation Ecosystem - Bottom Feature Callout */}
                 <div className="mt-24 p-8 sm:p-12 rounded-3xl bg-zinc-950 border border-amber-500/20 text-white relative overflow-hidden">
@@ -496,6 +516,218 @@ export default function ProductsPromotionalPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+function StarRating({ value, size = "h-4 w-4" }: { value: number; size?: string }) {
+    return (
+        <div className="flex items-center gap-0.5">
+            {[1, 2, 3, 4, 5].map((n) => (
+                <Star
+                    key={n}
+                    className={`${size} ${n <= Math.round(value) ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`}
+                />
+            ))}
+        </div>
+    )
+}
+
+function StarPicker({ value, onChange }: { value: number; onChange: (n: number) => void }) {
+    return (
+        <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((n) => (
+                <button key={n} type="button" onClick={() => onChange(n)} className="p-0.5">
+                    <Star className={`h-6 w-6 ${n <= value ? "fill-amber-400 text-amber-400" : "text-muted-foreground/40"}`} />
+                </button>
+            ))}
+        </div>
+    )
+}
+
+function formatReviewDate(review: ProductReview) {
+    const seconds = review.createdAt?._seconds
+    if (!seconds) return ""
+    return new Date(seconds * 1000).toLocaleDateString()
+}
+
+function maskEmail(email: string) {
+    const [name, domain] = email.split("@")
+    if (!domain) return email
+    const visible = name.slice(0, 2)
+    return `${visible}${"*".repeat(Math.max(1, name.length - 2))}@${domain}`
+}
+
+function ReviewsSection({ productId, locale }: { productId: string; locale: Locale }) {
+    const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
+    const [uid, setUid] = useState<string | null>(null)
+    const [reviews, setReviews] = useState<ProductReview[] | null>(null)
+    const [average, setAverage] = useState(0)
+    const [count, setCount] = useState(0)
+    const [myRating, setMyRating] = useState(5)
+    const [myComment, setMyComment] = useState("")
+    const [busy, setBusy] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+
+    useEffect(() => onAuthChanged(() => setLoggedIn(Boolean(getToken()))), [])
+
+    useEffect(() => {
+        if (!loggedIn) {
+            setUid(null)
+            return
+        }
+        fetchMe()
+            .then((me) => setUid(me.uid))
+            .catch(() => setUid(null))
+    }, [loggedIn])
+
+    function load() {
+        fetchProductReviews(productId)
+            .then((res) => {
+                setReviews(res.reviews)
+                setAverage(res.average)
+                setCount(res.count)
+                const mine = res.reviews.find((r) => r.userId === uid)
+                if (mine) {
+                    setMyRating(mine.rating)
+                    setMyComment(mine.comment)
+                }
+            })
+            .catch(() => {
+                setReviews([])
+                setAverage(0)
+                setCount(0)
+            })
+    }
+
+    useEffect(() => {
+        load()
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [productId, uid])
+
+    const myReview = reviews?.find((r) => r.userId === uid) ?? null
+
+    async function handleSubmit() {
+        if (!myComment.trim()) return
+        setBusy(true)
+        setError(null)
+        try {
+            await submitProductReview(productId, myRating, myComment.trim())
+            load()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to submit review.")
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    async function handleDelete() {
+        if (!myReview) return
+        setBusy(true)
+        setError(null)
+        try {
+            await deleteProductReview(myReview.id)
+            setMyRating(5)
+            setMyComment("")
+            load()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to delete review.")
+        } finally {
+            setBusy(false)
+        }
+    }
+
+    const title = locale === "ko" ? "시음 후기" : locale === "vi" ? "Đánh giá thử rượu" : "Tasting Reviews"
+    const writePrompt =
+        locale === "ko" ? "시음 후기 남기기" : locale === "vi" ? "Viết đánh giá của bạn" : "Write your tasting review"
+    const placeholder =
+        locale === "ko"
+            ? "향, 맛, 목넘김 등 시음 느낌을 자유롭게 남겨주세요."
+            : locale === "vi"
+                ? "Chia sẻ cảm nhận về hương, vị, hậu vị..."
+                : "Share your impressions of the aroma, taste, and finish."
+    const submitLabel = myReview
+        ? locale === "ko"
+            ? "후기 수정"
+            : locale === "vi"
+                ? "Cập nhật đánh giá"
+                : "Update Review"
+        : locale === "ko"
+            ? "후기 등록"
+            : locale === "vi"
+                ? "Gửi đánh giá"
+                : "Submit Review"
+    const loginPrompt =
+        locale === "ko"
+            ? "로그인하면 시음 후기와 평점을 남길 수 있습니다."
+            : locale === "vi"
+                ? "Đăng nhập để viết đánh giá và chấm điểm."
+                : "Log in to write a tasting review and rating."
+    const noReviews =
+        locale === "ko" ? "아직 등록된 시음 후기가 없습니다." : locale === "vi" ? "Chưa có đánh giá nào." : "No reviews yet."
+
+    return (
+        <div className="mt-16 rounded-3xl border border-border/80 bg-card/30 p-8 backdrop-blur-sm sm:p-12">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+                <h3 className="font-display text-2xl font-bold tracking-tight text-foreground">{title}</h3>
+                {count > 0 ? (
+                    <div className="flex items-center gap-2">
+                        <StarRating value={average} size="h-5 w-5" />
+                        <span className="text-sm font-semibold text-foreground">{average.toFixed(1)}</span>
+                        <span className="text-xs text-muted-foreground">({count})</span>
+                    </div>
+                ) : null}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-border/60 bg-background/60 p-5">
+                <span className="text-sm font-semibold text-foreground">{writePrompt}</span>
+                {loggedIn ? (
+                    <div className="mt-3 flex flex-col gap-3">
+                        <StarPicker value={myRating} onChange={setMyRating} />
+                        <textarea
+                            value={myComment}
+                            onChange={(e) => setMyComment(e.target.value)}
+                            placeholder={placeholder}
+                            maxLength={500}
+                            rows={3}
+                            className="w-full rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+                        />
+                        {error ? <p className="text-xs text-destructive">{error}</p> : null}
+                        <div className="flex gap-2">
+                            <Button size="sm" disabled={busy || !myComment.trim()} onClick={handleSubmit}>
+                                {submitLabel}
+                            </Button>
+                            {myReview ? (
+                                <Button size="sm" variant="ghost" disabled={busy} onClick={handleDelete} className="gap-1.5 text-destructive">
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                    {locale === "ko" ? "삭제" : locale === "vi" ? "Xóa" : "Delete"}
+                                </Button>
+                            ) : null}
+                        </div>
+                    </div>
+                ) : (
+                    <p className="mt-2 text-sm text-muted-foreground">{loginPrompt}</p>
+                )}
+            </div>
+
+            <div className="mt-6 flex flex-col gap-4">
+                {reviews === null ? null : reviews.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">{noReviews}</p>
+                ) : (
+                    reviews.map((review) => (
+                        <div key={review.id} className="rounded-xl border border-border/60 bg-background/40 p-4">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <StarRating value={review.rating} />
+                                    <span className="text-xs font-medium text-foreground">{maskEmail(review.email)}</span>
+                                </div>
+                                <span className="text-xs text-muted-foreground">{formatReviewDate(review)}</span>
+                            </div>
+                            <p className="mt-2 text-sm text-muted-foreground">{review.comment}</p>
+                        </div>
+                    ))
+                )}
             </div>
         </div>
     )
