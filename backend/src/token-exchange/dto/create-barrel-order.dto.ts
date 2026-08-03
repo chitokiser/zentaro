@@ -1,8 +1,8 @@
-import { IsIn, IsOptional, IsString } from 'class-validator';
-import { AGING_ENVIRONMENTS } from '../barrel-options';
+import { IsIn, IsOptional } from 'class-validator';
+import { AGING_ENVIRONMENTS, NEW_ORDER_BARREL_SIZES } from '../barrel-options';
 
 export class CreateBarrelOrderDto {
-  @IsString()
+  @IsIn(NEW_ORDER_BARREL_SIZES as unknown as string[])
   size: string;
 
   @IsOptional()

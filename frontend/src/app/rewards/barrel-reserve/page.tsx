@@ -144,6 +144,9 @@ const FLAVORS = [
 
 const BARREL_LITERS: Record<string, number> = { "5L": 5, "10L": 10, "20L": 20, "40L": 40 }
 
+/** New orders no longer offer 5L — kept in BARREL_SPECS/BARREL_LITERS so already-issued 5L barrels still render correctly. */
+const NEW_ORDER_BARREL_SPECS = BARREL_SPECS.filter((spec) => spec.size !== "5L")
+
 /** Ztaro staking requirement per liter to pay with EXP; not admin-configurable (only the EXP/ZP price is). */
 const BARREL_STAKE_PER_LITER_ZTARO = 10000
 
@@ -777,8 +780,8 @@ export default function BarrelReservePage() {
                         </p>
                     </div>
 
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {BARREL_SPECS.map((spec) => (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        {NEW_ORDER_BARREL_SPECS.map((spec) => (
                             <button
                                 key={spec.size}
                                 type="button"

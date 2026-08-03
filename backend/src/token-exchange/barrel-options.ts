@@ -5,6 +5,9 @@ export const BARREL_LITERS: Record<string, number> = {
   '40L': 40,
 };
 
+/** 5L is discontinued for new orders — kept in BARREL_LITERS so already-issued 5L barrels still price/display correctly. */
+export const NEW_ORDER_BARREL_SIZES = ['10L', '20L', '40L'] as const;
+
 /** Barrel subscription price: 200,000 EXP or 200,000 ZP per liter (same amount either way). */
 export const BARREL_PRICE_PER_LITER_EXP = 200000;
 export const BARREL_PRICE_PER_LITER_ZP = 200000;
