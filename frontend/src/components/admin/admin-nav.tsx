@@ -4,17 +4,19 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { fetchMe } from "@/lib/auth-client"
 import { OrdersNavBadge } from "@/components/admin/orders-nav-badge"
+import { InvestorWatchNavBadge } from "@/components/admin/investor-watch-nav-badge"
 
 interface AdminSection {
   label: string
   href: string
   requiredLevel: 1 | 2 | 3
-  badge?: boolean
+  badge?: "orders" | "investorWatch"
 }
 
 const ADMIN_SECTIONS: AdminSection[] = [
   { label: "상품 관리", href: "/admin/products", requiredLevel: 2 },
-  { label: "주문 관리", href: "/admin/orders", requiredLevel: 3, badge: true },
+  { label: "주문 관리", href: "/admin/orders", requiredLevel: 3, badge: "orders" },
+  { label: "투자자 지갑 감시", href: "/admin/investor-watch", requiredLevel: 1, badge: "investorWatch" },
   { label: "입점 문의", href: "/admin/vendor-inquiries", requiredLevel: 3 },
   { label: "매출 장부", href: "/admin/sales-report", requiredLevel: 1 },
   { label: "회원 관리", href: "/admin/members", requiredLevel: 1 },
@@ -73,7 +75,8 @@ export function AdminNav() {
             className="flex items-center rounded-md px-3 py-2 text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
           >
             {section.label}
-            {section.badge ? <OrdersNavBadge /> : null}
+            {section.badge === "orders" ? <OrdersNavBadge /> : null}
+            {section.badge === "investorWatch" ? <InvestorWatchNavBadge /> : null}
           </Link>
         ))}
       </nav>

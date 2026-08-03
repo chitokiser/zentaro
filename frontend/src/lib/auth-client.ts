@@ -1529,3 +1529,63 @@ export async function deleteProductReview(id: string): Promise<{ success: boolea
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface InvestorWatch {
+  id: string;
+  address: string;
+  label: string;
+  grantDate: { _seconds: number } | null;
+  grantAmount: number | null;
+  sellThreshold: number;
+  lastKnownBalance: number | null;
+  cumulativeDecrease: number;
+  alertTriggered: boolean;
+  alertTriggeredAt: { _seconds: number } | null;
+  alertAcknowledgedAt: { _seconds: number } | null;
+}
+
+export async function fetchInvestorWatchList(): Promise<InvestorWatch[]> {
+  const res = await fetch(`${API_URL}/investor-watch`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function createInvestorWatch(input: {
+  address: string;
+  label: string;
+  grantDate: string;
+  grantAmount?: number;
+  sellThreshold: number;
+}): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/investor-watch`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deleteInvestorWatch(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/investor-watch/${id}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function acknowledgeInvestorWatch(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/investor-watch/${id}/acknowledge`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchInvestorWatchAlertCount(): Promise<{ count: number }> {
+  const res = await fetch(`${API_URL}/investor-watch/alerts/count`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

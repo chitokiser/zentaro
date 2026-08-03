@@ -22,6 +22,7 @@ import { BlockchainModule } from './blockchain/blockchain.module';
 import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
 import { TokenExchangeModule } from './token-exchange/token-exchange.module';
 import { ProductReviewsModule } from './product-reviews/product-reviews.module';
+import { InvestorWatchModule } from './investor-watch/investor-watch.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { ProductReviewsModule } from './product-reviews/product-reviews.module';
     ZtroRewardsModule,
     TokenExchangeModule,
     ProductReviewsModule,
+    InvestorWatchModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
