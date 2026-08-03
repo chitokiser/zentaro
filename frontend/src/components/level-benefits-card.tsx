@@ -35,12 +35,6 @@ const BENEFITS: { level: number; icon: string; title: string; description: strin
         description: "가입시킨 멘티가 ZP를 충전할 때마다 결제액의 레벨만큼 EXP를 보상받습니다. (Lv.3 = 충전액의 3% EXP)",
     },
     {
-        level: 4,
-        icon: "🏪",
-        title: "가맹점 Ztaro 보상",
-        description: "제휴 가맹점에서 ZP로 결제 시 결제액 × 레벨 ÷ 10,000 만큼 Ztaro를 보상받습니다.",
-    },
-    {
         level: 5,
         icon: "📈",
         title: "스테이킹 배당 강화",
