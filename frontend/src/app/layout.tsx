@@ -63,6 +63,34 @@ export default function RootLayout({
     >
       <head>
         <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "Organization",
+              name: "ZENTARO",
+              legalName: "CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
+              url: "https://zentaro.netlify.app",
+              logo: "https://zentaro.netlify.app/images/brand/logo.png",
+              address: {
+                "@type": "PostalAddress",
+                streetAddress: "Tổ dân phố Liên Sơn, Phường Tiền Phong",
+                addressLocality: "Thành phố Bắc Ninh",
+                addressRegion: "Tỉnh Bắc Ninh",
+                addressCountry: "VN",
+              },
+              email: "phuclochd8386@gmail.com",
+              telephone: "+84396340222",
+              sameAs: [
+                "https://www.youtube.com/@WilliamCater-d8h",
+                "https://www.instagram.com/zentaro119/",
+                "https://t.me/+Gtu15GAUikliYzg1",
+                "https://www.facebook.com/profile.php?id=61591465442279",
+              ],
+            }),
+          }}
+        />
+        <script
           dangerouslySetInnerHTML={{
             __html: `
               (function() {
