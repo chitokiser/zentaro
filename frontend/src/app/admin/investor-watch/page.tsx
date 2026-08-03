@@ -8,6 +8,7 @@ import {
   createInvestorWatch,
   deleteInvestorWatch,
   acknowledgeInvestorWatch,
+  syncInvestorWatch,
   type InvestorWatch,
 } from "@/lib/auth-client"
 
@@ -101,15 +102,30 @@ export default function AdminInvestorWatchPage() {
     }
   }
 
+  async function handleSync(id: string) {
+    setBusy(id)
+    setError(null)
+    try {
+      await syncInvestorWatch(id)
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "동기화에 실패했습니다.")
+    } finally {
+      setBusy(null)
+    }
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <h2 className="font-display text-xl font-semibold">투자자 지갑 감시</h2>
       <p className="text-sm text-muted-foreground">
         특정 날짜에 ZTARO를 지급한 지갑을 등록하면, 매시간 잔고를 확인해 누적 감소량이 설정한
-        기준치를 넘는 순간 아래 목록에 알림이 표시됩니다. 다만 이 백엔드가 사용하는 무료
-        opBNB RPC는 과거 이벤트(eth_getLogs) 조회를 지원하지 않아, &quot;PancakeSwap에서 매도&quot;와
-        &quot;다른 지갑으로 이체&quot;를 구분하지 못합니다 — 잔고가 줄었다는 신호일 뿐, 정확한 매도
-        추적기는 아닙니다. 정확한 판단이 필요하면 opBNBScan에서 해당 주소를 직접 조회하세요.
+        기준치를 넘는 순간 아래 목록에 알림이 표시됩니다. 또한 opBNBScan 탐색기 API로 해당
+        지갑의 PancakeSwap 매수/매도 내역을 재구성해 평균 매수·매도 단가와 실현손익을 계산합니다.
+        단, 이 손익은 지갑이 직접 PancakeSwap에서 스왑한 거래만 인식합니다 — CEX 출금이나
+        다른 지갑으로의 단순 이체는 매도로 잡히지 않으며, opBNBScan API 키가 설정되지
+        않았거나 응답 실패 시에는 해당 값이 갱신되지 않을 수 있습니다(항목별 &quot;동기화 오류&quot;
+        표시 참고). 정확한 판단이 필요하면 opBNBScan에서 해당 주소를 직접 조회하세요.
       </p>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -216,6 +232,14 @@ export default function AdminInvestorWatchPage() {
                     ) : null}
                     <Button
                       size="sm"
+                      variant="outline"
+                      disabled={busy === item.id}
+                      onClick={() => handleSync(item.id)}
+                    >
+                      {busy === item.id ? "동기화 중..." : "지금 동기화"}
+                    </Button>
+                    <Button
+                      size="sm"
                       variant="destructive"
                       disabled={busy === item.id}
                       onClick={() => handleDelete(item.id)}
@@ -230,6 +254,33 @@ export default function AdminInvestorWatchPage() {
                   <span>현재 잔고: {item.lastKnownBalance === null ? "확인 전" : `${item.lastKnownBalance.toLocaleString()} ZTARO`}</span>
                   <span>
                     누적 감소: {item.cumulativeDecrease.toLocaleString()} / {item.sellThreshold.toLocaleString()} ZTARO
+                  </span>
+                </div>
+                <div className="flex flex-wrap items-center gap-4 rounded-md bg-secondary/40 px-3 py-2 text-xs">
+                  <span>
+                    매수: {item.totalBoughtZtaro.toLocaleString()} ZTARO
+                    {item.totalBoughtZtaro > 0 ? ` (평균 ${item.avgCostUsdt.toFixed(4)} USDT/개)` : ""}
+                  </span>
+                  <span>
+                    매도: {item.totalSoldZtaro.toLocaleString()} ZTARO
+                    {item.totalSoldZtaro > 0
+                      ? ` (평균 ${(item.totalSellProceedsUsdt / item.totalSoldZtaro).toFixed(4)} USDT/개)`
+                      : ""}
+                  </span>
+                  <span
+                    className={
+                      item.realizedProfitUsdt > 0
+                        ? "font-semibold text-emerald-500"
+                        : item.realizedProfitUsdt < 0
+                          ? "font-semibold text-destructive"
+                          : "text-muted-foreground"
+                    }
+                  >
+                    실현손익: {item.realizedProfitUsdt.toLocaleString(undefined, { maximumFractionDigits: 2 })} USDT
+                  </span>
+                  <span className="text-muted-foreground">
+                    스왑 동기화: {item.swapSyncedAt ? formatDate(item.swapSyncedAt) : "아직 안 됨"}
+                    {item.swapSyncError ? ` · 오류: ${item.swapSyncError}` : ""}
                   </span>
                 </div>
               </div>

@@ -1542,6 +1542,15 @@ export interface InvestorWatch {
   alertTriggered: boolean;
   alertTriggeredAt: { _seconds: number } | null;
   alertAcknowledgedAt: { _seconds: number } | null;
+  costBasisQty: number;
+  avgCostUsdt: number;
+  totalBoughtZtaro: number;
+  totalBuyCostUsdt: number;
+  totalSoldZtaro: number;
+  totalSellProceedsUsdt: number;
+  realizedProfitUsdt: number;
+  swapSyncedAt: { _seconds: number } | null;
+  swapSyncError: string | null;
 }
 
 export async function fetchInvestorWatchList(): Promise<InvestorWatch[]> {
@@ -1577,6 +1586,15 @@ export async function deleteInvestorWatch(id: string): Promise<{ ok: boolean }> 
 
 export async function acknowledgeInvestorWatch(id: string): Promise<{ ok: boolean }> {
   const res = await fetch(`${API_URL}/investor-watch/${id}/acknowledge`, {
+    method: "POST",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function syncInvestorWatch(id: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/investor-watch/${id}/sync`, {
     method: "POST",
     headers: authHeaders(),
   });

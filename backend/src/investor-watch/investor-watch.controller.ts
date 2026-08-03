@@ -31,6 +31,11 @@ export class InvestorWatchController {
     return this.investorWatch.acknowledge(id);
   }
 
+  @Post(':id/sync')
+  syncOne(@Param('id') id: string) {
+    return this.investorWatch.syncOne(id);
+  }
+
   @Get('alerts/count')
   alertCount() {
     return this.investorWatch.activeAlertCount();
