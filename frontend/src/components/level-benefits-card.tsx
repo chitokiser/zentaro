@@ -26,7 +26,7 @@ const BENEFITS: { level: number; icon: string; title: string; description: strin
         level: 2,
         icon: "🥃",
         title: "위스키뱅크 수수료 할인",
-        description: "오크 배럴 P2P 거래 수수료를 레벨만큼 할인합니다. (기본 15% → Lv.2 이후 매 레벨마다 1%씩 추가 감면, 최소 1%)",
+        description: "오크 배럴 P2P 거래 수수료를 레벨만큼 할인합니다. (Lv.1 14% → Lv.2 이후 매 레벨마다 1%씩 추가 감면, 최소 5%)",
     },
     {
         level: 3,

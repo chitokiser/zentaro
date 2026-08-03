@@ -42,7 +42,7 @@ const EXP_SOURCES = [
 ]
 
 const LEVEL_TABLE = [
-    { level: 1, expCost: "—", stakingReward: "–", barrelFee: "15%", mentorExp: "1%", notes: "기본 혜택" },
+    { level: 1, expCost: "—", stakingReward: "–", barrelFee: "14%", mentorExp: "1%", notes: "기본 혜택" },
     { level: 2, expCost: "10,000", stakingReward: "스테이킹×2/1000", barrelFee: "13%", mentorExp: "2%", notes: "배럴 수수료 2% 할인" },
     { level: 3, expCost: "40,000", stakingReward: "스테이킹×3/1000", barrelFee: "12%", mentorExp: "3%", notes: "멘티 EXP 보상 시작" },
     { level: 4, expCost: "90,000", stakingReward: "스테이킹×4/1000", barrelFee: "11%", mentorExp: "4%", notes: "가맹점 Ztaro 보상" },
