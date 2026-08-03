@@ -91,7 +91,7 @@ const ko = {
     privacy: "Privacy",
     community: "Official Community",
     tagline:
-      "Every Bottle Tells a Story. 프리미엄 크래프트 증류소 ZENTARO가 빚어내는 진, 위스키, 리큐르와 보태니컬의 이야기.",
+      "Every Bottle Tells a Story. PHÚC LỘC 증류소의 프리미엄 브랜드 ZENTARO가 빚어내는 진, 위스키, 리큐르와 보태니컬의 이야기.",
     rights: "All rights reserved.",
     companyName: "상호: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "대표자: NGUYỄN XUÂN ƯỚC",
@@ -115,7 +115,7 @@ const ko = {
     writtenBySuffix: " 작성",
     relatedVideo: "관련 영상 보러가기 →",
     ctaTitle: "ZENTARO 바로가기",
-    ctaDescription: "프리미엄 크래프트 증류소 ZENTARO에서 더 많은 이야기를 만나보세요",
+    ctaDescription: "PHÚC LỘC 증류소의 프리미엄 브랜드 ZENTARO에서 더 많은 이야기를 만나보세요",
   },
   mall: {
     eyebrow: "서비스",
@@ -211,7 +211,7 @@ const ko = {
       description: "증류소 소개, 증류 과정, Barrel Room, 증류 장비",
       introTitle: "증류소 소개",
       introBody:
-        "ZENTARO 증류소는 프리미엄 진(Gin), 리큐르(Liqueur), 보태니컬 추출물을 연구·개발하는 크래프트 증류 시설입니다.",
+        "PHÚC LỘC 증류소는 ZENTARO 브랜드의 프리미엄 진(Gin), 리큐르(Liqueur), 보태니컬 추출물을 연구·개발하는 크래프트 증류 시설입니다.",
       processTitle: "증류 과정",
       processBody:
         "보태니컬 계량 → 침용(Maceration) → Vapor Infusion 증류 → 커팅(Heads/Hearts/Tails 분리) → 희석 및 병입까지, 모든 배치는 수작업으로 관리됩니다.",
@@ -306,7 +306,7 @@ const ko = {
     certifications: {
       eyebrow: "ZENTARO 소개",
       title: "인증 · 허가 서류",
-      description: "ZENTARO가 보유한 자격, 허가 및 관련 인증 서류입니다.",
+      description: "ZENTARO 브랜드를 생산하는 PHÚC LỘC 증류소가 보유한 자격, 허가 및 관련 인증 서류입니다.",
       empty: "등록된 인증 서류가 없습니다.",
     },
   },
@@ -836,7 +836,7 @@ const en: Dict = {
     privacy: "Privacy",
     community: "Official Community",
     tagline:
-      "Every Bottle Tells a Story. The tale of gin, whisky, liqueur, and botanicals crafted by premium craft distillery ZENTARO.",
+      "Every Bottle Tells a Story. The tale of gin, whisky, liqueur, and botanicals crafted under ZENTARO, the premium brand of PHÚC LỘC Distillery.",
     rights: "All rights reserved.",
     companyName: "Company: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "CEO: NGUYỄN XUÂN ƯỚC",
@@ -860,7 +860,7 @@ const en: Dict = {
     writtenBySuffix: "",
     relatedVideo: "Watch the related video →",
     ctaTitle: "Visit ZENTARO",
-    ctaDescription: "Discover more stories from premium craft distillery ZENTARO",
+    ctaDescription: "Discover more stories from ZENTARO, the premium brand of PHÚC LỘC Distillery",
   },
   mall: {
     eyebrow: "Services",
@@ -956,7 +956,7 @@ const en: Dict = {
       description: "Distillery Overview, Distillation Process, Barrel Room, Distillation Equipment",
       introTitle: "Distillery Overview",
       introBody:
-        "ZENTARO Distillery is a craft distillation facility researching and developing premium gin, liqueurs, and botanical extracts.",
+        "PHÚC LỘC Distillery is the craft distillation facility behind the ZENTARO brand, researching and developing premium gin, liqueurs, and botanical extracts.",
       processTitle: "Distillation Process",
       processBody:
         "From weighing botanicals → maceration → Vapor Infusion distillation → cutting (separating heads/hearts/tails) → dilution and bottling, every batch is handled by hand.",
@@ -1051,7 +1051,7 @@ const en: Dict = {
     certifications: {
       eyebrow: "About ZENTARO",
       title: "Certifications & Permits",
-      description: "Qualifications, permits, and related certification documents held by ZENTARO.",
+      description: "Qualifications, permits, and related certification documents held by PHÚC LỘC Distillery, maker of the ZENTARO brand.",
       empty: "No certification documents registered.",
     },
   },
@@ -1579,7 +1579,7 @@ const vi: Dict = {
     privacy: "Bảo mật",
     community: "Cộng đồng chính thức",
     tagline:
-      "Every Bottle Tells a Story. Câu chuyện về gin, whisky, rượu mùi và thảo mộc được chưng cất bởi ZENTARO.",
+      "Every Bottle Tells a Story. Câu chuyện về gin, whisky, rượu mùi và thảo mộc dưới thương hiệu cao cấp ZENTARO của Nhà máy Rượu PHÚC LỘC.",
     rights: "Đã đăng ký bản quyền.",
     companyName: "Công ty: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "Đại diện: NGUYỄN XUÂN ƯỚC",
@@ -1603,7 +1603,7 @@ const vi: Dict = {
     writtenBySuffix: "",
     relatedVideo: "Xem video liên quan →",
     ctaTitle: "Đến trang ZENTARO",
-    ctaDescription: "Khám phá thêm câu chuyện từ nhà chưng cất thủ công cao cấp ZENTARO",
+    ctaDescription: "Khám phá thêm câu chuyện từ ZENTARO, thương hiệu cao cấp của Nhà máy Rượu PHÚC LỘC",
   },
   mall: {
     eyebrow: "Dịch vụ",
@@ -1699,7 +1699,7 @@ const vi: Dict = {
       description: "Giới thiệu nhà chưng cất, Quy trình chưng cất, Barrel Room, Thiết bị chưng cất",
       introTitle: "Giới thiệu nhà chưng cất",
       introBody:
-        "Nhà chưng cất ZENTARO là cơ sở chưng cất thủ công nghiên cứu và phát triển gin, rượu mùi (liqueur) và tinh chất thảo mộc cao cấp.",
+        "Nhà máy Rượu PHÚC LỘC là cơ sở chưng cất thủ công đứng sau thương hiệu ZENTARO, nghiên cứu và phát triển gin, rượu mùi (liqueur) và tinh chất thảo mộc cao cấp.",
       processTitle: "Quy trình chưng cất",
       processBody:
         "Từ cân đong thảo mộc → ngâm chiết (Maceration) → chưng cất Vapor Infusion → cắt phân đoạn (tách Heads/Hearts/Tails) → pha loãng và đóng chai, mọi mẻ đều được quản lý thủ công.",
@@ -1794,7 +1794,7 @@ const vi: Dict = {
     certifications: {
       eyebrow: "Về ZENTARO",
       title: "Chứng nhận · Giấy phép",
-      description: "Các chứng chỉ, giấy phép và tài liệu chứng nhận liên quan mà ZENTARO sở hữu.",
+      description: "Các chứng chỉ, giấy phép và tài liệu chứng nhận liên quan mà Nhà máy Rượu PHÚC LỘC — đơn vị sở hữu thương hiệu ZENTARO — nắm giữ.",
       empty: "Chưa có tài liệu chứng nhận nào được đăng ký.",
     },
   },

@@ -21,7 +21,7 @@ const notoSansKr = Noto_Sans_KR({
 
 const title = "ZENTARO | Every Bottle Tells a Story";
 const description =
-  "ZENTARO — 프리미엄 크래프트 증류소. Dry Gin, Whisky, Liqueur와 보태니컬 리서치 랩, 그리고 ZENTARO Mall · Bottle Cap Rewards 생태계.";
+  "ZENTARO — PHÚC LỘC 증류소의 프리미엄 브랜드. Dry Gin, Whisky, Liqueur와 보태니컬 리서치 랩, 그리고 ZENTARO Mall · Bottle Cap Rewards 생태계.";
 
 export const metadata: Metadata = {
   title,
