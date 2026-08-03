@@ -205,17 +205,51 @@ export default function CheckoutPage() {
                 {paymentMethod === "ztaro" ? (
                   <span className="text-[11px] text-muted-foreground">ZTARO 결제는 EXP를 함께 사용할 수 없어요.</span>
                 ) : max > 0 ? (
-                  <label className="mt-1 flex flex-col gap-1 text-[11px] text-muted-foreground">
-                    {c.useExpPrefix} <span className="notranslate">EXP</span> {c.useExpMaxPrefix} {max.toLocaleString()}{c.useExpMaxSuffix}
-                    <input
-                      type="number"
-                      min={0}
-                      max={Math.min(max, expBalance)}
-                      value={expUsed}
-                      onChange={(e) => setLineExp(item.productId, Number(e.target.value), max)}
-                      className="w-32 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
-                    />
-                  </label>
+                  (() => {
+                    const lineMax = Math.min(max, expBalance)
+                    const percent = lineMax > 0 ? Math.round((expUsed / lineMax) * 100) : 0
+                    return (
+                      <div className="mt-1 flex flex-col gap-1.5 text-[11px] text-muted-foreground">
+                        <div className="flex items-center justify-between">
+                          <span>
+                            {c.useExpPrefix} <span className="notranslate">EXP</span> {c.useExpMaxPrefix} {max.toLocaleString()}{c.useExpMaxSuffix}
+                          </span>
+                          <button
+                            type="button"
+                            className="text-primary underline underline-offset-2"
+                            onClick={() => setLineExp(item.productId, lineMax, max)}
+                          >
+                            MAX
+                          </button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min={0}
+                            max={lineMax}
+                            value={expUsed}
+                            onChange={(e) => setLineExp(item.productId, Number(e.target.value), max)}
+                            className="w-28 rounded-md border border-border/60 bg-background px-2 py-1 text-xs text-foreground"
+                          />
+                          <input
+                            type="range"
+                            min={0}
+                            max={lineMax}
+                            value={expUsed}
+                            onChange={(e) => setLineExp(item.productId, Number(e.target.value), max)}
+                            className="h-1.5 flex-1 accent-amber-500"
+                          />
+                          <span className="w-9 shrink-0 text-right tabular-nums">{percent}%</span>
+                        </div>
+                        <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary/60">
+                          <div
+                            className="h-full rounded-full bg-amber-500 transition-[width]"
+                            style={{ width: `${percent}%` }}
+                          />
+                        </div>
+                      </div>
+                    )
+                  })()
                 ) : (
                   <span className="text-[11px] text-muted-foreground">{c.zpOnlyItem}</span>
                 )}
