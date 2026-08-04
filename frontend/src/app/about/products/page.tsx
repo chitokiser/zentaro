@@ -22,6 +22,8 @@ import {
 
 interface ProductBrandInfo {
     id: string
+    brand: "zentaro" | "phuc-loc"
+    displayName: string
     image: string
     tagline: { ko: string; en: string; vi: string }
     category: { ko: string; en: string; vi: string }
@@ -35,11 +37,16 @@ interface ProductBrandInfo {
     desc: { ko: string; en: string; vi: string }
     features: { ko: string[]; en: string[]; vi: string[] }
     ingredients: { ko: string; en: string; vi: string }
+    comingSoon?: boolean
+    externalUrl?: string
 }
 
 const BRAND_PRODUCTS: ProductBrandInfo[] = [
     {
         id: "zentaro-blue",
+        brand: "zentaro",
+        displayName: "ZENTARO BLUE DRY GIN",
+        comingSoon: true,
         image: "/images/products/zentaro_blue.png",
         category: {
             ko: "시그니처 드라이진",
@@ -89,6 +96,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
     },
     {
         id: "zentaro-origin",
+        brand: "zentaro",
+        displayName: "ZENTARO ORIGIN SOJU",
+        comingSoon: false,
         image: "/images/products/zentaro_origin.png",
         category: {
             ko: "명품 증류식 소주",
@@ -144,6 +154,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
     },
     {
         id: "zentaro-st",
+        brand: "zentaro",
+        displayName: "ZENTARO STRAWBERRY LIQUEUR",
+        comingSoon: true,
         image: "/images/products/zentaro_st.png",
         category: {
             ko: "프리미엄 딸기 리큐르",
@@ -193,6 +206,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
     },
     {
         id: "zentaro-an",
+        brand: "zentaro",
+        displayName: "ZENTARO CRAFT ABSINTHE",
+        comingSoon: true,
         image: "/images/products/zentaro_an2.png",
         category: {
             ko: "프리미엄 압생트",
@@ -242,6 +258,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
     },
     {
         id: "zentaro-oak",
+        brand: "zentaro",
+        displayName: "ZENTARO OAK BARREL",
+        comingSoon: true,
         image: "/images/products/oak/Oak barrel.png",
         category: {
             ko: "수제 프렌치 오크통",
@@ -288,6 +307,320 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             vi: "Gỗ sồi trắng nhập khẩu, Vòng đai thép carbon, Vòi rót bằng đồng thau",
         },
     },
+    // PHÚC LỘC 자체 브랜드 라인업 — ZENTARO를 만드는 바로 그 증류소가 베트남 현지에
+    // 자기 이름으로 판매하는 전통 쌀 증류주. 출처: ruouphucloc.vn (2026-08-04 확인).
+    {
+        id: "phuc-loc-loc-tuu",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — LỘC TỬU",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/loc-tuu.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/loc-tuu/",
+        category: {
+            ko: "프리미엄 오크향 소주",
+            en: "Premium Oak-Character Rice Spirit",
+            vi: "Rượu gạo cao cấp hương gỗ sồi",
+        },
+        tagline: {
+            ko: "호박색으로 빚어낸 PHÚC LỘC의 대표 프리미엄 라인",
+            en: "PHÚC LỘC's flagship premium line, poured in amber-gold",
+            vi: "Dòng cao cấp đại diện của PHÚC LỘC, sắc hổ phách",
+        },
+        specs: {
+            abv: "29.5%",
+            volume: "750ml",
+        },
+        desc: {
+            ko: "PHÚC LỘC 증류소가 전통 증류 기법과 오크 숙성을 결합해 만든 대표 프리미엄 라인입니다. 찹쌀을 기주로 삼아 호박색(Amber-gold)을 띠며, 찹쌀 특유의 향과 은은한 오크나무 향이 함께 느껴집니다. 우아한 향, 깊고 부드러운 맛, 긴 여운을 강조하는 제품으로 세라믹 병에 담겨 선물용으로도 자주 쓰입니다.",
+            en: "PHÚC LỘC Distillery's flagship premium line, combining traditional distillation with oak-character aging. Made from sticky rice, it carries an amber-gold hue with notes of sticky rice and gentle oak wood. Positioned around an elegant aroma, deep smooth taste, and a long finish, it's presented in a ceramic bottle often chosen as a gift.",
+            vi: "Dòng cao cấp đại diện của Nhà máy Rượu PHÚC LỘC, kết hợp kỹ thuật chưng cất truyền thống với hương gỗ sồi. Chưng cất từ gạo nếp, mang sắc hổ phách cùng hương nếp và hương gỗ sồi thoảng nhẹ. Sản phẩm nhấn mạnh hương thơm thanh lịch, vị đậm đà mềm mại và hậu vị kéo dài, đóng trong chai gốm sang trọng thường được chọn làm quà biếu.",
+        },
+        features: {
+            ko: [
+                "찹쌀 기주 + 전통 증류와 오크 숙성의 결합",
+                "호박색(Amber-gold) 컬러와 은은한 오크나무 향",
+                "우아한 향, 깊고 부드러운 맛, 긴 여운",
+                "세라믹 병 패키지 — 선물용으로도 인기",
+            ],
+            en: [
+                "Sticky rice base — traditional distillation combined with oak-character aging",
+                "Amber-gold color with a gentle oak wood note",
+                "Elegant aroma, deep smooth taste, long finish",
+                "Ceramic bottle packaging — a popular gift choice",
+            ],
+            vi: [
+                "Nền gạo nếp — kết hợp chưng cất truyền thống với hương gỗ sồi",
+                "Sắc hổ phách cùng hương gỗ sồi thoảng nhẹ",
+                "Hương thơm thanh lịch, vị đậm đà mềm mại, hậu vị kéo dài",
+                "Đóng chai gốm sang trọng — lựa chọn quà biếu phổ biến",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀(찹쌀), 술 누룩, 정제수",
+            en: "Selected sticky rice, wine yeast, purified water",
+            vi: "Gạo nếp tuyển chọn, men rượu, nước tinh khiết",
+        },
+    },
+    {
+        id: "phuc-loc-bach-ngoc-tuu",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — BẠCH NGỌC TỬU",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/bach-ngoc-tuu.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/bach-ngoc-tuu/",
+        category: {
+            ko: "화이트 스피릿 소주",
+            en: "White Spirit Rice Liquor",
+            vi: "Rượu gạo White Spirit",
+        },
+        tagline: {
+            ko: "'백옥(白玉)'이라는 이름처럼 맑고 투명한 프리미엄 쌀 증류주",
+            en: "A clear, jewel-like premium rice spirit — true to its name, \"White Jade\"",
+            vi: "Trong veo như ngọc trắng, đúng như cái tên \"Bạch Ngọc\"",
+        },
+        specs: {
+            abv: "29.5%",
+            volume: "500ml",
+        },
+        desc: {
+            ko: "이름 그대로 백옥(白玉)처럼 맑고 투명한 외관에 은은한 쌀 향을 지닌 프리미엄 쌀 증류주입니다. 찹쌀 원료의 전통 방식과 ISO 인증 현대식 증류 기술을 결합해, 부드럽고 단 여운의 맛을 완성했습니다.",
+            en: "True to its name — \"White Jade\" — this premium rice spirit has a clear, transparent appearance and a gentle rice aroma. It blends traditional sticky-rice methods with modern ISO-certified distillation to deliver a smooth, sweet-finishing taste.",
+            vi: "Đúng như tên gọi \"Bạch Ngọc\" (ngọc trắng), rượu mang vẻ ngoài trong veo cùng hương gạo thoảng nhẹ. Kết hợp phương pháp truyền thống từ gạo nếp với công nghệ chưng cất hiện đại đạt chuẩn ISO, mang lại vị mềm mại, hậu ngọt.",
+        },
+        features: {
+            ko: [
+                "찹쌀 원료의 높은 점성과 풍부한 영양 활용",
+                "전통 기법 + ISO 인증 현대식 증류 공정",
+                "부드럽고 단 여운이 특징인 맛 프로필",
+                "맑고 투명한 외관, 은은한 쌀 향",
+            ],
+            en: [
+                "Uses sticky rice prized for its high viscosity and rich nutrition",
+                "Traditional method combined with ISO-certified modern distillation",
+                "Smooth, sweet-finishing flavor profile",
+                "Clear, transparent appearance with a gentle rice aroma",
+            ],
+            vi: [
+                "Tận dụng độ dẻo cao và giá trị dinh dưỡng của gạo nếp",
+                "Phương pháp truyền thống kết hợp chưng cất hiện đại đạt chuẩn ISO",
+                "Hương vị đặc trưng mềm mại, hậu ngọt",
+                "Vẻ ngoài trong veo, hương gạo thoảng nhẹ",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀, 술 누룩, 정제수",
+            en: "Selected rice, wine yeast, purified water",
+            vi: "Gạo tuyển chọn, men rượu, nước tinh khiết",
+        },
+    },
+    {
+        id: "phuc-loc-tinh-que",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — TÌNH QUÊ",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/tinh-que.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/tinh-que/",
+        category: {
+            ko: "데일리 전통 쌀 소주",
+            en: "Everyday Traditional Rice Spirit",
+            vi: "Rượu gạo truyền thống hằng ngày",
+        },
+        tagline: {
+            ko: "36가지 약재 전통 누룩이 빚어낸 고향의 정(情)",
+            en: "The warmth of home, brewed with a traditional 36-herb yeast",
+            vi: "Tình quê hương chưng cất từ men truyền thống 36 vị thuốc",
+        },
+        specs: {
+            abv: "25%",
+            volume: "360ml",
+        },
+        desc: {
+            ko: "맑고 투명한 색에 쌀 향과 상쾌한 노트를 지닌 데일리 전통 쌀 증류주입니다. 엄선한 쌀에 36가지 약재가 들어간 전통 누룩으로 당화하고, ISO 표준 공정으로 생산해 진하면서도 깨끗한 맛에 은은한 단맛을 더했습니다. 이름처럼 고향(quê hương)의 정서를 담은 제품입니다.",
+            en: "An everyday traditional rice spirit with a clear, transparent color and a fresh rice aroma. Selected rice is saccharified with a traditional yeast blend of 36 herbal ingredients and produced to ISO standards, giving a full yet clean flavor with a subtle sweetness. As its name suggests, it carries the emotional warmth of one's home village (quê hương).",
+            vi: "Rượu gạo truyền thống dùng hằng ngày, màu trong veo cùng hương gạo và nét sảng khoái. Gạo tuyển chọn được đường hóa bằng men gia truyền pha chế từ 36 vị thuốc, sản xuất theo chuẩn ISO, mang lại vị đậm đà mà tinh khiết với hậu ngọt nhẹ. Đúng như tên gọi, sản phẩm gửi gắm tình cảm quê hương.",
+        },
+        features: {
+            ko: [
+                "엄선 쌀 + 36가지 약재 전통 누룩 당화",
+                "ISO 표준 생산 공정",
+                "진하면서도 깨끗한 맛, 은은한 단맛의 여운",
+                "맑고 투명한 색, 쌀 향과 상쾌한 노트",
+            ],
+            en: [
+                "Selected rice saccharified with a traditional 36-herb yeast blend",
+                "ISO-standard production process",
+                "Full yet clean flavor with a gentle sweet finish",
+                "Clear, transparent color with rice aroma and fresh notes",
+            ],
+            vi: [
+                "Gạo tuyển chọn đường hóa bằng men gia truyền 36 vị thuốc",
+                "Quy trình sản xuất đạt chuẩn ISO",
+                "Vị đậm đà mà tinh khiết, hậu ngọt nhẹ",
+                "Màu trong veo, hương gạo và nét sảng khoái",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀, 전통 쌀누룩(36가지 약재), 정제수",
+            en: "Selected rice, traditional rice yeast (36 herbal ingredients), purified water",
+            vi: "Gạo tuyển chọn, men gạo truyền thống (36 vị thuốc), nước tinh khiết",
+        },
+    },
+    {
+        id: "phuc-loc-song-que",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — SÔNG QUÊ",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/song-que.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/song-que/",
+        category: {
+            ko: "데일리 전통 쌀 소주",
+            en: "Everyday Traditional Rice Spirit",
+            vi: "Rượu gạo truyền thống hằng ngày",
+        },
+        tagline: {
+            ko: "고향 강가의 정취를 담은 순수한 쌀 증류주",
+            en: "A pure rice spirit capturing the peace of a home-village river",
+            vi: "Hương vị thanh khiết của dòng sông quê hương",
+        },
+        specs: {
+            abv: "23%",
+            volume: "360ml",
+        },
+        desc: {
+            ko: "자연 그대로의 투명함과 쌀 향, 상쾌한 노트가 특징인 데일리 쌀 증류주입니다. 엄선 쌀과 36가지 약재가 들어간 전통 누룩을 ISO 인증 공정으로 생산해, 순수한 맛과 은은한 단맛의 여운을 완성했습니다. 이름처럼 고향 강가의 평온한 정취를 표현합니다.",
+            en: "An everyday rice spirit defined by natural transparency, rice aroma, and refreshing notes. Selected rice and a traditional yeast blend of 36 herbal ingredients are produced under ISO-certified processes, resulting in a pure flavor with a gentle sweet finish — evoking the calm of a home-village river, as its name suggests.",
+            vi: "Rượu gạo hằng ngày với vẻ trong suốt tự nhiên, hương gạo và nét sảng khoái. Gạo tuyển chọn cùng men gia truyền pha chế từ 36 vị thuốc được sản xuất theo quy trình đạt chuẩn ISO, tạo nên hương vị thanh khiết với hậu ngọt nhẹ, gợi nhớ sự bình yên của dòng sông quê hương.",
+        },
+        features: {
+            ko: [
+                "엄선 쌀 + 36가지 약재 전통 누룩 배합",
+                "ISO 인증 생산 공정",
+                "순수한 맛, 은은한 단맛의 여운",
+                "자연 그대로의 투명함, 쌀 향과 상쾌함",
+            ],
+            en: [
+                "Selected rice with a traditional 36-herb yeast blend",
+                "ISO-certified production process",
+                "Pure flavor with a gentle sweet finish",
+                "Naturally transparent, with rice aroma and freshness",
+            ],
+            vi: [
+                "Gạo tuyển chọn kết hợp men gia truyền 36 vị thuốc",
+                "Quy trình sản xuất đạt chuẩn ISO",
+                "Hương vị thanh khiết, hậu ngọt nhẹ",
+                "Trong suốt tự nhiên, hương gạo và sự sảng khoái",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀, 전통 쌀누룩(36가지 약재), 정제수",
+            en: "Selected rice, traditional rice yeast (36 herbal ingredients), purified water",
+            vi: "Gạo tuyển chọn, men gạo truyền thống (36 vị thuốc), nước tinh khiết",
+        },
+    },
+    {
+        id: "phuc-loc-giot-thoi-gian",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — GIỌT THỜI GIAN",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/giot-thoi-gian.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/giot-thoi-gian/",
+        category: {
+            ko: "데일리 전통 쌀 소주",
+            en: "Everyday Traditional Rice Spirit",
+            vi: "Rượu gạo truyền thống hằng ngày",
+        },
+        tagline: {
+            ko: "'시간의 방울'이라는 이름처럼, 정성이 응축된 한 방울",
+            en: "\"A Drop of Time\" — every drop distilled with care",
+            vi: "\"Giọt Thời Gian\" — từng giọt chắt lọc tinh hoa",
+        },
+        specs: {
+            abv: "23%",
+            volume: "450ml",
+        },
+        desc: {
+            ko: "맑은 색에 쌀 향과 상쾌한 노트를 지닌 데일리 쌀 증류주입니다. 엄선 쌀의 정수와 36가지 약재가 들어간 전통 누룩을 ISO 표준 공정으로 빚어, 진하고 부드러운 향과 깊은 여운의 단맛을 완성했습니다.",
+            en: "An everyday rice spirit with a clear color, rice aroma, and fresh notes. The essence of selected rice meets a traditional yeast blend of 36 herbal ingredients, produced under ISO-standard processes for a full, smooth aroma and a deep, lingering sweetness.",
+            vi: "Rượu gạo hằng ngày với màu trong, hương gạo và nét sảng khoái. Tinh túy từ gạo tuyển chọn hòa cùng men gia truyền pha chế từ 36 vị thuốc, sản xuất theo chuẩn ISO, mang đến hương thơm nồng nàn êm dịu và hậu ngọt sâu lắng.",
+        },
+        features: {
+            ko: [
+                "엄선 쌀의 정수 + 36가지 약재 전통 누룩",
+                "ISO 표준 생산 공정",
+                "진하고 부드러운 향, 깊은 여운의 단맛",
+                "맑은 색, 쌀 향과 상쾌한 노트",
+            ],
+            en: [
+                "Essence of selected rice with a traditional 36-herb yeast blend",
+                "ISO-standard production process",
+                "Full, smooth aroma with a deep lingering sweetness",
+                "Clear color with rice aroma and fresh notes",
+            ],
+            vi: [
+                "Tinh túy gạo tuyển chọn cùng men gia truyền 36 vị thuốc",
+                "Quy trình sản xuất đạt chuẩn ISO",
+                "Hương thơm nồng nàn êm dịu, hậu ngọt sâu lắng",
+                "Màu trong, hương gạo và nét sảng khoái",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀, 술 누룩(36가지 약재), 정제수",
+            en: "Selected rice, wine yeast (36 herbal ingredients), purified water",
+            vi: "Gạo tuyển chọn, men rượu (36 vị thuốc), nước tinh khiết",
+        },
+    },
+    {
+        id: "phuc-loc-dan-viet",
+        brand: "phuc-loc",
+        displayName: "PHÚC LỘC — DÂN VIỆT",
+        comingSoon: false,
+        image: "/images/products/phuc-loc/dan-viet.webp",
+        externalUrl: "https://ruouphucloc.vn/san-pham/dan-viet/",
+        category: {
+            ko: "대용량 패밀리 소주",
+            en: "Large-Format Family Rice Spirit",
+            vi: "Rượu gạo dung tích lớn cho gia đình",
+        },
+        tagline: {
+            ko: "베트남 가정의 일상에 맞춘 넉넉한 2리터 용량",
+            en: "A generous 2-liter format built for everyday Vietnamese households",
+            vi: "Dung tích 2 lít đầy đặn, phù hợp thói quen sinh hoạt của gia đình Việt",
+        },
+        specs: {
+            abv: "22%",
+            volume: "2L",
+        },
+        desc: {
+            ko: "맑고 투명하며 쌀 향과 신선함이 느껴지는 대용량 쌀 증류주입니다. 향미 좋은 쌀을 전통과 현대 방식을 결합해 발효, 깨끗하고 풍부한 맛을 구현했습니다. 2리터 PET 용기에 담아 가정용 소비에 적합하도록 설계했습니다.",
+            en: "A large-format rice spirit that's clear and transparent, with rice aroma and freshness. Aromatic rice is fermented using a combination of traditional and modern methods to achieve a clean, full-bodied taste. Packaged in a 2-liter PET container designed for everyday household use.",
+            vi: "Rượu gạo dung tích lớn, trong suốt, mang hương gạo và sự tươi mới. Gạo thơm được lên men kết hợp phương pháp truyền thống và hiện đại, tạo nên vị sạch, đậm đà. Đóng trong bình PET 2 lít, thiết kế phù hợp cho tiêu dùng gia đình.",
+        },
+        features: {
+            ko: [
+                "향미 좋은 쌀을 전통 + 현대 방식으로 발효",
+                "깨끗하고 풍부한 맛",
+                "2리터 대용량 PET 용기, 식품안전 기준 설계",
+                "베트남 가정의 일상 소비에 적합",
+            ],
+            en: [
+                "Aromatic rice fermented with traditional and modern methods combined",
+                "Clean, full-bodied taste",
+                "2-liter PET container designed to food-safety standards",
+                "Suited to everyday Vietnamese household consumption",
+            ],
+            vi: [
+                "Gạo thơm lên men kết hợp phương pháp truyền thống và hiện đại",
+                "Vị sạch, đậm đà",
+                "Bình PET 2 lít, thiết kế đạt chuẩn an toàn thực phẩm",
+                "Phù hợp thói quen tiêu dùng hằng ngày của gia đình Việt",
+            ],
+        },
+        ingredients: {
+            ko: "엄선 쌀, 술 누룩, 정제수",
+            en: "Selected rice, wine yeast, purified water",
+            vi: "Gạo tuyển chọn, men rượu, nước tinh khiết",
+        },
+    },
 ]
 
 const ORDERED_PRODUCTS = [...BRAND_PRODUCTS].sort((a, b) => {
@@ -296,12 +629,17 @@ const ORDERED_PRODUCTS = [...BRAND_PRODUCTS].sort((a, b) => {
     return 0
 })
 
+const ZENTARO_TAB_PRODUCTS = ORDERED_PRODUCTS.filter((p) => p.brand === "zentaro")
+const PHUC_LOC_TAB_PRODUCTS = ORDERED_PRODUCTS.filter((p) => p.brand === "phuc-loc")
+
 export default function ProductsPromotionalPage() {
     const { t, locale } = useI18n()
     const [activeTab, setActiveTab] = useState(ORDERED_PRODUCTS[0].id)
 
     const selectedProduct = BRAND_PRODUCTS.find((p) => p.id === activeTab) || ORDERED_PRODUCTS[0]
-    const isComingSoon = selectedProduct.id !== "zentaro-origin"
+    const isComingSoon = selectedProduct.comingSoon ?? false
+    const activeBrand = selectedProduct.brand
+    const visibleTabProducts = activeBrand === "zentaro" ? ZENTARO_TAB_PRODUCTS : PHUC_LOC_TAB_PRODUCTS
 
     return (
         <div className="bg-background text-foreground min-h-screen">
@@ -327,9 +665,42 @@ export default function ProductsPromotionalPage() {
 
             {/* Main Container */}
             <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+                {/* Brand Group Toggle */}
+                <div className="flex flex-col items-center gap-3 mb-8">
+                    <div className="inline-flex rounded-full border border-border bg-card p-1">
+                        <button
+                            onClick={() => setActiveTab(ZENTARO_TAB_PRODUCTS[0].id)}
+                            className={`rounded-full px-6 py-2 text-sm font-bold tracking-wide transition-all duration-300 ${activeBrand === "zentaro"
+                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            ZENTARO
+                        </button>
+                        <button
+                            onClick={() => setActiveTab(PHUC_LOC_TAB_PRODUCTS[0].id)}
+                            className={`rounded-full px-6 py-2 text-sm font-bold tracking-wide transition-all duration-300 ${activeBrand === "phuc-loc"
+                                ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                                : "text-muted-foreground hover:text-foreground"
+                                }`}
+                        >
+                            PHÚC LỘC
+                        </button>
+                    </div>
+                    {activeBrand === "phuc-loc" ? (
+                        <p className="max-w-xl text-center text-xs text-muted-foreground">
+                            {locale === "ko"
+                                ? "PHÚC LỘC은 ZENTARO를 만드는 바로 그 증류소가 베트남 현지에 자체 이름으로 선보이는 전통 쌀 증류주 라인업입니다."
+                                : locale === "vi"
+                                    ? "PHÚC LỘC là dòng sản phẩm rượu gạo truyền thống do chính Nhà máy Rượu tạo nên thương hiệu ZENTARO giới thiệu dưới tên riêng tại thị trường Việt Nam."
+                                    : "PHÚC LỘC is the traditional rice spirit lineup sold under its own name in Vietnam by the very same distillery behind ZENTARO."}
+                        </p>
+                    ) : null}
+                </div>
+
                 {/* Navigation Tabs - Glassmorphism style */}
                 <div className="flex flex-wrap justify-center gap-3 mb-16">
-                    {ORDERED_PRODUCTS.map((prod) => (
+                    {visibleTabProducts.map((prod) => (
                         <button
                             key={prod.id}
                             onClick={() => setActiveTab(prod.id)}
@@ -339,7 +710,7 @@ export default function ProductsPromotionalPage() {
                                 }`}
                         >
                             {prod.category[locale]}
-                            {prod.id !== "zentaro-origin" ? (
+                            {prod.comingSoon ? (
                                 <span className="ml-1.5 text-[10px] font-normal opacity-70">
                                     ({locale === "ko" ? "준비중" : locale === "vi" ? "Sắp ra mắt" : "Coming soon"})
                                 </span>
@@ -382,15 +753,7 @@ export default function ProductsPromotionalPage() {
                                 {selectedProduct.category[locale]}
                             </Badge>
                             <h2 className="mt-3 font-display text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
-                                {selectedProduct.id.includes("blue")
-                                    ? "ZENTARO BLUE DRY GIN"
-                                    : selectedProduct.id.includes("origin")
-                                        ? "ZENTARO ORIGIN SOJU"
-                                        : selectedProduct.id.includes("st")
-                                            ? "ZENTARO STRAWBERRY LIQUEUR"
-                                            : selectedProduct.id.includes("an")
-                                                ? "ZENTARO CRAFT ABSINTHE"
-                                                : "ZENTARO OAK BARREL"}
+                                {selectedProduct.displayName}
                             </h2>
                             <p className="mt-3 text-lg font-medium text-amber-500 dark:text-amber-400">
                                 &ldquo;{selectedProduct.tagline[locale]}&rdquo;
@@ -484,12 +847,21 @@ export default function ProductsPromotionalPage() {
 
                         {/* Call to Actions */}
                         <div className="flex flex-col sm:flex-row gap-3 pt-4">
-                            <Button asChild size="lg" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
-                                <Link href="/mall" className="gap-2 justify-center">
-                                    {locale === "ko" ? "ZENTARO 몰에서 쇼핑하기" : locale === "vi" ? "Mua sắm tại ZENTARO Mall" : "Shop at ZENTARO Mall"}
-                                    <ArrowRight className="h-4 w-4" />
-                                </Link>
-                            </Button>
+                            {selectedProduct.brand === "zentaro" ? (
+                                <Button asChild size="lg" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                                    <Link href="/mall" className="gap-2 justify-center">
+                                        {locale === "ko" ? "ZENTARO 몰에서 쇼핑하기" : locale === "vi" ? "Mua sắm tại ZENTARO Mall" : "Shop at ZENTARO Mall"}
+                                        <ArrowRight className="h-4 w-4" />
+                                    </Link>
+                                </Button>
+                            ) : selectedProduct.externalUrl ? (
+                                <Button asChild size="lg" className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90">
+                                    <a href={selectedProduct.externalUrl} target="_blank" rel="noopener noreferrer" className="gap-2 justify-center">
+                                        {locale === "ko" ? "PHÚC LỘC 공식 사이트에서 보기" : locale === "vi" ? "Xem tại trang chính thức PHÚC LỘC" : "View on the official PHÚC LỘC site"}
+                                        <ArrowRight className="h-4 w-4" />
+                                    </a>
+                                </Button>
+                            ) : null}
                             {selectedProduct.specs.reward && (
                                 <Button asChild variant="outline" size="lg" className="flex-1 border-primary/50 text-primary hover:bg-secondary">
                                     <Link href="/rewards/bottle-cap" className="gap-2 justify-center">
@@ -504,11 +876,9 @@ export default function ProductsPromotionalPage() {
                     </div>
                 </div>
 
+                {selectedProduct.id === "zentaro-origin" ? <BrandTastingNotes locale={locale} /> : null}
                 {!isComingSoon ? (
-                    <>
-                        <BrandTastingNotes locale={locale} />
-                        <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
-                    </>
+                    <ReviewsSection key={selectedProduct.id} productId={selectedProduct.id} locale={locale} />
                 ) : null}
 
                 {/* Oak Cask Maturation Ecosystem - Bottom Feature Callout */}
