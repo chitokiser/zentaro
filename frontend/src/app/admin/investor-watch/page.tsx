@@ -120,12 +120,13 @@ export default function AdminInvestorWatchPage() {
       <h2 className="font-display text-xl font-semibold">투자자 지갑 감시</h2>
       <p className="text-sm text-muted-foreground">
         특정 날짜에 ZTARO를 지급한 지갑을 등록하면, 매시간 잔고를 확인해 누적 감소량이 설정한
-        기준치를 넘는 순간 아래 목록에 알림이 표시됩니다. 또한 opBNBScan 탐색기 API로 해당
-        지갑의 PancakeSwap 매수/매도 내역을 재구성해 평균 매수·매도 단가와 실현손익을 계산합니다.
-        단, 이 손익은 지갑이 직접 PancakeSwap에서 스왑한 거래만 인식합니다 — CEX 출금이나
-        다른 지갑으로의 단순 이체는 매도로 잡히지 않으며, opBNBScan API 키가 설정되지
-        않았거나 응답 실패 시에는 해당 값이 갱신되지 않을 수 있습니다(항목별 &quot;동기화 오류&quot;
-        표시 참고). 정확한 판단이 필요하면 opBNBScan에서 해당 주소를 직접 조회하세요.
+        기준치를 넘는 순간 아래 목록에 알림이 표시됩니다. 또한 아카이브 RPC로 온체인 이벤트
+        로그를 직접 조회해 해당 지갑의 PancakeSwap 매수/매도 내역을 재구성하고, 평균 매수·매도
+        단가와 실현손익을 계산합니다. 단, 이 손익은 지갑이 직접 PancakeSwap에서 스왑한 거래만
+        인식합니다 — CEX 출금이나 다른 지갑으로의 단순 이체는 매도로 잡히지 않으며, 아카이브
+        RPC가 설정되지 않았거나 응답 실패 시에는 해당 값이 갱신되지 않을 수 있습니다(항목별
+        &quot;동기화 오류&quot; 표시 참고). 정확한 판단이 필요하면 opBNBScan에서 해당 주소를
+        직접 조회하세요.
       </p>
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}

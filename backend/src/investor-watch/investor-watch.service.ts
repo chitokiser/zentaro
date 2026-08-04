@@ -1,36 +1,58 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Cron } from '@nestjs/schedule';
+import { ethers } from 'ethers';
 import type { Firestore } from 'firebase-admin/firestore';
 import { FieldValue, Timestamp } from 'firebase-admin/firestore';
 import { FIRESTORE } from '../firebase/firebase.module';
 import { COLLECTIONS } from '../common/collections';
 import { BlockchainService } from '../blockchain/blockchain.service';
 import { CreateWatchDto } from './dto/create-watch.dto';
-import { fetchTokenTransfers, type TokenTransfer } from './opbnbscan.client';
+import { fetchWalletTokenTransfers, type TokenTransfer } from './swap-log-client';
 
 /** Same PancakeSwap V2 Ztaro/USDT pair the price snapshot cron and blockchain service read. */
 const PANCAKE_ZTRO_USDT_POOL = '0x5a65805fb99cf5b7e50d567c4029af62531be53c';
 
+/** ZTARO decimals=0 (raw balanceOf IS the token count); USDT on this chain uses 18. */
+const ZTRO_DECIMALS = 0;
+const USDT_DECIMALS = 18;
+
+/**
+ * ZTARO contract deployment block, found via binary search on eth_getCode (2026-08-04) —
+ * no swap could exist before this, so it's a safe floor for a wallet's very first sync
+ * (avoids scanning ~168M empty blocks from genesis).
+ */
+const ZTRO_DEPLOY_BLOCK = 168432290;
+
 /**
  * Watches specific ZTARO wallets (e.g. investor grants) and flags an admin alert once the
  * wallet's cumulative balance decrease since it was registered crosses a configured
- * threshold.
- *
- * IMPORTANT LIMITATION: the free public opBNB RPC this backend uses doesn't allow
- * historical eth_getLogs (archive) queries, so this can't distinguish "sold on
- * PancakeSwap" from "transferred to another wallet" — it only tracks net balance drops
- * between polls (any incoming transfer resets that poll's delta to 0, never negative).
- * Good enough as a "did this wallet's balance shrink by more than X" tripwire, not a
- * precise on-chain sell tracker.
+ * threshold. Also reconstructs PancakeSwap buy/sell history via archive eth_getLogs to
+ * compute realized P&L — see syncSwapHistory() below.
  */
 @Injectable()
 export class InvestorWatchService {
+  private _archiveProvider?: ethers.JsonRpcProvider;
+
   constructor(
     @Inject(FIRESTORE) private readonly db: Firestore,
     private readonly blockchain: BlockchainService,
     private readonly config: ConfigService,
   ) {}
+
+  /**
+   * Separate from BlockchainService's provider — that one points at the free public
+   * opBNB RPC, which rejects historical eth_getLogs. This points at a NodeReal MegaNode
+   * archive endpoint (free tier includes archive access, capped at 50,000 blocks/call).
+   */
+  private get archiveProvider(): ethers.JsonRpcProvider | null {
+    if (!this._archiveProvider) {
+      const url = this.config.get<string>('OPBNB_ARCHIVE_RPC_URL');
+      if (!url) return null;
+      this._archiveProvider = new ethers.JsonRpcProvider(url);
+    }
+    return this._archiveProvider;
+  }
 
   private col() {
     return this.db.collection(COLLECTIONS.ZENTARO_INVESTOR_WATCHLIST);
@@ -49,7 +71,7 @@ export class InvestorWatchService {
       alertTriggered: false,
       alertTriggeredAt: null,
       alertAcknowledgedAt: null,
-      // Swap history / realized P&L — populated by syncSwapHistory() via opBNBScan.
+      // Swap history / realized P&L — populated by syncSwapHistory() via archive eth_getLogs.
       swapSyncLastBlock: 0,
       costBasisQty: 0,
       avgCostUsdt: 0,
@@ -177,11 +199,11 @@ export class InvestorWatchService {
   }
 
   /**
-   * Reconstructs PancakeSwap buy/sell history for a watched wallet from opBNBScan's
-   * free explorer API (no archive RPC needed — this is ERC20 Transfer history, not
-   * eth_getLogs). A tx counts as a swap when, within the same hash, the wallet sends
-   * ZTARO directly to the pool and receives USDT directly from it (a sell), or the
-   * reverse (a buy) — this is how a direct PancakeSwap V2 single-hop swap moves tokens.
+   * Reconstructs PancakeSwap buy/sell history for a watched wallet from archive
+   * eth_getLogs (ZTARO + USDT Transfer events). A tx counts as a swap when, within the
+   * same hash, the wallet sends ZTARO directly to the pool and receives USDT directly
+   * from it (a sell), or the reverse (a buy) — this is how a direct PancakeSwap V2
+   * single-hop swap moves tokens.
    *
    * Cost basis uses a moving-average method, and only tracks quantity actually bought
    * through a swap (`costBasisQty`). Any sale beyond that (e.g. selling tokens that were
@@ -192,9 +214,9 @@ export class InvestorWatchService {
     ref: FirebaseFirestore.DocumentReference,
     data: FirebaseFirestore.DocumentData,
   ): Promise<void> {
-    const apiKey = this.config.get<string>('OPBNBSCAN_API_KEY');
-    if (!apiKey) {
-      await ref.update({ swapSyncError: 'OPBNBSCAN_API_KEY not configured' });
+    const provider = this.archiveProvider;
+    if (!provider) {
+      await ref.update({ swapSyncError: 'OPBNB_ARCHIVE_RPC_URL not configured' });
       return;
     }
     const address = (data.address as string).toLowerCase();
@@ -205,13 +227,25 @@ export class InvestorWatchService {
       return;
     }
 
-    const startBlock = ((data.swapSyncLastBlock as number) ?? 0) + 1;
-    const [ztroTransfers, usdtTransfers] = await Promise.all([
-      fetchTokenTransfers(address, ztroAddress, apiKey, startBlock),
-      fetchTokenTransfers(address, usdtAddress, apiKey, startBlock),
-    ]);
-    if (ztroTransfers.length === 0 && usdtTransfers.length === 0) {
+    const storedLastBlock = (data.swapSyncLastBlock as number) ?? 0;
+    const startBlock = Math.max(storedLastBlock + 1, ZTRO_DEPLOY_BLOCK);
+    const latestBlock = await provider.getBlockNumber();
+    if (startBlock > latestBlock) {
       await ref.update({ swapSyncedAt: FieldValue.serverTimestamp(), swapSyncError: null });
+      return;
+    }
+
+    const [ztroTransfers, usdtTransfers] = await Promise.all([
+      fetchWalletTokenTransfers(provider, ztroAddress, address, ZTRO_DECIMALS, startBlock, latestBlock),
+      fetchWalletTokenTransfers(provider, usdtAddress, address, USDT_DECIMALS, startBlock, latestBlock),
+    ]);
+
+    if (ztroTransfers.length === 0 && usdtTransfers.length === 0) {
+      await ref.update({
+        swapSyncLastBlock: latestBlock,
+        swapSyncedAt: FieldValue.serverTimestamp(),
+        swapSyncError: null,
+      });
       return;
     }
 
@@ -257,14 +291,8 @@ export class InvestorWatchService {
       }
     }
 
-    const maxBlockSeen = Math.max(
-      (data.swapSyncLastBlock as number) ?? 0,
-      ...ztroTransfers.map((t) => t.blockNumber),
-      ...usdtTransfers.map((t) => t.blockNumber),
-    );
-
     await ref.update({
-      swapSyncLastBlock: maxBlockSeen,
+      swapSyncLastBlock: latestBlock,
       costBasisQty,
       avgCostUsdt,
       totalBoughtZtaro,
