@@ -95,7 +95,7 @@ const ko = {
     rights: "All rights reserved.",
     companyName: "상호: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "대표자: NGUYỄN XUÂN ƯỚC",
-    address: "주소: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
+    address: "주소: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam (21°13'50.56\"N 106°11'16.55\"E)",
     businessNo: "사업자등록번호: 2401046502",
   },
   pwaInstall: {
@@ -179,7 +179,73 @@ const ko = {
     eyebrow: "ZENTARO",
     title: "Terms",
     description: "이용약관",
-    body: "이용약관 내용이 준비 중입니다.",
+    updated: "시행일: 2026년 8월 8일",
+    sections: [
+      {
+        heading: "제1조 (목적)",
+        body: "이 약관은 CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC(이하 \"회사\")가 운영하는 ZENTARO 온라인 몰 및 관련 디지털 멤버십 서비스(이하 \"서비스\")의 이용과 관련하여 회사와 회원 간의 권리, 의무 및 책임사항을 정하는 것을 목적으로 합니다.",
+      },
+      {
+        heading: "제2조 (용어의 정의)",
+        body: "1. \"서비스\"란 ZENTARO 웹사이트(zentaro.netlify.app) 및 이를 통해 제공되는 온라인 몰, 멤버십, 리워드, 위스키뱅크 등 회사가 제공하는 일체의 서비스를 말합니다.\n2. \"회원\"이란 이 약관에 동의하고 서비스에 가입하여 이용자 계정을 부여받은 자를 말합니다.\n3. \"ZP\"란 서비스 내 상품 구매 등에 사용되는 쇼핑머니를 말하며, 현금으로 환금할 수 없습니다.\n4. \"EXP\"란 회원 등급 상승 및 일부 결제 시 대체 수단으로 사용되는 리워드 포인트를 말하며, 현금으로 환금할 수 없습니다.\n5. \"ZTARO\"란 opBNB 체인 상에서 발행·유통되는 회사의 유틸리티 토큰으로, 서비스 내 결제·스테이킹 등에 활용되며 투자상품이 아닙니다.\n6. \"위스키뱅크(ZenTaro Barrel Reserve)\"란 회원이 오크통 원액 숙성을 위탁하고 그 가치 변동에 따른 손익을 향유하는 서비스를 말합니다.\n7. \"병뚜껑 리워드\"란 정품 제품의 병뚜껑에 부착된 인지세 봉인스티커 흔적을 반납·인증한 회원에게 EXP를 지급하는 프로그램을 말합니다.",
+      },
+      {
+        heading: "제3조 (약관의 효력 및 변경)",
+        body: "1. 이 약관은 서비스 화면에 게시하거나 기타의 방법으로 회원에게 공지함으로써 효력을 발생합니다.\n2. 회사는 관련 법령을 위반하지 않는 범위에서 이 약관을 개정할 수 있으며, 개정 시 적용일자 및 개정사유를 명시하여 최소 7일 전(회원에게 불리한 개정은 30일 전)부터 서비스 내 공지합니다.\n3. 회원이 개정약관의 적용에 동의하지 않는 경우 이용계약을 해지할 수 있으며, 공지 후 별도 의사표시가 없는 경우 동의한 것으로 봅니다.",
+      },
+      {
+        heading: "제4조 (회원가입 및 이용 자격)",
+        body: "1. 서비스는 주류를 포함한 상품을 판매하므로, 회원가입 및 주류 구매는 대한민국 및 이용자가 거주하는 국가의 법정 음주 가능 연령 이상인 자에 한하여 가능합니다.\n2. 회사는 다음 각 호에 해당하는 신청에 대해 가입을 거부하거나 사후에 이용계약을 해지할 수 있습니다: 타인의 명의를 이용한 경우, 허위 정보를 기재한 경우, 법정 음주 연령에 미달하는 경우, 관계 법령에 위반되거나 사회 질서를 해할 목적으로 신청한 경우.",
+      },
+      {
+        heading: "제5조 (회원의 의무)",
+        body: "1. 회원은 계정 정보(이메일, 결제 비밀번호 등)를 선량한 관리자의 주의로 관리해야 하며, 제3자에게 양도·대여할 수 없습니다.\n2. 계정 도용 또는 부정 이용을 인지한 경우 즉시 회사에 통지해야 합니다.\n3. 회원은 서비스 이용 중 관계 법령, 이 약관 및 회사가 공지한 이용 안내를 준수해야 합니다.",
+      },
+      {
+        heading: "제6조 (서비스의 내용)",
+        body: "회사가 제공하는 서비스는 다음과 같으며, 회사는 사업상·기술상 필요에 따라 서비스의 내용을 변경하거나 추가·종료할 수 있습니다.\n1. ZENTARO 및 PHÚC LỘC 브랜드 제품의 온라인 판매(몰)\n2. 회원 등급(레벨) 및 EXP 리워드 제도\n3. ZTARO 토큰을 이용한 결제 및 스테이킹\n4. 위스키뱅크(오크통 숙성 프로그램)\n5. 병뚜껑 리워드 프로그램\n6. 추천인(멘토) 리워드 프로그램\n7. 기타 회사가 정하는 부가서비스",
+      },
+      {
+        heading: "제7조 (결제수단)",
+        body: "1. 회원은 서비스 내 상품 구매 시 신용/체크카드 등 일반 결제수단 외에 ZP, EXP, ZTARO를 결제수단으로 사용할 수 있습니다. 각 결제수단의 이용 조건, 할인율, 병행 가능 여부 등은 회사가 정하는 바에 따르며 사전 고지 없이 변경될 수 있습니다.\n2. ZTARO 결제는 블록체인 네트워크를 통해 온체인으로 즉시 처리되며, 그 특성상 거래 완료 후에는 취소가 불가능합니다. 회원은 ZTARO 결제 전 주문 내용을 충분히 확인해야 합니다.\n3. ZP와 EXP는 회사가 부여하는 서비스 내 전용 포인트로서 현금이 아니며, 현금으로 환급되지 않습니다. 회사가 정한 정책에 따라 일부 조건에서 소멸되거나 유효기간이 적용될 수 있습니다.",
+      },
+      {
+        heading: "제8조 (ZTARO 및 디지털 자산에 관한 고지)",
+        body: "1. ZTARO는 서비스 내 결제·리워드·스테이킹 등에 활용되는 유틸리티 토큰이며, 투자 수익을 약속하거나 보장하는 증권 또는 투자상품이 아닙니다.\n2. ZTARO의 시장 가격은 외부 거래소(PancakeSwap 등)의 수급에 따라 변동하며, 가치의 상승 또는 하락에 대해 회사는 어떠한 보증도 하지 않습니다.\n3. 회원은 지갑 인증정보, 결제 비밀번호 등 인증 수단의 관리 책임이 본인에게 있음을 인지하며, 이를 소홀히 하여 발생한 손해에 대해 회사는 책임을 지지 않습니다.\n4. 블록체인 네트워크 장애, 스마트 컨트랙트 취약점 등 회사의 합리적 통제범위를 벗어난 사유로 발생한 손해에 대해 회사는 고의 또는 중대한 과실이 없는 한 책임을 지지 않습니다.",
+      },
+      {
+        heading: "제9조 (주문, 배송 및 청약철회)",
+        body: "1. 회원의 주문은 회사가 이를 확인하고 승낙함으로써 계약이 성립합니다. 재고 부족, 결제 오류 등 정당한 사유가 있는 경우 회사는 주문의 전부 또는 일부를 취소할 수 있습니다.\n2. 배송은 주문 및 결제 확인 후 회사가 정한 절차에 따라 진행되며, 배송 소요 기간은 상품 및 배송지에 따라 달라질 수 있습니다.\n3. 주류 제품의 특성상, 포장이 개봉되었거나 상품의 가치가 현저히 감소한 경우에는 관계 법령이 정하는 범위 내에서 청약철회가 제한될 수 있습니다.\n4. 단순 변심에 의한 반품 시 왕복 배송비는 회원이 부담하며, 상품 하자·오배송의 경우 회사가 부담합니다.",
+      },
+      {
+        heading: "제10조 (위스키뱅크 이용 조건)",
+        body: "1. 회원은 위스키뱅크 서비스를 통해 오크통 규격을 선택하고 EXP, ZP 또는 ZTARO로 대금을 결제하여 숙성을 위탁할 수 있습니다.\n2. 오크통의 평가 가치는 회사가 정하는 연간 성장률 등 기준에 따라 변동될 수 있으며, 이는 확정 수익을 보장하는 것이 아닙니다.\n3. 숙성 완료 후 회원은 자택 배송, 병입 서비스, 또는 회원 간 재판매(P2P 마켓) 중 하나를 선택할 수 있으며, 각 선택지에는 회사가 정하는 수수료가 적용될 수 있습니다.\n4. 회사의 귀책사유가 아닌 천재지변, 시설 장애 등의 사유로 숙성 결과물의 품질이 영향을 받을 수 있으며, 이 경우 회사는 관계 법령이 허용하는 범위 내에서만 책임을 부담합니다.",
+      },
+      {
+        heading: "제11조 (병뚜껑 리워드 프로그램)",
+        body: "1. 회사가 정한 정품 제품의 병뚜껑에 부착된 인지세 봉인스티커의 흔적이 일부 남아있는 상태로 실물을 회사에 반납하고 회사의 심사를 통과한 회원에 한하여 상품별로 정해진 EXP가 지급됩니다.\n2. 봉인스티커 훼손 정도, 수량 등 심사 기준은 회사가 정하며, 심사 결과에 따라 리워드 지급이 거부될 수 있습니다.\n3. 리워드는 실물 확인 및 심사 완료 후 지급되며, 즉시 지급을 보장하지 않습니다.",
+      },
+      {
+        heading: "제12조 (금지행위)",
+        body: "회원은 서비스 이용과 관련하여 다음 각 호의 행위를 해서는 안 됩니다.\n1. 타인의 계정, 결제수단 또는 개인정보를 도용하는 행위\n2. 위조된 병뚜껑, 조작된 인증수단 등을 이용하여 부정하게 리워드를 취득하는 행위\n3. 시스템에 비정상적으로 접근하거나 서비스 운영을 방해하는 행위\n4. ZP, EXP, ZTARO 등을 회사가 허용하지 않는 방식으로 환금하려는 행위\n5. 관계 법령 및 공서양속에 위반되는 행위",
+      },
+      {
+        heading: "제13조 (지식재산권)",
+        body: "서비스 내에서 회사가 작성한 콘텐츠(텍스트, 이미지, 디자인, 상표 등)에 대한 저작권 및 지식재산권은 회사에 귀속되며, 회원은 회사의 사전 서면 동의 없이 이를 복제·배포·전송·출판 등의 방법으로 이용할 수 없습니다.",
+      },
+      {
+        heading: "제14조 (책임의 제한)",
+        body: "1. 회사는 천재지변, 정전, 통신장애 등 불가항력적 사유로 서비스를 제공할 수 없는 경우 책임이 면제됩니다.\n2. 회사는 회원의 귀책사유로 인한 서비스 이용 장애에 대해 책임을 지지 않습니다.\n3. 회사는 회원 상호 간 또는 회원과 제3자 상호 간에 서비스를 매개로 발생한 분쟁에 개입할 의무가 없으며, 이로 인한 손해를 배상할 책임이 없습니다.",
+      },
+      {
+        heading: "제15조 (준거법 및 관할)",
+        body: "1. 이 약관 및 서비스 이용과 관련하여 발생한 분쟁에 대해서는 대한민국 법령 및 베트남 사회주의 공화국 법령 중 회사가 정하는 바에 따르며, 구체적인 준거법 및 관할법원은 별도로 확정하여 공지합니다.\n2. 위 사항이 확정되기 전까지 이 조항은 잠정적인 것으로, 회사와 회원은 우선 원만한 협의를 통해 분쟁을 해결하도록 노력합니다.",
+      },
+      {
+        heading: "제16조 (문의처)",
+        body: "이 약관 및 서비스와 관련한 문의는 아래로 연락해 주시기 바랍니다.\n상호: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC\n이메일: phuclochd8386@gmail.com\n전화: 0396 340 222\n\n부칙: 이 약관은 2026년 8월 8일부터 시행됩니다.",
+      },
+    ],
   },
   privacy: {
     eyebrow: "ZENTARO",
@@ -840,7 +906,7 @@ const en: Dict = {
     rights: "All rights reserved.",
     companyName: "Company: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "CEO: NGUYỄN XUÂN ƯỚC",
-    address: "Address: Lien Son Block, Tien Phong Ward, Bac Ninh City, Bac Ninh Province, Vietnam",
+    address: "Address: Lien Son Block, Tien Phong Ward, Bac Ninh City, Bac Ninh Province, Vietnam (21°13'50.56\"N 106°11'16.55\"E)",
     businessNo: "Business Registration No: 2401046502",
   },
   pwaInstall: {
@@ -924,7 +990,73 @@ const en: Dict = {
     eyebrow: "ZENTARO",
     title: "Terms",
     description: "Terms of Service",
-    body: "Terms of service content is being prepared.",
+    updated: "Effective date: August 8, 2026",
+    sections: [
+      {
+        heading: "Article 1 (Purpose)",
+        body: "These Terms govern the rights, obligations, and responsibilities between CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC (\"the Company\") and members regarding use of the ZENTARO online mall and related digital membership services (\"the Service\").",
+      },
+      {
+        heading: "Article 2 (Definitions)",
+        body: "1. \"Service\" means the ZENTARO website (zentaro.netlify.app) and all online mall, membership, rewards, and Whiskey Bank services provided through it.\n2. \"Member\" means a person who has agreed to these Terms and been granted a user account.\n3. \"ZP\" means shopping money used to purchase products within the Service; it cannot be exchanged for cash.\n4. \"EXP\" means reward points used to raise member level and, in limited cases, as an alternate payment method; it cannot be exchanged for cash.\n5. \"ZTARO\" means the Company's utility token issued and traded on the opBNB chain, used for payment and staking within the Service; it is not an investment product.\n6. \"Whiskey Bank (ZenTaro Barrel Reserve)\" means the service through which members commission oak-barrel aging of spirits and hold the resulting gains or losses in value.\n7. \"Bottle Cap Reward\" means the program that credits EXP to members who return the tax-seal sticker trace remaining on a genuine product's bottle cap for verification.",
+      },
+      {
+        heading: "Article 3 (Effect and Amendment of Terms)",
+        body: "1. These Terms take effect upon posting on the Service or otherwise notifying members.\n2. The Company may amend these Terms within the scope permitted by applicable law, and will post the amendment's effective date and reason at least 7 days in advance (30 days for amendments unfavorable to members).\n3. A member who does not agree to amended Terms may terminate their account; absence of any objection after notice is deemed acceptance.",
+      },
+      {
+        heading: "Article 4 (Membership Eligibility)",
+        body: "1. Because the Service sells alcoholic beverages, registration and purchase of alcohol are limited to those who meet the legal drinking age in their country of residence.\n2. The Company may refuse or later terminate registration where an applicant uses another person's identity, provides false information, is under the legal drinking age, or applies for a purpose that violates law or public order.",
+      },
+      {
+        heading: "Article 5 (Member Obligations)",
+        body: "1. Members must manage their account credentials (email, payment PIN, etc.) with the care of a good administrator and may not transfer or lend them to third parties.\n2. Members must notify the Company immediately upon becoming aware of account theft or unauthorized use.\n3. Members must comply with applicable law, these Terms, and the Company's published usage guidance.",
+      },
+      {
+        heading: "Article 6 (Service Content)",
+        body: "The Company provides, and may add, change, or discontinue for business or technical reasons:\n1. Online sale of ZENTARO and PHÚC LỘC branded products\n2. The member level and EXP reward system\n3. Payment and staking using the ZTARO token\n4. Whiskey Bank (oak barrel aging program)\n5. The Bottle Cap Reward program\n6. The referral (mentor) reward program\n7. Other supplementary services the Company may define",
+      },
+      {
+        heading: "Article 7 (Payment Methods)",
+        body: "1. In addition to standard methods such as credit/debit cards, members may pay with ZP, EXP, or ZTARO. Conditions, discount rates, and whether methods can be combined are set by the Company and may change without prior notice.\n2. ZTARO payments are settled instantly on-chain and, by their nature, cannot be reversed once completed. Members must confirm order details carefully before paying with ZTARO.\n3. ZP and EXP are Service-only points, not cash, and are not refundable for cash. They may expire or be forfeited under conditions the Company sets.",
+      },
+      {
+        heading: "Article 8 (Notice Regarding ZTARO and Digital Assets)",
+        body: "1. ZTARO is a utility token used for payment, rewards, and staking within the Service. It is not a security or investment product and does not promise or guarantee any investment return.\n2. ZTARO's market price fluctuates according to supply and demand on external exchanges (e.g., PancakeSwap); the Company makes no guarantee regarding any increase or decrease in value.\n3. Members are solely responsible for safeguarding their wallet credentials and payment PIN; the Company is not liable for losses arising from a member's failure to do so.\n4. The Company is not liable for damages arising from causes beyond its reasonable control, such as blockchain network outages or smart contract vulnerabilities, absent willful misconduct or gross negligence.",
+      },
+      {
+        heading: "Article 9 (Orders, Delivery, and Withdrawal)",
+        body: "1. A contract is formed when the Company confirms and accepts a member's order. The Company may cancel an order in whole or in part for valid reasons such as stock shortage or payment error.\n2. Delivery proceeds according to the Company's procedures after order and payment confirmation; delivery time varies by product and destination.\n3. Given the nature of alcoholic products, the right of withdrawal may be limited, within the scope permitted by applicable law, once the packaging has been opened or the product's value has materially decreased.\n4. For returns due to simple change of mind, the member bears round-trip shipping costs; for defective or mis-shipped products, the Company bears the cost.",
+      },
+      {
+        heading: "Article 10 (Whiskey Bank Terms of Use)",
+        body: "1. Members may select a barrel size and pay with EXP, ZP, or ZTARO to commission aging through the Whiskey Bank service.\n2. A barrel's appraised value may fluctuate according to criteria such as the annual growth rate the Company sets, and this does not guarantee any fixed return.\n3. Once aging is complete, members may choose home delivery, a bottling service, or resale to another member via the P2P market; fees set by the Company may apply to each option.\n4. The Company bears responsibility, within the scope permitted by law, only for matters within its control; it is not liable for effects on quality arising from force majeure or facility failure beyond its control.",
+      },
+      {
+        heading: "Article 11 (Bottle Cap Reward Program)",
+        body: "1. EXP set per product is credited only to members who return, for the Company's review, a genuine product's bottle cap on which part of the tax-seal sticker trace remains, and whose submission passes review.\n2. Review criteria, including the condition of the seal sticker and quantity, are set by the Company, and reward payment may be refused based on the review outcome.\n3. Rewards are paid after physical verification and review are complete; instant payment is not guaranteed.",
+      },
+      {
+        heading: "Article 12 (Prohibited Conduct)",
+        body: "Members must not:\n1. Misappropriate another person's account, payment method, or personal information;\n2. Obtain rewards fraudulently using counterfeit bottle caps or forged verification means;\n3. Access the system abnormally or interfere with Service operations;\n4. Attempt to convert ZP, EXP, or ZTARO into cash through methods not permitted by the Company;\n5. Engage in conduct that violates applicable law or public order.",
+      },
+      {
+        heading: "Article 13 (Intellectual Property)",
+        body: "Copyright and other intellectual property rights in content the Company creates within the Service (text, images, design, trademarks, etc.) belong to the Company, and members may not reproduce, distribute, transmit, or publish such content without the Company's prior written consent.",
+      },
+      {
+        heading: "Article 14 (Limitation of Liability)",
+        body: "1. The Company is exempted from liability where it cannot provide the Service due to force majeure such as natural disaster, power outage, or communication failure.\n2. The Company is not liable for service disruption caused by a member's own fault.\n3. The Company has no obligation to intervene in disputes arising between members or between a member and a third party through the Service, and bears no liability for resulting damages.",
+      },
+      {
+        heading: "Article 15 (Governing Law and Jurisdiction)",
+        body: "1. Disputes arising in connection with these Terms and use of the Service are governed by the law the Company designates from among the laws of the Republic of Korea and the Socialist Republic of Vietnam; the specific governing law and competent court will be finalized and announced separately.\n2. Until finalized, this Article is provisional, and the Company and members will first make good-faith efforts to resolve disputes through amicable consultation.",
+      },
+      {
+        heading: "Article 16 (Contact)",
+        body: "For inquiries regarding these Terms or the Service, please contact:\nCompany: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC\nEmail: phuclochd8386@gmail.com\nPhone: 0396 340 222\n\nSupplementary Provision: These Terms take effect on August 8, 2026.",
+      },
+    ],
   },
   privacy: {
     eyebrow: "ZENTARO",
@@ -1583,7 +1715,7 @@ const vi: Dict = {
     rights: "Đã đăng ký bản quyền.",
     companyName: "Công ty: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC",
     ceo: "Đại diện: NGUYỄN XUÂN ƯỚC",
-    address: "Địa chỉ: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam",
+    address: "Địa chỉ: Tổ dân phố Liên Sơn, Phường Tiền Phong, Thành phố Bắc Ninh, Tỉnh Bắc Ninh, Việt Nam (21°13'50.56\"N 106°11'16.55\"E)",
     businessNo: "Mã số thuế: 2401046502",
   },
   pwaInstall: {
@@ -1667,7 +1799,73 @@ const vi: Dict = {
     eyebrow: "ZENTARO",
     title: "Terms",
     description: "Điều khoản sử dụng",
-    body: "Nội dung điều khoản sử dụng đang được chuẩn bị.",
+    updated: "Ngày hiệu lực: 08/08/2026",
+    sections: [
+      {
+        heading: "Điều 1 (Mục đích)",
+        body: "Điều khoản này quy định quyền, nghĩa vụ và trách nhiệm giữa CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC (sau đây gọi là \"Công ty\") và hội viên liên quan đến việc sử dụng gian hàng trực tuyến ZENTARO và các dịch vụ hội viên kỹ thuật số liên quan (sau đây gọi là \"Dịch vụ\").",
+      },
+      {
+        heading: "Điều 2 (Định nghĩa)",
+        body: "1. \"Dịch vụ\" là website ZENTARO (zentaro.netlify.app) và toàn bộ gian hàng trực tuyến, hội viên, ưu đãi, Whiskey Bank và các dịch vụ khác do Công ty cung cấp qua đó.\n2. \"Hội viên\" là người đã đồng ý với Điều khoản này và được cấp tài khoản sử dụng.\n3. \"ZP\" là tiền mua sắm dùng để mua sản phẩm trong Dịch vụ, không thể quy đổi thành tiền mặt.\n4. \"EXP\" là điểm thưởng dùng để nâng cấp hạng hội viên và trong một số trường hợp làm phương thức thanh toán thay thế, không thể quy đổi thành tiền mặt.\n5. \"ZTARO\" là token tiện ích của Công ty được phát hành và giao dịch trên chuỗi opBNB, dùng để thanh toán và staking trong Dịch vụ; đây không phải là sản phẩm đầu tư.\n6. \"Whiskey Bank (ZenTaro Barrel Reserve)\" là dịch vụ hội viên ủy thác ủ rượu trong thùng gỗ sồi và hưởng lãi/lỗ theo biến động giá trị thùng.\n7. \"Ưu đãi nắp chai\" là chương trình cấp EXP cho hội viên gửi lại nắp chai sản phẩm chính hãng còn dấu vết tem niêm phong thuế để xác minh.",
+      },
+      {
+        heading: "Điều 3 (Hiệu lực và sửa đổi Điều khoản)",
+        body: "1. Điều khoản này có hiệu lực khi được đăng trên Dịch vụ hoặc thông báo cho hội viên bằng phương thức khác.\n2. Công ty có thể sửa đổi Điều khoản trong phạm vi pháp luật cho phép, và sẽ thông báo ngày áp dụng cùng lý do sửa đổi trước ít nhất 7 ngày (30 ngày đối với sửa đổi bất lợi cho hội viên).\n3. Hội viên không đồng ý với Điều khoản sửa đổi có thể chấm dứt hợp đồng sử dụng; nếu không có ý kiến phản đối sau khi thông báo, xem như đã đồng ý.",
+      },
+      {
+        heading: "Điều 4 (Điều kiện đăng ký hội viên)",
+        body: "1. Do Dịch vụ có bán đồ uống có cồn, việc đăng ký và mua rượu chỉ dành cho người đủ tuổi uống rượu hợp pháp tại quốc gia cư trú.\n2. Công ty có thể từ chối đăng ký hoặc chấm dứt hợp đồng sau đó đối với trường hợp mạo danh người khác, khai báo thông tin sai sự thật, chưa đủ tuổi uống rượu hợp pháp, hoặc đăng ký nhằm mục đích vi phạm pháp luật hay trật tự công cộng.",
+      },
+      {
+        heading: "Điều 5 (Nghĩa vụ của hội viên)",
+        body: "1. Hội viên phải quản lý thông tin tài khoản (email, mã PIN thanh toán...) với sự cẩn trọng hợp lý và không được chuyển nhượng, cho mượn cho bên thứ ba.\n2. Khi phát hiện tài khoản bị đánh cắp hoặc sử dụng trái phép, hội viên phải thông báo ngay cho Công ty.\n3. Hội viên phải tuân thủ pháp luật hiện hành, Điều khoản này và hướng dẫn sử dụng do Công ty công bố.",
+      },
+      {
+        heading: "Điều 6 (Nội dung Dịch vụ)",
+        body: "Công ty cung cấp, và có thể bổ sung, thay đổi hoặc ngừng vì lý do kinh doanh/kỹ thuật, các dịch vụ sau:\n1. Bán trực tuyến sản phẩm thương hiệu ZENTARO và PHÚC LỘC\n2. Hệ thống hạng hội viên và điểm thưởng EXP\n3. Thanh toán và staking bằng token ZTARO\n4. Whiskey Bank (chương trình ủ rượu trong thùng gỗ sồi)\n5. Chương trình Ưu đãi nắp chai\n6. Chương trình thưởng giới thiệu (mentor)\n7. Các dịch vụ bổ sung khác do Công ty quy định",
+      },
+      {
+        heading: "Điều 7 (Phương thức thanh toán)",
+        body: "1. Ngoài các phương thức thông thường như thẻ tín dụng/ghi nợ, hội viên có thể thanh toán bằng ZP, EXP hoặc ZTARO. Điều kiện sử dụng, mức chiết khấu, khả năng kết hợp các phương thức do Công ty quy định và có thể thay đổi mà không cần báo trước.\n2. Thanh toán bằng ZTARO được xử lý ngay lập tức trên chuỗi khối (on-chain) và do đặc tính này không thể hủy sau khi giao dịch hoàn tất. Hội viên cần kiểm tra kỹ nội dung đơn hàng trước khi thanh toán bằng ZTARO.\n3. ZP và EXP là điểm chuyên dụng trong Dịch vụ, không phải tiền mặt và không được hoàn lại bằng tiền mặt. Chúng có thể hết hạn hoặc bị hủy theo điều kiện do Công ty quy định.",
+      },
+      {
+        heading: "Điều 8 (Thông báo về ZTARO và tài sản kỹ thuật số)",
+        body: "1. ZTARO là token tiện ích dùng để thanh toán, thưởng và staking trong Dịch vụ, không phải là chứng khoán hay sản phẩm đầu tư và không hứa hẹn hay đảm bảo bất kỳ lợi nhuận đầu tư nào.\n2. Giá thị trường của ZTARO biến động theo cung cầu trên các sàn giao dịch bên ngoài (như PancakeSwap); Công ty không đảm bảo về sự tăng hay giảm giá trị.\n3. Hội viên tự chịu trách nhiệm bảo quản thông tin ví và mã PIN thanh toán; Công ty không chịu trách nhiệm về thiệt hại phát sinh do hội viên sơ suất trong việc này.\n4. Công ty không chịu trách nhiệm về thiệt hại phát sinh từ các nguyên nhân nằm ngoài khả năng kiểm soát hợp lý như sự cố mạng blockchain, lỗ hổng hợp đồng thông minh, trừ khi có lỗi cố ý hoặc sơ suất nghiêm trọng của Công ty.",
+      },
+      {
+        heading: "Điều 9 (Đặt hàng, giao hàng và quyền hủy mua)",
+        body: "1. Hợp đồng được xác lập khi Công ty xác nhận và chấp nhận đơn hàng của hội viên. Công ty có thể hủy một phần hoặc toàn bộ đơn hàng vì lý do chính đáng như hết hàng, lỗi thanh toán.\n2. Giao hàng được thực hiện theo quy trình của Công ty sau khi xác nhận đơn hàng và thanh toán; thời gian giao hàng có thể khác nhau tùy sản phẩm và địa điểm giao.\n3. Do đặc tính của sản phẩm có cồn, quyền hủy mua có thể bị hạn chế trong phạm vi pháp luật cho phép một khi bao bì đã được mở hoặc giá trị sản phẩm đã giảm đáng kể.\n4. Đối với trả hàng do đổi ý đơn thuần, hội viên chịu phí vận chuyển hai chiều; đối với sản phẩm lỗi hoặc giao sai, Công ty chịu phí.",
+      },
+      {
+        heading: "Điều 10 (Điều kiện sử dụng Whiskey Bank)",
+        body: "1. Hội viên có thể chọn quy cách thùng gỗ sồi và thanh toán bằng EXP, ZP hoặc ZTARO để ủy thác ủ rượu qua dịch vụ Whiskey Bank.\n2. Giá trị thẩm định của thùng có thể biến động theo tiêu chí như tỷ lệ tăng trưởng hàng năm do Công ty quy định, và điều này không đảm bảo lợi nhuận cố định.\n3. Sau khi hoàn tất ủ, hội viên có thể chọn giao hàng tận nơi, dịch vụ đóng chai, hoặc bán lại cho hội viên khác qua chợ P2P; mỗi lựa chọn có thể áp dụng phí do Công ty quy định.\n4. Công ty chịu trách nhiệm trong phạm vi pháp luật cho phép chỉ đối với các vấn đề chất lượng nằm trong tầm kiểm soát của mình; không chịu trách nhiệm đối với ảnh hưởng phát sinh từ thiên tai hoặc sự cố cơ sở vật chất nằm ngoài khả năng kiểm soát.",
+      },
+      {
+        heading: "Điều 11 (Chương trình Ưu đãi nắp chai)",
+        body: "1. EXP theo mức quy định cho từng sản phẩm chỉ được cấp cho hội viên gửi lại, để Công ty thẩm định, nắp chai sản phẩm chính hãng còn giữ một phần dấu vết tem niêm phong thuế, và đơn đăng ký vượt qua thẩm định.\n2. Tiêu chí thẩm định, bao gồm tình trạng tem niêm phong và số lượng, do Công ty quy định, và việc cấp thưởng có thể bị từ chối tùy theo kết quả thẩm định.\n3. Thưởng được cấp sau khi xác minh thực tế và hoàn tất thẩm định; Công ty không đảm bảo cấp thưởng ngay lập tức.",
+      },
+      {
+        heading: "Điều 12 (Hành vi bị cấm)",
+        body: "Hội viên không được:\n1. Chiếm đoạt tài khoản, phương thức thanh toán hoặc thông tin cá nhân của người khác;\n2. Sử dụng nắp chai giả hoặc phương tiện xác minh giả mạo để trục lợi thưởng;\n3. Truy cập hệ thống bất thường hoặc cản trở vận hành Dịch vụ;\n4. Cố gắng quy đổi ZP, EXP hoặc ZTARO thành tiền mặt bằng phương thức không được Công ty cho phép;\n5. Thực hiện hành vi vi phạm pháp luật hiện hành hoặc trật tự công cộng.",
+      },
+      {
+        heading: "Điều 13 (Quyền sở hữu trí tuệ)",
+        body: "Bản quyền và các quyền sở hữu trí tuệ khác đối với nội dung do Công ty tạo ra trong Dịch vụ (văn bản, hình ảnh, thiết kế, nhãn hiệu...) thuộc về Công ty, và hội viên không được sao chép, phân phối, truyền tải hoặc xuất bản mà không có sự đồng ý bằng văn bản trước của Công ty.",
+      },
+      {
+        heading: "Điều 14 (Giới hạn trách nhiệm)",
+        body: "1. Công ty được miễn trách nhiệm khi không thể cung cấp Dịch vụ do nguyên nhân bất khả kháng như thiên tai, mất điện, sự cố viễn thông.\n2. Công ty không chịu trách nhiệm về sự gián đoạn dịch vụ do lỗi của hội viên.\n3. Công ty không có nghĩa vụ can thiệp vào tranh chấp phát sinh giữa các hội viên hoặc giữa hội viên với bên thứ ba thông qua Dịch vụ, và không chịu trách nhiệm bồi thường thiệt hại phát sinh từ đó.",
+      },
+      {
+        heading: "Điều 15 (Luật áp dụng và thẩm quyền giải quyết)",
+        body: "1. Tranh chấp phát sinh liên quan đến Điều khoản này và việc sử dụng Dịch vụ được điều chỉnh theo luật do Công ty chỉ định trong số luật pháp Hàn Quốc và luật pháp nước Cộng hòa Xã hội Chủ nghĩa Việt Nam; luật áp dụng cụ thể và tòa án có thẩm quyền sẽ được xác định và thông báo riêng.\n2. Cho đến khi được xác định, điều khoản này mang tính tạm thời, Công ty và hội viên sẽ ưu tiên nỗ lực giải quyết tranh chấp thông qua thương lượng thiện chí.",
+      },
+      {
+        heading: "Điều 16 (Liên hệ)",
+        body: "Mọi thắc mắc liên quan đến Điều khoản này hoặc Dịch vụ, vui lòng liên hệ:\nTên công ty: CÔNG TY TNHH SẢN XUẤT VÀ THƯƠNG MẠI RƯỢU PHÚC LỘC\nEmail: phuclochd8386@gmail.com\nĐiện thoại: 0396 340 222\n\nĐiều khoản bổ sung: Điều khoản này có hiệu lực từ ngày 08 tháng 08 năm 2026.",
+      },
+    ],
   },
   privacy: {
     eyebrow: "ZENTARO",

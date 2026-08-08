@@ -89,7 +89,14 @@ export function SiteFooter() {
               <span className="hidden sm:inline text-border/50">|</span>
               <span>{t.footer.ceo}</span>
               <span className="hidden sm:inline text-border/50">|</span>
-              <span>{t.footer.address}</span>
+              <a
+                href="https://www.google.com/maps?q=21.230711,106.187931"
+                target="_blank"
+                rel="noreferrer"
+                className="transition-colors hover:text-primary"
+              >
+                {t.footer.address}
+              </a>
               <span className="hidden sm:inline text-border/50">|</span>
               <span>{t.footer.businessNo}</span>
             </div>
