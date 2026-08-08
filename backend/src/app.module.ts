@@ -23,6 +23,7 @@ import { ZtroRewardsModule } from './ztro-rewards/ztro-rewards.module';
 import { TokenExchangeModule } from './token-exchange/token-exchange.module';
 import { ProductReviewsModule } from './product-reviews/product-reviews.module';
 import { InvestorWatchModule } from './investor-watch/investor-watch.module';
+import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
 
 @Module({
   imports: [
@@ -49,6 +50,7 @@ import { InvestorWatchModule } from './investor-watch/investor-watch.module';
     TokenExchangeModule,
     ProductReviewsModule,
     InvestorWatchModule,
+    YoutubeMonitorModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
