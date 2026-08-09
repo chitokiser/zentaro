@@ -101,7 +101,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         comingSoon: false,
         image: "/images/products/zentaro_origin.png",
         category: {
-            ko: "명품 증류식 소주",
+            ko: "수제명품 증류식소주",
             en: "Premium Distilled Soju",
             vi: "Premium Distilled Soju",
         },
@@ -725,14 +725,14 @@ export default function ProductsPromotionalPage() {
                 {/* Product Showcase Detail Section */}
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center bg-card/30 rounded-3xl border border-border/80 p-8 sm:p-12 backdrop-blur-sm">
                     {/* Left Column: Product Image */}
-                    <div className="lg:col-span-5 flex justify-center relative aspect-square w-full max-w-sm mx-auto overflow-hidden bg-zinc-950/40 rounded-2xl border border-border/60 shadow-2xl p-6 group">
+                    <div className="lg:col-span-5 relative -mx-8 -mt-8 sm:mx-auto sm:mt-0 flex justify-center aspect-[4/5] sm:aspect-square sm:w-full sm:max-w-sm overflow-hidden bg-zinc-950/40 rounded-t-3xl sm:rounded-2xl border-0 sm:border sm:border-border/60 shadow-none sm:shadow-2xl p-0 sm:p-6 group">
                         <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent z-0 pointer-events-none" />
                         {selectedProduct.image ? (
                             <Image
                                 src={selectedProduct.image}
                                 alt={selectedProduct.category[locale]}
                                 fill
-                                className="object-contain p-6 transform group-hover:scale-105 transition-transform duration-500"
+                                className="object-contain sm:p-6 transform group-hover:scale-105 transition-transform duration-500"
                                 sizes="(max-width: 768px) 100vw, 400px"
                                 priority
                             />
@@ -772,7 +772,7 @@ export default function ProductsPromotionalPage() {
                                     </p>
                                     <p className="mt-1 text-sm text-muted-foreground">
                                         {locale === "ko"
-                                            ? "더 완성도 높은 모습으로 곧 찾아뵙겠습니다. 현재는 명품 증류식 소주 ZENTARO ORIGIN만 만나보실 수 있어요."
+                                            ? "더 완성도 높은 모습으로 곧 찾아뵙겠습니다. 현재는 수제명품 증류식소주 ZENTARO ORIGIN만 만나보실 수 있어요."
                                             : locale === "vi"
                                                 ? "Chúng tôi sẽ sớm ra mắt với phiên bản hoàn thiện nhất. Hiện tại chỉ có ZENTARO ORIGIN sẵn sàng phục vụ quý khách."
                                                 : "We're putting the finishing touches on this one. For now, ZENTARO ORIGIN is the only product available."}
