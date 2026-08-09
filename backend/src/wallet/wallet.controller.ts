@@ -7,6 +7,7 @@ import { CreateDepositRequestDto } from './dto/create-deposit-request.dto';
 import { AdjustExpDto } from './dto/adjust-exp.dto';
 import { ConvertZpToExpDto } from './dto/convert-zp-to-exp.dto';
 import { WithdrawUsdtDto } from './dto/withdraw-usdt.dto';
+import { TransferZpDto } from './dto/transfer-zp.dto';
 import { LinkDaoStakingAddressDto } from './dto/link-dao-staking-address.dto';
 import { ClaimDaoStakingBonusDto } from './dto/claim-dao-staking-bonus.dto';
 import { SetDaoProposalNoteDto } from './dto/set-dao-proposal-note.dto';
@@ -78,6 +79,11 @@ export class WalletController {
   @Post('convert-zp-to-exp')
   convertZpToExp(@CurrentUser() user: CurrentUserPayload, @Body() dto: ConvertZpToExpDto) {
     return this.walletService.convertZpToExp(user.uid, dto.amount);
+  }
+
+  @Post('transfer-zp')
+  transferZp(@CurrentUser() user: CurrentUserPayload, @Body() dto: TransferZpDto) {
+    return this.walletService.transferZp(user.uid, user.email, dto.toEmail, dto.zpAmount, dto.paymentPassword);
   }
 
   @Get('dao-staking/link-message')

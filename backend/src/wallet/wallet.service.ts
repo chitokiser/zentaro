@@ -22,6 +22,15 @@ const EXCHANGE_RATE_API_URL = 'https://open.er-api.com/v6/latest/USD';
 const MIN_USDT_DEPOSIT = 0.01;
 /** Platform fee withheld on every ZP -> USDT withdrawal. */
 const USDT_WITHDRAWAL_FEE_RATE = 0.03;
+/**
+ * Platform fee withheld on every member-to-member ZP transfer — same rate as the USDT
+ * withdrawal fee, so P2P transfer can't become a free way to consolidate ZP across
+ * multiple accounts (e.g. farming per-account referral/charge bonuses, then moving the
+ * principal back for free). The fee amount is simply not credited anywhere.
+ */
+const ZP_P2P_TRANSFER_FEE_RATE = 0.03;
+/** Minimum amount per P2P ZP transfer, to keep it from being used for dust spam. */
+const MIN_ZP_P2P_TRANSFER = 1000;
 
 export interface WalletView {
   ap: number;
@@ -60,6 +69,8 @@ const ZENTARO_TRANSACTION_TYPES = [
   'referral_signup_reward',
   'level_charge_exp_bonus',
   'mentor_level_bonus_reward',
+  'zp_p2p_transfer_out',
+  'zp_p2p_transfer_in',
 ];
 
 /** Level-up cost formula: currentLevel^2 * 10000 EXP, deducted on level-up. */
@@ -639,6 +650,87 @@ export class WalletService {
 
       return { success: true, convertedAmount: amount };
     });
+  }
+
+  /**
+   * Sends ZP from one member to another by email, net of a flat platform fee (see
+   * ZP_P2P_TRANSFER_FEE_RATE) — the fee is simply deducted from circulation, not
+   * credited anywhere, same shape as withdrawUsdt's fee. Requires the sender's payment
+   * password since this moves real balance to a different account, same guard as
+   * withdrawUsdt. Recipient lookup/self-transfer guard mirrors TicketsService.transfer().
+   */
+  async transferZp(
+    fromUid: string,
+    fromEmail: string,
+    toEmail: string,
+    zpAmount: number,
+    paymentPassword?: string,
+  ) {
+    if (!Number.isInteger(zpAmount) || zpAmount < MIN_ZP_P2P_TRANSFER) {
+      throw new BadRequestException(`ZP 송금은 최소 ${MIN_ZP_P2P_TRANSFER.toLocaleString()} ZP 이상, 정수 단위로만 가능합니다.`);
+    }
+    await this.verifyPaymentPassword(fromUid, paymentPassword);
+
+    const usersCol = this.db.collection(COLLECTIONS.USERS);
+    const toSnap = await usersCol.where('email', '==', toEmail).limit(1).get();
+    if (toSnap.empty) {
+      throw new NotFoundException('받는 회원을 찾을 수 없습니다. 이메일을 확인해주세요.');
+    }
+    const toUid = toSnap.docs[0].id;
+    if (toUid === fromUid) {
+      throw new BadRequestException('본인에게는 ZP를 보낼 수 없습니다.');
+    }
+    const toWalletSnap = await this.db.collection(COLLECTIONS.ZENTARO_WALLETS).doc(toUid).get();
+    if (!toWalletSnap.exists) {
+      throw new NotFoundException('받는 회원이 아직 ZENTARO 멤버십에 가입되어 있지 않습니다.');
+    }
+
+    const fee = Math.floor(zpAmount * ZP_P2P_TRANSFER_FEE_RATE);
+    const netAmount = zpAmount - fee;
+    const fromUserRef = usersCol.doc(fromUid);
+    const toUserRef = usersCol.doc(toUid);
+
+    await this.db.runTransaction(async (tx) => {
+      const fromSnap = await tx.get(fromUserRef);
+      if (!fromSnap.exists) {
+        throw new NotFoundException('User not found');
+      }
+      const currentPoints: number = fromSnap.data()?.points ?? 0;
+      if (currentPoints < zpAmount) {
+        throw new BadRequestException(
+          `ZP 잔액이 부족합니다. (필요: ${zpAmount.toLocaleString()} ZP, 보유: ${currentPoints.toLocaleString()} ZP)`,
+        );
+      }
+
+      tx.update(fromUserRef, { points: FieldValue.increment(-zpAmount) });
+      tx.update(toUserRef, { points: FieldValue.increment(netAmount) });
+
+      const outRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(outRef, {
+        userId: fromUid,
+        amount: -zpAmount,
+        type: 'zp_p2p_transfer_out',
+        description: `ZP 송금 (받는 회원: ${toEmail}, ${zpAmount.toLocaleString()} ZP 전송, 수수료 3% = ${fee.toLocaleString()} ZP 차감 → 상대방 수령 ${netAmount.toLocaleString()} ZP)`,
+        toUserId: toUid,
+        toEmail,
+        fee,
+        netAmount,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+
+      const inRef = this.db.collection(COLLECTIONS.TRANSACTIONS).doc();
+      tx.set(inRef, {
+        userId: toUid,
+        amount: netAmount,
+        type: 'zp_p2p_transfer_in',
+        description: `ZP 송금 수령 (보낸 회원: ${fromEmail}, ${netAmount.toLocaleString()} ZP 수령)`,
+        fromUserId: fromUid,
+        fromEmail,
+        createdAt: FieldValue.serverTimestamp(),
+      });
+    });
+
+    return { toEmail, zpAmount, fee, netAmount };
   }
 
   /**

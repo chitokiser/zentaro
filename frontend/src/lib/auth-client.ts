@@ -1238,6 +1238,21 @@ export async function convertZpToExp(amount: number): Promise<{ success: boolean
   return res.json();
 }
 
+export async function transferZp(toEmail: string, zpAmount: number, paymentPassword?: string): Promise<{
+  toEmail: string;
+  zpAmount: number;
+  fee: number;
+  netAmount: number;
+}> {
+  const res = await fetch(`${API_URL}/wallet/transfer-zp`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ toEmail, zpAmount, paymentPassword }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function fetchAllDepositsAdmin(): Promise<DepositRequest[]> {
   const res = await fetch(`${API_URL}/wallet/admin/deposits`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));

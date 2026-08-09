@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, levelUp, fetchMe, type ExchangeDashboard, type DepositRequest, type Me } from "@/lib/auth-client"
+import { fetchWallet, fetchMyDeposits, submitDepositRequest, fetchExchangeDashboard, convertZpToExp, depositUsdt, withdrawUsdt, transferZp, levelUp, fetchMe, type ExchangeDashboard, type DepositRequest, type Me } from "@/lib/auth-client"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { LevelBenefitsCard } from "@/components/level-benefits-card"
 import { PaymentPinDialog } from "@/components/payment-pin-dialog"
@@ -35,6 +35,8 @@ export default function WalletPage() {
   const [pinDialogTitle, setPinDialogTitle] = useState("결제 비밀번호 승인")
   const [pinDialogDesc, setPinDialogDesc] = useState("자산 인출을 위해 6자리 결제 비밀번호를 입력해주세요.")
   const [pendingZpAmount, setPendingZpAmount] = useState<number | null>(null)
+  // Which flow the PIN dialog's onSuccess should route to next
+  const [pendingAction, setPendingAction] = useState<"withdraw" | "transfer" | null>(null)
 
   // ZP Top-up UI States
   const [zpAmount, setZpAmount] = useState<number>(10000)
@@ -64,6 +66,13 @@ export default function WalletPage() {
   const [withdrawBusy, setWithdrawBusy] = useState(false)
   const [withdrawError, setWithdrawError] = useState<string | null>(null)
   const [withdrawSuccess, setWithdrawSuccess] = useState<string | null>(null)
+
+  // ZP P2P transfer (3% fee)
+  const [transferEmail, setTransferEmail] = useState<string>("")
+  const [transferAmount, setTransferAmount] = useState<number>(1000)
+  const [transferBusy, setTransferBusy] = useState(false)
+  const [transferError, setTransferError] = useState<string | null>(null)
+  const [transferSuccess, setTransferSuccess] = useState<string | null>(null)
 
   // EXP level-up
   const [levelUpBusy, setLevelUpBusy] = useState(false)
@@ -210,6 +219,7 @@ export default function WalletPage() {
     setWithdrawError(null)
     setWithdrawSuccess(null)
     setPendingZpAmount(withdrawAmount)
+    setPendingAction("withdraw")
     setPinDialogTitle("USDT 출금 승인")
     setPinDialogDesc(`${withdrawAmount.toLocaleString()} ZP 출금을 위해 6자리 결제 비밀번호를 입력해주세요.`)
     setIsPinDialogOpen(true)
@@ -225,12 +235,53 @@ export default function WalletPage() {
       setWithdrawSuccess(`${w.usdtWithdrawSuccessPrefix}${amount.toLocaleString()}${w.usdtWithdrawSuccessMiddle}${result.netUsdt.toFixed(4)}${w.usdtWithdrawSuccessSuffix}`)
       setIsPinDialogOpen(false)
       setPendingZpAmount(null)
+      setPendingAction(null)
       loadWalletData()
       loadDepositHistory()
     } catch (err) {
       throw err
     } finally {
       setWithdrawBusy(false)
+    }
+  }
+
+  const handleZpTransfer = () => {
+    if (!wallet) return
+    if (!Number.isInteger(transferAmount) || transferAmount < 1000) {
+      setTransferError(w.transferMinAlert)
+      return
+    }
+    if (transferAmount > wallet.ap) {
+      setTransferError(w.transferInsufficientAlert)
+      return
+    }
+    if (!transferEmail.trim()) {
+      setTransferError(w.transferEmailRequiredAlert)
+      return
+    }
+    setTransferError(null)
+    setTransferSuccess(null)
+    setPendingAction("transfer")
+    setPinDialogTitle("ZP 송금 승인")
+    setPinDialogDesc(`${transferEmail} 님에게 ${transferAmount.toLocaleString()} ZP를 보내기 위해 6자리 결제 비밀번호를 입력해주세요.`)
+    setIsPinDialogOpen(true)
+  }
+
+  const executeZpTransfer = async (paymentPassword?: string) => {
+    setTransferBusy(true)
+    setTransferError(null)
+    setTransferSuccess(null)
+    try {
+      const result = await transferZp(transferEmail.trim(), transferAmount, paymentPassword)
+      setTransferSuccess(`${transferAmount.toLocaleString()}${w.transferSuccessMiddle}${result.netAmount.toLocaleString()}${w.transferSuccessSuffix}`)
+      setIsPinDialogOpen(false)
+      setPendingAction(null)
+      setTransferEmail("")
+      loadWalletData()
+    } catch (err) {
+      throw err
+    } finally {
+      setTransferBusy(false)
     }
   }
 
@@ -318,7 +369,7 @@ export default function WalletPage() {
             <h4 className="font-display text-sm font-semibold text-foreground">결제 비밀번호 보안 설정</h4>
             <p className="text-xs text-muted-foreground mt-0.5">
               {me?.hasPaymentPassword
-                ? "결제 비밀번호가 안전하게 설정되어 있습니다. (USDT 출금, P2P 구매, Ztaro 이체 시 사용)"
+                ? "결제 비밀번호가 안전하게 설정되어 있습니다. (USDT 출금, ZP 송금, P2P 구매, Ztaro 이체 시 사용)"
                 : "USDT 출금 및 중요 자산 이체 거래를 위해서 6자리 결제 비밀번호 설정이 필수입니다."
               }
             </p>
@@ -330,6 +381,7 @@ export default function WalletPage() {
             setPinDialogTitle(me?.hasPaymentPassword ? "결제 비밀번호 재설정" : "결제 비밀번호 설정");
             setPinDialogDesc("보안 자산 거래 보호를 위해 6자리 결제 비밀번호를 입력해주세요.");
             setPendingZpAmount(null);
+            setPendingAction(null);
             setIsPinDialogOpen(true);
           }}
           className={`shrink-0 self-start sm:self-center font-medium text-xs rounded-md px-3.5 py-1.5 transition ${me?.hasPaymentPassword ? "bg-secondary border border-border text-foreground hover:bg-secondary/80" : "bg-amber-500 hover:bg-amber-600 text-black font-semibold"}`}
@@ -437,6 +489,50 @@ export default function WalletPage() {
           className="self-start bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
         >
           {withdrawBusy ? w.usdtWithdrawing : w.usdtWithdrawButton}
+        </button>
+      </div>
+
+      {/* ZP P2P transfer to another member (3% fee) */}
+      <div className="rounded-lg border border-border/60 bg-card p-4 flex flex-col gap-3">
+        <div>
+          <h3 className="font-display text-sm font-semibold text-foreground">{w.transferSectionTitle}</h3>
+          <p className="mt-1 text-xs text-muted-foreground">{w.transferSectionDescription}</p>
+        </div>
+        {transferError ? <p className="text-xs text-destructive">{transferError}</p> : null}
+        {transferSuccess ? <p className="text-xs text-emerald-500">{transferSuccess}</p> : null}
+        <div className="flex flex-wrap items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">{w.transferEmailLabel}</span>
+            <input
+              type="email"
+              value={transferEmail}
+              onChange={(e) => setTransferEmail(e.target.value)}
+              placeholder={w.transferEmailPlaceholder}
+              className="w-56 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </label>
+          <label className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-muted-foreground">{w.transferAmountLabel}</span>
+            <input
+              type="number"
+              min={1000}
+              step={1000}
+              value={transferAmount}
+              onChange={(e) => setTransferAmount(Number(e.target.value))}
+              className="w-40 rounded-md border border-border bg-transparent px-3 py-2 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+            />
+          </label>
+          <span className="text-xs text-muted-foreground pb-2.5">
+            {w.transferEstimateLabel} <span className="text-primary font-semibold">{Math.floor(transferAmount * 0.97).toLocaleString()} ZP</span>
+          </span>
+        </div>
+        <button
+          type="button"
+          disabled={transferBusy}
+          onClick={handleZpTransfer}
+          className="self-start bg-primary text-primary-foreground hover:bg-primary/95 font-medium text-xs rounded-md px-4 py-2 transition active:scale-[0.98] disabled:opacity-50"
+        >
+          {transferBusy ? w.transferSending : w.transferButton}
         </button>
       </div>
 
@@ -648,7 +744,13 @@ export default function WalletPage() {
       <PaymentPinDialog
         isOpen={isPinDialogOpen}
         onClose={() => setIsPinDialogOpen(false)}
-        onSuccess={pendingZpAmount !== null ? executeUsdtWithdraw : () => setIsPinDialogOpen(false)}
+        onSuccess={
+          pendingAction === "withdraw"
+            ? executeUsdtWithdraw
+            : pendingAction === "transfer"
+              ? executeZpTransfer
+              : () => setIsPinDialogOpen(false)
+        }
         title={pinDialogTitle}
         description={pinDialogDesc}
         hasPinSet={me?.hasPaymentPassword}
