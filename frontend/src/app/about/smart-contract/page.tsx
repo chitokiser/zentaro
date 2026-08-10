@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import { PageHeader, Section } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
 
@@ -10,9 +11,41 @@ const CONTRACT_ADDRESSES = [
   "0x9cCe9d0737c5B0F7aC3c5B5a18D4d34897A2a8AD", // ZtroRewardDispenser
 ]
 
+// Order matches CONTRACT_ADDRESSES / s.contracts above. Files live in
+// frontend/public/contracts/, copied verbatim from backend/contract/.
+const CONTRACT_FILES: { file: string; flattenedFile?: string }[] = [
+  { file: "Zentaro.sol" },
+  { file: "ZtaroVaultDAO.sol", flattenedFile: "ZtaroVaultDAO.flattened.sol" },
+  { file: "ZentaroBank.sol" },
+  { file: "ZtroRewardDispenser.sol" },
+]
+
 export default function SmartContractPage() {
   const { t } = useI18n()
   const s = t.about.smartContract
+  const [openIdx, setOpenIdx] = useState<number | null>(null)
+  const [sourceCache, setSourceCache] = useState<Record<string, string>>({})
+  const [loadingIdx, setLoadingIdx] = useState<number | null>(null)
+
+  const toggleSource = async (idx: number, file: string) => {
+    if (openIdx === idx) {
+      setOpenIdx(null)
+      return
+    }
+    setOpenIdx(idx)
+    if (!sourceCache[file]) {
+      setLoadingIdx(idx)
+      try {
+        const res = await fetch(`/contracts/${file}`)
+        const text = await res.text()
+        setSourceCache((prev) => ({ ...prev, [file]: text }))
+      } catch {
+        setSourceCache((prev) => ({ ...prev, [file]: "// failed to load source" }))
+      } finally {
+        setLoadingIdx(null)
+      }
+    }
+  }
 
   return (
     <div>
@@ -57,6 +90,59 @@ export default function SmartContractPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      </Section>
+
+      <Section id="source" title={s.sourceTitle} className="border-t border-border/60">
+        <p className="mb-4 text-sm text-muted-foreground">{s.sourceIntro}</p>
+        <div className="flex flex-col gap-3">
+          {s.contracts.map((c, idx) => {
+            const meta = CONTRACT_FILES[idx]
+            const isOpen = openIdx === idx
+            return (
+              <div key={c.name} className="overflow-hidden rounded-lg border border-border/60">
+                <div className="flex flex-wrap items-center justify-between gap-2 bg-secondary/40 px-4 py-3">
+                  <span className="notranslate text-sm font-medium">{c.name}</span>
+                  <div className="flex flex-wrap items-center gap-3 text-xs">
+                    <a
+                      href={`/contracts/${meta.file}`}
+                      download
+                      className="text-primary underline underline-offset-4"
+                    >
+                      {s.downloadLabel}
+                    </a>
+                    {meta.flattenedFile ? (
+                      <a
+                        href={`/contracts/${meta.flattenedFile}`}
+                        download
+                        className="text-muted-foreground underline underline-offset-4"
+                      >
+                        {s.downloadFlattenedLabel}
+                      </a>
+                    ) : null}
+                    <button
+                      type="button"
+                      onClick={() => toggleSource(idx, meta.file)}
+                      className="rounded-md border border-border px-2.5 py-1 font-medium text-foreground transition hover:bg-secondary"
+                    >
+                      {isOpen ? s.hideSourceLabel : s.viewSourceLabel}
+                    </button>
+                  </div>
+                </div>
+                {isOpen ? (
+                  <div className="max-h-[480px] overflow-auto bg-zinc-950 p-4">
+                    {loadingIdx === idx ? (
+                      <p className="text-xs text-zinc-400">{s.loadingLabel}</p>
+                    ) : (
+                      <pre className="text-[11px] leading-relaxed text-zinc-300">
+                        <code>{sourceCache[meta.file]}</code>
+                      </pre>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            )
+          })}
         </div>
       </Section>
 

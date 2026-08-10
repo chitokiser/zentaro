@@ -347,9 +347,17 @@ const ko = {
         "거버넌스 안건은 투표 마감(7일) 이전에는 정족수를 채워도 실행 불가",
         "락업 해제 후 스테이킹 인출도 관리자 사전 승인이 필요한 2단계 통제 구조",
       ],
+      sourceTitle: "소스코드 공개",
+      sourceIntro:
+        "opBNBScan의 자동 소스 검증(Verify)은 배포 당시 옵티마이저 설정 확인 등 수동 절차가 남아 있어 아직 진행 중이지만, 실제 배포된 원본 소스코드는 아래에서 바로 확인하거나 파일로 내려받을 수 있습니다.",
+      viewSourceLabel: "소스코드 보기",
+      hideSourceLabel: "접기",
+      downloadLabel: "원본 파일 다운로드 (.sol)",
+      downloadFlattenedLabel: "검증 제출용 병합본",
+      loadingLabel: "불러오는 중...",
       verifyStatusTitle: "소스코드 검증 상태",
       verifyStatusBody:
-        "opBNBScan 소스코드 검증(Verify)을 준비 중입니다. 검증이 완료되면 각 주소 페이지에서 소스코드를 직접 확인할 수 있습니다.",
+        "opBNBScan 소스코드 검증(Verify)을 준비 중입니다. 검증이 완료되면 각 주소 페이지에서도 소스코드를 확인할 수 있습니다. 검증 완료 이전에도 위 \"소스코드 공개\" 섹션에서 실제 배포된 원본 코드를 지금 바로 확인할 수 있습니다.",
       viewOnExplorer: "opBNBScan에서 보기",
     },
     business: {
@@ -1172,9 +1180,17 @@ const en: Dict = {
         "Governance proposals cannot execute before the 7-day voting deadline, even at quorum",
         "Withdrawing unlocked stakes still requires prior admin approval — a 2-step control",
       ],
+      sourceTitle: "Source Code Disclosure",
+      sourceIntro:
+        "Automated opBNBScan verification is still in progress (it needs manual steps like confirming the exact optimizer settings used at deploy time), but the actual deployed source code can be viewed or downloaded directly below.",
+      viewSourceLabel: "View Source",
+      hideSourceLabel: "Hide",
+      downloadLabel: "Download raw file (.sol)",
+      downloadFlattenedLabel: "Flattened (for verification submission)",
+      loadingLabel: "Loading...",
       verifyStatusTitle: "Source Verification Status",
       verifyStatusBody:
-        "opBNBScan source verification is in progress. Once complete, the source code will be viewable directly on each contract's address page.",
+        "opBNBScan source verification is in progress. Once complete, the source code will also be viewable directly on each contract's address page. Even before verification completes, the actual deployed source is already available now in the \"Source Code Disclosure\" section above.",
       viewOnExplorer: "View on opBNBScan",
     },
     business: {
@@ -1995,9 +2011,17 @@ const vi: Dict = {
         "Đề xuất quản trị không thể thực thi trước hạn bỏ phiếu 7 ngày, kể cả khi đã đủ túc số",
         "Rút staking đã hết khóa vẫn cần quản trị viên phê duyệt trước — cơ chế kiểm soát 2 lớp",
       ],
+      sourceTitle: "Công bố mã nguồn",
+      sourceIntro:
+        "Việc xác minh mã nguồn tự động trên opBNBScan vẫn đang chuẩn bị (cần xác nhận thủ công cấu hình optimizer lúc triển khai), nhưng mã nguồn gốc đã triển khai thực tế có thể xem hoặc tải xuống trực tiếp bên dưới.",
+      viewSourceLabel: "Xem mã nguồn",
+      hideSourceLabel: "Thu gọn",
+      downloadLabel: "Tải file gốc (.sol)",
+      downloadFlattenedLabel: "Bản gộp để nộp xác minh",
+      loadingLabel: "Đang tải...",
       verifyStatusTitle: "Trạng thái xác minh mã nguồn",
       verifyStatusBody:
-        "Đang chuẩn bị xác minh mã nguồn (Verify) trên opBNBScan. Sau khi hoàn tất, mã nguồn sẽ được xem trực tiếp trên trang từng địa chỉ hợp đồng.",
+        "Đang chuẩn bị xác minh mã nguồn (Verify) trên opBNBScan. Sau khi hoàn tất, mã nguồn cũng sẽ xem được trực tiếp trên trang từng địa chỉ hợp đồng. Ngay cả trước khi hoàn tất xác minh, mã nguồn gốc đã triển khai đã có thể xem ngay ở mục \"Công bố mã nguồn\" phía trên.",
       viewOnExplorer: "Xem trên opBNBScan",
     },
     business: {
