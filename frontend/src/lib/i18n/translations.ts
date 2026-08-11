@@ -589,7 +589,23 @@ const ko = {
     custodialWalletIntro:
       "수탁지갑은 ZenTaro가 회원님을 대신해 안전하게 관리하는 온체인 지갑입니다. 메타마스크 같은 개인 지갑을 별도로 설치하지 않아도 Ztaro 스테이킹, 오크통(Barrel Reserve) P2P 거래 등 서비스 내 모든 기능을 바로 이용할 수 있습니다.",
     custodialWalletExternalNote:
-      "⚠️ 수탁지갑은 외부 개인 지갑으로 직접 출금·이체할 수 없으며, 오로지 젠타로 서비스(스테이킹, 배럴 P2P 거래 등) 내에서만 사용할 수 있습니다.",
+      "⚠️ 수탁지갑은 원칙적으로 젠타로 서비스(스테이킹, 배럴 P2P 거래 등) 내에서만 사용됩니다. 외부 개인 지갑으로의 직접 이체는 원칙적으로 제한되며, Lv.10 회원에 한해 승인된 이체만 예외적으로 가능합니다 (아래 보유 스테이킹 표에서 언스테이킹 후 이체).",
+    custodialWalletCompareTitle: "수탁지갑 vs 개인지갑, 뭐가 다른가요?",
+    custodialColumnTitle: "수탁지갑 (Custodial)",
+    custodialColumnPoints: [
+      "개인키를 젠타로가 암호화해서 대신 보관 — 회원은 키를 따로 관리할 필요 없음",
+      "메타마스크 등 별도 설치 없이 가입만 하면 바로 발급·사용 가능",
+      "Ztaro 스테이킹, 배럴 P2P 거래, ZTARO 결제 등 서비스 내 기능 전용",
+      "편의성이 높은 대신, 원칙적으로 서비스 밖으로는 자유롭게 인출할 수 없음",
+    ],
+    personalColumnTitle: "개인지갑 (Personal, 예: 메타마스크)",
+    personalColumnPoints: [
+      "개인키를 본인이 직접 보관 — 젠타로도 접근할 수 없는 완전한 자기 소유(Self-custody)",
+      "메타마스크 등 지갑 설치 후 서명으로 직접 연결해야 함",
+      "DAO 스테이킹(거버넌스 투표권·배당 청구) 전용 기능",
+      "온전히 본인 책임하에 자산을 직접 관리 — 키 분실 시 젠타로도 복구 불가",
+    ],
+    personalWalletCta: "개인지갑으로 DAO 스테이킹 하러 가기",
     custodialWalletNoWalletHint: "아직 수탁지갑이 없다면 아래 버튼을 눌러 즉시 발급받으세요.",
     custodialWalletExists: "이미 발급된 수탁지갑이 있습니다.",
     copyAddress: "주소 복사",
@@ -1422,7 +1438,23 @@ const en: Dict = {
     custodialWalletIntro:
       "A custodial wallet is an on-chain wallet that ZenTaro securely manages on your behalf. You can use every in-service feature — Ztaro staking, P2P trading in Barrel Reserve, and more — right away, without installing a personal wallet like MetaMask.",
     custodialWalletExternalNote:
-      "⚠️ Custodial wallets cannot withdraw or transfer directly to an external personal wallet. They can only be used within ZenTaro services (staking, Barrel Reserve P2P trading, etc.).",
+      "⚠️ Custodial wallets are meant to stay within ZenTaro services (staking, Barrel Reserve P2P trading, etc.). Direct transfer to an external personal wallet is restricted in principle — only Lv.10 members get approved for it (unstake, then transfer, from the positions table below).",
+    custodialWalletCompareTitle: "Custodial Wallet vs. Personal Wallet — what's the difference?",
+    custodialColumnTitle: "Custodial Wallet",
+    custodialColumnPoints: [
+      "ZenTaro encrypts and holds the private key on your behalf — you never have to manage a key yourself",
+      "Issued and ready to use the moment you sign up, no MetaMask or other install needed",
+      "Used exclusively for in-service features — Ztaro staking, Barrel Reserve P2P trading, ZTARO payments",
+      "Very convenient, but in principle cannot be freely withdrawn outside the service",
+    ],
+    personalColumnTitle: "Personal Wallet (e.g. MetaMask)",
+    personalColumnPoints: [
+      "You hold the private key yourself — true self-custody that even ZenTaro can't access",
+      "Requires installing a wallet like MetaMask and connecting it with a signature",
+      "Used specifically for DAO staking (governance voting rights, dividend claims)",
+      "You manage the asset entirely at your own risk — if you lose the key, ZenTaro cannot recover it either",
+    ],
+    personalWalletCta: "Go stake with a personal wallet (DAO Staking)",
     custodialWalletNoWalletHint: "Don't have a custodial wallet yet? Click the button below to get one issued instantly.",
     custodialWalletExists: "A custodial wallet has already been issued.",
     copyAddress: "Copy Address",
@@ -2253,7 +2285,23 @@ const vi: Dict = {
     custodialWalletIntro:
       "Ví lưu ký là ví on-chain được ZenTaro quản lý an toàn thay cho bạn. Bạn có thể sử dụng ngay mọi tính năng trong dịch vụ — staking Ztaro, giao dịch P2P tại Barrel Reserve, v.v. — mà không cần cài đặt ví cá nhân như MetaMask.",
     custodialWalletExternalNote:
-      "⚠️ Ví lưu ký không thể rút hoặc chuyển trực tiếp đến ví cá nhân bên ngoài. Ví chỉ có thể được sử dụng trong các dịch vụ của ZenTaro (staking, giao dịch P2P tại Barrel Reserve, v.v.).",
+      "⚠️ Ví lưu ký về nguyên tắc chỉ dùng trong các dịch vụ của ZenTaro (staking, giao dịch P2P tại Barrel Reserve, v.v.). Chuyển trực tiếp đến ví cá nhân bên ngoài về nguyên tắc bị hạn chế — chỉ hội viên Lv.10 mới được phê duyệt chuyển (hủy staking rồi chuyển, tại bảng vị thế staking bên dưới).",
+    custodialWalletCompareTitle: "Ví lưu ký vs Ví cá nhân — khác nhau thế nào?",
+    custodialColumnTitle: "Ví lưu ký (Custodial)",
+    custodialColumnPoints: [
+      "ZenTaro mã hóa và giữ private key thay bạn — bạn không cần tự quản lý key",
+      "Được cấp và dùng ngay khi đăng ký, không cần cài MetaMask hay ví nào khác",
+      "Chỉ dùng cho các tính năng trong dịch vụ — staking Ztaro, giao dịch P2P Barrel Reserve, thanh toán ZTARO",
+      "Rất tiện lợi, nhưng về nguyên tắc không thể rút tự do ra ngoài dịch vụ",
+    ],
+    personalColumnTitle: "Ví cá nhân (ví dụ: MetaMask)",
+    personalColumnPoints: [
+      "Bạn tự giữ private key — tự quản lý hoàn toàn (self-custody), kể cả ZenTaro cũng không truy cập được",
+      "Cần cài đặt ví như MetaMask và kết nối bằng chữ ký",
+      "Dùng riêng cho DAO staking (quyền bỏ phiếu quản trị, nhận cổ tức)",
+      "Bạn tự chịu trách nhiệm hoàn toàn — nếu mất key, ZenTaro cũng không thể khôi phục",
+    ],
+    personalWalletCta: "Đến trang staking bằng ví cá nhân (DAO Staking)",
     custodialWalletNoWalletHint: "Chưa có ví lưu ký? Nhấn nút bên dưới để được cấp ví ngay lập tức.",
     custodialWalletExists: "Bạn đã có ví lưu ký được cấp.",
     copyAddress: "Sao chép địa chỉ",

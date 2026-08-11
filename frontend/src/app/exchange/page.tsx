@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { ZtroPoolInfo } from "@/components/ztro-pool-info"
@@ -247,6 +248,41 @@ export default function ExchangePage() {
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 {e.custodialWalletIntro}
               </p>
+
+              <div className="mt-4 rounded-md border border-border/60 bg-secondary/20 p-4">
+                <p className="mb-3 text-xs font-semibold text-foreground">{e.custodialWalletCompareTitle}</p>
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-3">
+                    <p className="mb-2 text-xs font-semibold text-primary">{e.custodialColumnTitle}</p>
+                    <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      {e.custodialColumnPoints.map((point) => (
+                        <li key={point} className="flex gap-1.5">
+                          <span className="text-primary">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="rounded-md border border-border/60 bg-background/60 p-3">
+                    <p className="mb-2 text-xs font-semibold text-foreground">{e.personalColumnTitle}</p>
+                    <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
+                      {e.personalColumnPoints.map((point) => (
+                        <li key={point} className="flex gap-1.5">
+                          <span className="text-muted-foreground">•</span>
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <Link
+                      href="/rewards/dao-staking"
+                      className="mt-3 inline-block text-[11px] font-medium text-primary underline underline-offset-4"
+                    >
+                      {e.personalWalletCta} →
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
               {dashboard.address ? (
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
                   <span className="text-emerald-500">{e.custodialWalletExists}</span>
