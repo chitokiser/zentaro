@@ -4,6 +4,7 @@ import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
 import { ApiKeyGuard } from './api-key.guard';
 import { AiWriterService } from './ai-writer.service';
+import { PublishExternalPostDto } from './dto/publish-external-post.dto';
 
 @Controller('ai-writer')
 export class AiWriterController {
@@ -29,5 +30,13 @@ export class AiWriterController {
   @UseGuards(ApiKeyGuard)
   generatePromoExternal(@Body('topicId') topicId?: string) {
     return this.aiWriterService.generateSystemPromoOne(topicId);
+  }
+
+  // Same X-API-Key auth as generate-promo, but for external content that's already
+  // written (e.g. a research-lab AI) rather than content this server generates itself.
+  @Post('external/publish')
+  @UseGuards(ApiKeyGuard)
+  publishExternal(@Body() dto: PublishExternalPostDto) {
+    return this.aiWriterService.publishExternal(dto);
   }
 }

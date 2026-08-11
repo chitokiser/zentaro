@@ -281,6 +281,38 @@ export class AiWriterService {
     return result;
   }
 
+  /**
+   * Publishes ready-made content from an external content source (e.g. a research-lab AI
+   * that already wrote its own article) as a webzine post — unlike generateOne/
+   * generateSystemPromoOne, this does NOT call Gemini/Anthropic; the caller supplies the
+   * finished title/contentHtml themselves. Reached only via ApiKeyGuard (external/publish).
+   */
+  async publishExternal(input: {
+    title: string;
+    contentHtml: string;
+    tag?: string;
+    imageUrl?: string;
+    authorName?: string;
+  }) {
+    const tag = input.tag ?? SYSTEM_PROMO_TAG;
+    const contentHtml = input.imageUrl
+      ? `<img src="${input.imageUrl}" alt="${input.title}" style="width:100%;border-radius:12px;margin-bottom:1.5rem;" />${input.contentHtml}`
+      : input.contentHtml;
+
+    const result = await this.postsService.create(
+      { title: input.title, contentHtml, tags: [tag] },
+      'ai',
+      input.authorName ?? 'ZENTARO Research Lab AI',
+    );
+    this.logger.log(`External AI post published: "${input.title}" (${tag})`);
+
+    this.crossPostService
+      .postEverywhere({ id: result.id, title: input.title, contentHtml, imageUrl: input.imageUrl ?? null })
+      .catch((err) => this.logger.error(`Cross-posting failed: ${err}`));
+
+    return result;
+  }
+
   // Never reuse an image already used on a past post — retries across
   // several random pages and gives up (no image) rather than repeat one.
   private async fetchFreeImage(query: string): Promise<string | null> {
