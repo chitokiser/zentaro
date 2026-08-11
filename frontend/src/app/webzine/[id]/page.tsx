@@ -2,6 +2,7 @@ import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 import { getPost } from "@/lib/api"
 import { getYoutubeEmbedUrl, getVimeoEmbedUrl, isDirectVideoFile } from "@/lib/video-utils"
+import { sanitizePostHtml } from "@/lib/sanitize-post-html"
 import { WebzinePostView } from "@/components/webzine/webzine-post"
 
 export async function generateMetadata({
@@ -45,5 +46,13 @@ export default async function WebzinePostPage({
     : null
   const directVideo = post.videoUrl && !embedUrl && isDirectVideoFile(post.videoUrl) ? post.videoUrl : null
 
-  return <WebzinePostView post={post} embedUrl={embedUrl} directVideo={directVideo} />
+  const sanitizedPost = {
+    ...post,
+    contentHtml: sanitizePostHtml(post.contentHtml),
+    contentHtmlKo: post.contentHtmlKo ? sanitizePostHtml(post.contentHtmlKo) : post.contentHtmlKo,
+    contentHtmlEn: post.contentHtmlEn ? sanitizePostHtml(post.contentHtmlEn) : post.contentHtmlEn,
+    contentHtmlVi: post.contentHtmlVi ? sanitizePostHtml(post.contentHtmlVi) : post.contentHtmlVi,
+  }
+
+  return <WebzinePostView post={sanitizedPost} embedUrl={embedUrl} directVideo={directVideo} />
 }
