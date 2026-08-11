@@ -7,6 +7,7 @@ import {
   issueZtroRewardCodes,
   listZtroRewardCodes,
   fetchZtroPoolBalance,
+  deleteUnusedZtroRewardCodes,
   type ZtroRewardCode,
   type ZtroRewardCodeItem,
 } from "@/lib/auth-client"
@@ -34,6 +35,7 @@ export default function AdminZtroRewardsPage() {
   const [poolBalance, setPoolBalance] = useState<number | null>(null)
   const [poolError, setPoolError] = useState<string | null>(null)
   const [viewingItem, setViewingItem] = useState<ZtroRewardCode | null>(null)
+  const [deleteBusy, setDeleteBusy] = useState(false)
 
   const load = useCallback(() => {
     listZtroRewardCodes()
@@ -68,6 +70,24 @@ export default function AdminZtroRewardsPage() {
 
   const unused = items?.filter((item) => item.status === "unused") ?? []
   const used = items?.filter((item) => item.status !== "unused") ?? []
+
+  async function handleDeleteUnused() {
+    if (unused.length === 0) return
+    if (!window.confirm(`미사용 QR ${unused.length}개를 모두 삭제할까요? 되돌릴 수 없습니다.`)) {
+      return
+    }
+    setDeleteBusy(true)
+    setError(null)
+    try {
+      await deleteUnusedZtroRewardCodes()
+      setViewingItem(null)
+      load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "삭제에 실패했습니다.")
+    } finally {
+      setDeleteBusy(false)
+    }
+  }
 
   return (
     <div className="flex flex-col gap-6">
@@ -155,7 +175,20 @@ export default function AdminZtroRewardsPage() {
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">
-        <h3 className="mb-3 text-sm font-medium">미사용 ({unused.length})</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-sm font-medium">미사용 ({unused.length})</h3>
+          {unused.length > 0 ? (
+            <Button
+              size="sm"
+              variant="destructive"
+              className="h-7 px-2 text-[10px]"
+              disabled={deleteBusy}
+              onClick={handleDeleteUnused}
+            >
+              {deleteBusy ? "삭제 중..." : "미사용 전체 삭제"}
+            </Button>
+          ) : null}
+        </div>
         <div className="flex flex-col gap-2">
           {unused.length === 0 ? (
             <p className="text-xs text-muted-foreground">미사용 QR이 없습니다.</p>

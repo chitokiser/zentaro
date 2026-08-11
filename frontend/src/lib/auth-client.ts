@@ -308,6 +308,15 @@ export async function listZtroRewardCodes(): Promise<ZtroRewardCode[]> {
   return res.json();
 }
 
+export async function deleteUnusedZtroRewardCodes(): Promise<{ deleted: number }> {
+  const res = await fetch(`${API_URL}/ztro-rewards/admin/unused`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export interface ExchangeDashboard {
   address: string;
   ztroBalance: number;

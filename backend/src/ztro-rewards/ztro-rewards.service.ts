@@ -68,6 +68,17 @@ export class ZtroRewardsService {
     return snap.docs.map((doc) => doc.data());
   }
 
+  async deleteAllUnused() {
+    const snap = await this.col().where('status', '==', 'unused').get();
+    if (snap.empty) {
+      return { deleted: 0 };
+    }
+    const batch = this.db.batch();
+    snap.docs.forEach((doc) => batch.delete(doc.ref));
+    await batch.commit();
+    return { deleted: snap.size };
+  }
+
   async poolBalance() {
     const balance = await this.blockchain.getPoolBalance();
     return { balance: Number(balance) };

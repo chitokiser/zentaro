@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
@@ -33,6 +33,13 @@ export class ZtroRewardsController {
   @RequireAdminLevel(2)
   listAll() {
     return this.ztroRewardsService.listAll();
+  }
+
+  @Delete('admin/unused')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  deleteAllUnused() {
+    return this.ztroRewardsService.deleteAllUnused();
   }
 
   @Get('pool-balance')
