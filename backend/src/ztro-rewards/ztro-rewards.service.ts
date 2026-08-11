@@ -65,7 +65,20 @@ export class ZtroRewardsService {
 
   async listAll() {
     const snap = await this.col().orderBy('createdAt', 'desc').get();
-    return snap.docs.map((doc) => doc.data());
+    return Promise.all(
+      snap.docs.map(async (doc) => {
+        const data = doc.data();
+        if (!data.qrDataUrl) {
+          const qrDataUrl = await QRCode.toDataURL(data.code, {
+            margin: 1,
+            width: 240,
+          });
+          await doc.ref.update({ qrDataUrl });
+          data.qrDataUrl = qrDataUrl;
+        }
+        return data;
+      }),
+    );
   }
 
   async deleteAllUnused() {
