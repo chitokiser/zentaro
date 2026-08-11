@@ -352,6 +352,17 @@ export async function fetchPancakePoolBalance(): Promise<{ balance: number }> {
   return res.json();
 }
 
+export interface PublicMonthlyRevenue {
+  totals: { orderCount: number; totalRevenueZp: number };
+  byMonth: { month: string; orderCount: number; totalRevenueZp: number }[];
+}
+
+export async function fetchPublicMonthlyRevenue(): Promise<PublicMonthlyRevenue> {
+  const res = await fetch(`${API_URL}/orders/public/monthly-revenue`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function buyZtro(amount: number, maxPayUsdt?: number) {
   const res = await fetch(`${API_URL}/token-exchange/buy`, {
     method: "POST",

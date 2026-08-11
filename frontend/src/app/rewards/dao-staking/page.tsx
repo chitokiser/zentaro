@@ -6,6 +6,7 @@ import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { ZtroPoolInfo } from "@/components/ztro-pool-info"
 import { Wallet, ShieldAlert, Sparkles, RefreshCw, Layers, ArrowUpRight, Vote, Check, X, Megaphone } from "lucide-react"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import {
@@ -17,6 +18,8 @@ import {
     claimDaoStakingBonus,
     fetchDaoProposalNotes,
     setDaoProposalNoteAdmin,
+    fetchPublicMonthlyRevenue,
+    type PublicMonthlyRevenue,
 } from "@/lib/auth-client"
 
 // opBNB details
@@ -174,6 +177,15 @@ export default function DaoStakingPage() {
     const [claimingStakeId, setClaimingStakeId] = useState<number | null>(null)
     // Ticks so proposal-expiry checks below never call Date.now() directly during render.
     const [now, setNow] = useState<number>(() => Date.now())
+
+    // Public revenue disclosure
+    const [revenue, setRevenue] = useState<PublicMonthlyRevenue | null>(null)
+    const [revenueError, setRevenueError] = useState<string | null>(null)
+    useEffect(() => {
+        fetchPublicMonthlyRevenue()
+            .then(setRevenue)
+            .catch((err) => setRevenueError(err instanceof Error ? err.message : "매출 데이터를 불러오지 못했습니다."))
+    }, [])
     useEffect(() => {
         const timer = setInterval(() => setNow(Date.now()), 30000)
         return () => clearInterval(timer)
@@ -852,6 +864,80 @@ export default function DaoStakingPage() {
                         </div>
                         <p className="mt-1 text-[11px] text-slate-500">
                             현재 참여 중인 내 온체인 투표 영향력 규모
+                        </p>
+                    </div>
+                </div>
+
+                {/* Public disclosure: LP pool info + sales revenue history */}
+                <div className="space-y-3">
+                    <div>
+                        <h3 className="font-display text-sm font-semibold text-white flex items-center gap-2">
+                            <Layers className="h-4 w-4 text-amber-400" />
+                            LP(유동성 풀) 및 매출 내역 공개
+                        </h3>
+                        <p className="mt-1 text-[11px] text-slate-500">
+                            보증 기금·거버넌스 배당의 근거가 되는 실제 온체인/거래 데이터를 투명하게 공개합니다.
+                        </p>
+                    </div>
+
+                    <ZtroPoolInfo />
+
+                    <div className="rounded-xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-md">
+                        <div className="flex items-center justify-between">
+                            <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                                ZENTARO 쇼핑몰 매출 내역 (결제 완료 주문 기준)
+                            </span>
+                            {revenue ? (
+                                <span className="text-[10px] text-slate-500">
+                                    누적 {revenue.totals.orderCount.toLocaleString()}건
+                                </span>
+                            ) : null}
+                        </div>
+
+                        {revenueError ? (
+                            <p className="mt-3 text-xs text-rose-400">{revenueError}</p>
+                        ) : !revenue ? (
+                            <p className="mt-3 text-xs text-slate-500">불러오는 중...</p>
+                        ) : revenue.byMonth.length === 0 ? (
+                            <p className="mt-3 text-xs text-slate-500">아직 집계된 결제 완료 주문이 없습니다.</p>
+                        ) : (
+                            <>
+                                <div className="mt-2 flex items-baseline gap-1">
+                                    <span className="text-2xl font-bold font-mono tracking-tight text-white">
+                                        {revenue.totals.totalRevenueZp.toLocaleString()}
+                                    </span>
+                                    <span className="text-sm font-medium text-slate-400">ZP (누적 매출 총액)</span>
+                                </div>
+                                <div className="mt-4 overflow-x-auto">
+                                    <table className="w-full text-left text-xs border-collapse">
+                                        <thead>
+                                            <tr className="border-b border-slate-800 text-slate-500">
+                                                <th className="py-1.5 pr-2 font-medium">월</th>
+                                                <th className="py-1.5 px-2 font-medium">주문 건수</th>
+                                                <th className="py-1.5 pl-2 text-right font-medium">매출 (ZP)</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {revenue.byMonth.map((row) => (
+                                                <tr key={row.month} className="border-b border-slate-800/50 last:border-0">
+                                                    <td className="py-1.5 pr-2 font-mono text-slate-300">{row.month}</td>
+                                                    <td className="py-1.5 px-2 text-slate-300">{row.orderCount.toLocaleString()}</td>
+                                                    <td className="py-1.5 pl-2 text-right font-mono text-slate-200">
+                                                        {row.totalRevenueZp.toLocaleString()}
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </>
+                        )}
+
+                        <p className="mt-4 text-[10px] leading-relaxed text-slate-500">
+                            ZP는 1 ZP = 1 VND로 고정 연동됩니다. 위 매출은 상품 원가·마진을 제외한 결제 완료 주문의
+                            판매가 총액이며, 순이익이 아닙니다. 매출의 일부를 HEX 토큰으로 적립해 보유자에게
+                            분배하는 정책이 문서상 존재하지만, 이를 자동으로 집계·지급하는 시스템은 아직 구현되어
+                            있지 않습니다.
                         </p>
                     </div>
                 </div>

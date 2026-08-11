@@ -598,4 +598,43 @@ export class OrdersService {
 
     return { startDate: start.toISOString().slice(0, 10), endDate: end.toISOString().slice(0, 10), totals, byDateType };
   }
+
+  /**
+   * Public, revenue-only view of sales history for on-site transparency (e.g. the DAO
+   * staking "매출 내역" disclosure) — deliberately excludes cost/margin/AP/EXP breakdown
+   * from getSalesReport() above, since those reveal supplier costs and margins. Only
+   * counts 'paid' orders (unlike getSalesReport, which includes every status) so an
+   * unpaid/cancelled order can't inflate the public figure. Revenue is in ZP, which is
+   * pegged 1:1 to VND (see ztaro-pricing.service.ts).
+   */
+  async getPublicMonthlyRevenue() {
+    const snap = await this.ordersCol().where('status', '==', 'paid').get();
+
+    const byMonth = new Map<string, { month: string; orderCount: number; totalRevenueZp: number }>();
+    let totalOrderCount = 0;
+    let totalRevenueZp = 0;
+
+    snap.docs.forEach((doc) => {
+      const data = doc.data();
+      const createdAt = data.createdAt?.toDate?.() ?? new Date();
+      const month = createdAt.toISOString().slice(0, 7);
+      const items = (data.items ?? []) as Array<{ priceAp: number; quantity: number }>;
+      const orderRevenue = items.reduce((sum, item) => sum + item.priceAp * item.quantity, 0);
+
+      totalOrderCount += 1;
+      totalRevenueZp += orderRevenue;
+
+      const existing = byMonth.get(month) ?? { month, orderCount: 0, totalRevenueZp: 0 };
+      existing.orderCount += 1;
+      existing.totalRevenueZp += orderRevenue;
+      byMonth.set(month, existing);
+    });
+
+    const byMonthSorted = Array.from(byMonth.values()).sort((a, b) => (a.month < b.month ? 1 : -1));
+
+    return {
+      totals: { orderCount: totalOrderCount, totalRevenueZp },
+      byMonth: byMonthSorted,
+    };
+  }
 }

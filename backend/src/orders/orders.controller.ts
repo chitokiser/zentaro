@@ -37,6 +37,12 @@ export class OrdersController {
     return this.ordersService.getSalesReport(startDate, endDate);
   }
 
+  // Public revenue-only disclosure (no cost/margin) — no auth guard by design.
+  @Get('public/monthly-revenue')
+  getPublicMonthlyRevenue() {
+    return this.ordersService.getPublicMonthlyRevenue();
+  }
+
   @Patch(':id/status')
   @UseGuards(JwtAuthGuard, AdminGuard)
   updateStatus(@Param('id') id: string, @Body() dto: UpdateOrderStatusDto) {
