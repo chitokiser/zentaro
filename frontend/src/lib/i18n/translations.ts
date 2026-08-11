@@ -46,11 +46,11 @@ const ko = {
     },
     myPage: { label: "My Page" },
     myPageItems: {
-      profile: "Profile",
+      profile: "프로필",
       profileDesc: "회원정보",
-      mentor: "Mentor",
+      mentor: "멘토",
       mentorDesc: "멘토 관리",
-      wallet: "My Wallet",
+      wallet: "내 지갑",
       walletDesc: "내 지갑",
     },
     drinks: { label: "GLOBAL DRINKS" },
@@ -99,8 +99,8 @@ const ko = {
   },
 
   header: {
-    adminMode: " must-visit ZENTARO Admin",
-    myWallet: "My Wallet",
+    adminMode: "관리자",
+    myWallet: "내 지갑",
     login: "로그인",
     myProfile: "내 정보",
     cart: "장바구니",

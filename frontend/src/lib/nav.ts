@@ -84,14 +84,14 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
         { label: t.nav.drinksItems.rankings, href: "/drinks/rankings", description: t.nav.drinksItems.rankingsDesc },
       ],
     },
-    {
-      label: t.nav.myPage.label,
-      href: "/my/profile",
-      items: [
-        { label: t.nav.myPageItems.profile, href: "/my/profile", description: t.nav.myPageItems.profileDesc },
-        { label: t.nav.myPageItems.mentor, href: "/my/mentor", description: t.nav.myPageItems.mentorDesc },
-        { label: t.nav.myPageItems.wallet, href: "/my/wallet", description: t.nav.myPageItems.walletDesc },
-      ],
-    },
+  ];
+}
+
+/** Profile/Mentor/Wallet — no longer a top-level nav dropdown, folded into the header's profile menu instead. */
+export function getProfileNav(t: (typeof DICTIONARIES)["ko"]): NavLeaf[] {
+  return [
+    { label: t.nav.myPageItems.profile, href: "/my/profile", description: t.nav.myPageItems.profileDesc },
+    { label: t.nav.myPageItems.mentor, href: "/my/mentor", description: t.nav.myPageItems.mentorDesc },
+    { label: t.nav.myPageItems.wallet, href: "/my/wallet", description: t.nav.myPageItems.walletDesc },
   ];
 }

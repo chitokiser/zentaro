@@ -3,9 +3,9 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { Globe, Menu, Shield, ShoppingCart, User, Wallet } from "lucide-react"
+import { ChevronDown, Globe, Menu, Shield, ShoppingCart, User, Wallet } from "lucide-react"
 
-import { getMainNav } from "@/lib/nav"
+import { getMainNav, getProfileNav } from "@/lib/nav"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n/translations"
 import { getToken, fetchMe, fetchWallet, onAuthChanged, type Wallet as WalletData } from "@/lib/auth-client"
@@ -49,6 +49,7 @@ function LanguageSwitcher() {
 export function SiteHeader() {
   const { t } = useI18n()
   const mainNav = getMainNav(t)
+  const profileNav = getProfileNav(t)
   const [mobileOpen, setMobileOpen] = React.useState(false)
   const [isAdmin, setIsAdmin] = React.useState(false)
   const [wallet, setWallet] = React.useState<WalletData | null>(null)
@@ -126,17 +127,34 @@ export function SiteHeader() {
           <LanguageSwitcher />
           <CartBadge />
           {wallet ? (
-            <div className="mr-1 flex items-center gap-2.5 rounded-full border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs">
-              <span className="text-muted-foreground">
-                {t.header.point} <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
-              </span>
-              <span className="text-muted-foreground">
-                ZP <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
-              </span>
-              <span className="text-muted-foreground">
-                <span className="notranslate">EXP</span> <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
-              </span>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 rounded-full border border-border/60 bg-secondary/40 px-3 py-1.5 text-xs text-foreground/90 hover:border-primary/60">
+                  <Wallet className="size-3.5 text-primary" />
+                  <span className="font-medium text-primary">{wallet.ap.toLocaleString()} ZP</span>
+                  <ChevronDown className="size-3 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card text-card-foreground">
+                <div className="flex flex-col gap-1.5 px-2 py-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">{t.header.point}</span>
+                    <span className="font-medium text-foreground">{wallet.rewardPoint.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">ZP</span>
+                    <span className="font-medium text-primary">{wallet.ap.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="notranslate text-muted-foreground">EXP</span>
+                    <span className="font-medium text-primary">{wallet.exp.toLocaleString()}</span>
+                  </div>
+                </div>
+                <DropdownMenuItem asChild>
+                  <Link href="/my/wallet">{t.header.myWallet}</Link>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : null}
           {isAdmin ? (
             <Button asChild variant="outline" size="sm" className="gap-1.5 border-primary/50 text-primary hover:bg-secondary">
@@ -146,31 +164,38 @@ export function SiteHeader() {
               </Link>
             </Button>
           ) : null}
-          <Button asChild variant="ghost" size="sm" className="gap-1.5 text-foreground/90 hover:text-primary">
-            <Link href="/my/wallet">
-              <Wallet className="size-4" />
-              {t.header.myWallet}
-            </Link>
-          </Button>
           {loggedIn ? (
-            <Link
-              href="/my/profile"
-              className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-secondary/40 hover:border-primary/60"
-            >
-              <span className="sr-only">{t.header.myProfile}</span>
-              {photoUrl ? (
-                <Image
-                  src={photoUrl}
-                  alt=""
-                  width={36}
-                  height={36}
-                  className="size-full object-cover"
-                  unoptimized
-                />
-              ) : (
-                <User className="size-4 text-foreground/80" />
-              )}
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex size-9 items-center justify-center overflow-hidden rounded-full border border-border/60 bg-secondary/40 hover:border-primary/60">
+                  <span className="sr-only">{t.header.myProfile}</span>
+                  {photoUrl ? (
+                    <Image
+                      src={photoUrl}
+                      alt=""
+                      width={36}
+                      height={36}
+                      className="size-full object-cover"
+                      unoptimized
+                    />
+                  ) : (
+                    <User className="size-4 text-foreground/80" />
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56 bg-card text-card-foreground">
+                {profileNav.map((item) => (
+                  <DropdownMenuItem key={item.href} asChild>
+                    <Link href={item.href} className="flex flex-col items-start gap-0.5">
+                      <span className="text-sm font-medium">{item.label}</span>
+                      {item.description ? (
+                        <span className="text-xs text-muted-foreground">{item.description}</span>
+                      ) : null}
+                    </Link>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Button asChild size="sm" className="gap-1.5 bg-primary text-primary-foreground hover:bg-primary/90">
               <Link href="/my/profile">
@@ -237,6 +262,20 @@ export function SiteHeader() {
                     </div>
                   </div>
                 ))}
+                {loggedIn ? (
+                  <div className="flex flex-col gap-1">
+                    {profileNav.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        className="rounded-md px-2 py-1.5 text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                ) : null}
                 {isAdmin ? (
                   <Link
                     href="/admin"

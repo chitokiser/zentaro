@@ -20,7 +20,6 @@ export function WebzinePostView({
   directVideo: string | null
 }) {
   const { t, locale } = useI18n()
-  const authorLabel = post.source === "ai" ? "ZENTARO AI" : post.authorName
   const postTitle = locale === "ko" && post.titleKo ? post.titleKo : localizedText(locale, post.title, post.titleEn, post.titleVi)
   const rawContentHtml =
     locale === "ko" && post.contentHtmlKo
@@ -32,11 +31,7 @@ export function WebzinePostView({
 
   return (
     <div>
-      <PageHeader
-        eyebrow={post.tags.join(" · ")}
-        title={postTitle}
-        description={`${t.webzine.writtenByPrefix}${authorLabel}${t.webzine.writtenBySuffix}`}
-      />
+      <PageHeader eyebrow={post.tags.join(" · ")} title={postTitle} />
       <div className="mx-auto max-w-3xl px-4 py-14 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap gap-1.5">
           {post.tags.map((tag) => (
