@@ -24,6 +24,7 @@ import { TokenExchangeModule } from './token-exchange/token-exchange.module';
 import { ProductReviewsModule } from './product-reviews/product-reviews.module';
 import { InvestorWatchModule } from './investor-watch/investor-watch.module';
 import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
+import { DrinksModule } from './drinks/drinks.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
     ProductReviewsModule,
     InvestorWatchModule,
     YoutubeMonitorModule,
+    DrinksModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

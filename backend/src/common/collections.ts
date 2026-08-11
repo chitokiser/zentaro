@@ -26,4 +26,12 @@ export const COLLECTIONS = {
   ZENTARO_DAO_STAKE_BONUS_CLAIMS: 'zentaro_dao_stake_bonus_claims',
   ZENTARO_DAO_PROPOSAL_NOTES: 'zentaro_dao_proposal_notes',
   ZENTARO_INVESTOR_WATCHLIST: 'zentaro_investor_watchlist',
+  ZENTARO_DRINKS_PRODUCTS: 'zentaro_drinks_products',
+  ZENTARO_DRINKS_PRODUCERS: 'zentaro_drinks_producers',
+  ZENTARO_DRINKS_INGREDIENTS: 'zentaro_drinks_ingredients',
+  ZENTARO_DRINKS_COCKTAILS: 'zentaro_drinks_cocktails',
+  ZENTARO_DRINKS_USER_RATINGS: 'zentaro_drinks_user_ratings',
+  ZENTARO_DRINKS_SOURCES: 'zentaro_drinks_sources',
+  ZENTARO_DRINKS_SYNC_LOGS: 'zentaro_drinks_sync_logs',
+  ZENTARO_DRINKS_RANKING_CONFIG: 'zentaro_drinks_ranking_config',
 } as const;

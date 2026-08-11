@@ -72,6 +72,19 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
       ],
     },
     {
+      label: t.nav.drinks.label,
+      href: "/drinks",
+      items: [
+        { label: t.nav.drinksItems.explore, href: "/drinks", description: t.nav.drinksItems.exploreDesc },
+        { label: t.nav.drinksItems.spirits, href: "/drinks?category=spirit", description: t.nav.drinksItems.spiritsDesc },
+        { label: t.nav.drinksItems.wine, href: "/drinks?category=wine", description: t.nav.drinksItems.wineDesc },
+        { label: t.nav.drinksItems.beer, href: "/drinks?category=beer", description: t.nav.drinksItems.beerDesc },
+        { label: t.nav.drinksItems.cocktails, href: "/drinks", description: t.nav.drinksItems.cocktailsDesc },
+        { label: t.nav.drinksItems.botanicals, href: "/botanicals", description: t.nav.drinksItems.botanicalsDesc },
+        { label: t.nav.drinksItems.rankings, href: "/drinks/rankings", description: t.nav.drinksItems.rankingsDesc },
+      ],
+    },
+    {
       label: t.nav.myPage.label,
       href: "/my/profile",
       items: [

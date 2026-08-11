@@ -35,6 +35,7 @@ const ADMIN_SECTIONS: AdminSection[] = [
   { label: "배너 관리", href: "/admin/banners", requiredLevel: 2 },
   { label: "영상 관리", href: "/admin/videos", requiredLevel: 2 },
   { label: "이벤트 관리", href: "/admin/events", requiredLevel: 2 },
+  { label: "Global Drinks 관리", href: "/admin/drinks", requiredLevel: 2 },
 ]
 
 const LEVEL_LABEL: Record<number, string> = {

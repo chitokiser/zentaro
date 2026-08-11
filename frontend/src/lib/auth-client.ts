@@ -1643,3 +1643,224 @@ export async function fetchInvestorWatchAlertCount(): Promise<{ count: number }>
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+// ---------------------------------------------------------------------------
+// Global Drinks Database
+// ---------------------------------------------------------------------------
+
+export interface DrinkExternalRating {
+  source: string;
+  rating: number;
+  ratingCount: number;
+}
+
+export interface DrinkProduct {
+  id: string;
+  source: string;
+  name: string;
+  slug: string;
+  category: string;
+  subCategory: string | null;
+  country: string | null;
+  region: string | null;
+  producerName: string | null;
+  abv: number | null;
+  age: number | null;
+  description: string | null;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  sourceLicense: string | null;
+  externalRatings: DrinkExternalRating[];
+  zentaroRating: number | null;
+  zentaroRatingCount: number;
+  weightedRating: number | null;
+  isZentaroProduct: boolean;
+  mergeCandidateOf?: string | null;
+}
+
+export interface DrinkCocktail {
+  id: string;
+  name: string;
+  category: string | null;
+  alcoholic: string | null;
+  glass: string | null;
+  instructions: string | null;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  tags: string[];
+  ingredients: { name: string; measure: string | null }[];
+}
+
+export interface DrinkIngredient {
+  id: string;
+  name: string;
+  slug: string;
+  type: string | null;
+  description: string | null;
+  alcoholic: boolean;
+  abv: number | null;
+  isBotanical: boolean;
+  botanicalCategory: string | null;
+}
+
+export interface DrinkSearchResult {
+  products: DrinkProduct[];
+  cocktails: DrinkCocktail[];
+  ingredients: DrinkIngredient[];
+}
+
+export interface DrinkStatistics {
+  totalProducts: number;
+  totalCountries: number;
+  totalProducers: number;
+  totalIngredients: number;
+  totalBotanicals: number;
+  totalCocktails: number;
+  newProductsThisMonth: number;
+  lastUpdated: string | null;
+}
+
+export async function searchDrinks(
+  q: string,
+  filters: { category?: string; country?: string; minAbv?: number; maxAbv?: number } = {},
+): Promise<DrinkSearchResult> {
+  const params = new URLSearchParams({ q });
+  if (filters.category) params.set("category", filters.category);
+  if (filters.country) params.set("country", filters.country);
+  if (filters.minAbv != null) params.set("minAbv", String(filters.minAbv));
+  if (filters.maxAbv != null) params.set("maxAbv", String(filters.maxAbv));
+  const res = await fetch(`${API_URL}/drinks/search?${params.toString()}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkBySlug(slug: string): Promise<{ product: DrinkProduct; relatedCocktails: DrinkCocktail[] }> {
+  const res = await fetch(`${API_URL}/drinks/${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkRankings(tab: string, category?: string): Promise<DrinkProduct[]> {
+  const params = new URLSearchParams({ tab });
+  if (category) params.set("category", category);
+  const res = await fetch(`${API_URL}/drinks/rankings?${params.toString()}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinksByCountry(country: string): Promise<DrinkProduct[]> {
+  const res = await fetch(`${API_URL}/drinks/country/${encodeURIComponent(country)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkStatistics(): Promise<DrinkStatistics> {
+  const res = await fetch(`${API_URL}/drinks/statistics`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchCocktailById(id: string): Promise<DrinkCocktail> {
+  const res = await fetch(`${API_URL}/drinks/cocktails/${encodeURIComponent(id)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchBotanicals(botanicalOnly?: boolean): Promise<DrinkIngredient[]> {
+  const params = botanicalOnly ? "?botanicalOnly=true" : "";
+  const res = await fetch(`${API_URL}/botanicals${params}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchBotanicalBySlug(
+  slug: string,
+): Promise<{ ingredient: DrinkIngredient; relatedCocktails: DrinkCocktail[] }> {
+  const res = await fetch(`${API_URL}/botanicals/${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function rateDrinkProduct(slug: string, rating: number): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/drinks/${encodeURIComponent(slug)}/rate`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ rating }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface DrinkSyncLog {
+  id: string;
+  source: string;
+  newRecords: number;
+  updatedRecords: number;
+  errors: string[];
+  startedAt?: { _seconds: number } | null;
+  completedAt?: { _seconds: number } | null;
+}
+
+export async function syncDrinksNow(): Promise<unknown> {
+  const res = await fetch(`${API_URL}/drinks/admin/sync-now`, { method: "POST", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkSyncLogs(): Promise<DrinkSyncLog[]> {
+  const res = await fetch(`${API_URL}/drinks/admin/sync-logs`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkMergeCandidates(): Promise<DrinkProduct[]> {
+  const res = await fetch(`${API_URL}/drinks/admin/merge-candidates`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchRankingConfig(): Promise<{ minReviews: number }> {
+  const res = await fetch(`${API_URL}/drinks/admin/ranking-config`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateRankingConfig(minReviews: number): Promise<{ minReviews: number }> {
+  const res = await fetch(`${API_URL}/drinks/admin/ranking-config`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ minReviews }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function recalcDrinkRankings(): Promise<{ updated: number }> {
+  const res = await fetch(`${API_URL}/drinks/admin/recalculate-rankings`, { method: "POST", headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function createBotanicalAdmin(input: {
+  name: string;
+  description?: string;
+  isBotanical: boolean;
+  botanicalCategory?: string;
+}): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/botanicals/admin`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function deleteBotanicalAdmin(id: string): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/botanicals/admin/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
