@@ -289,6 +289,7 @@ export interface ZtroRewardCode {
   amount: number | null;
   txHash: string | null;
   createdAt?: { _seconds: number } | null;
+  qrDataUrl?: string | null;
 }
 
 export async function fetchZtroPoolBalance(): Promise<{ balance: number }> {

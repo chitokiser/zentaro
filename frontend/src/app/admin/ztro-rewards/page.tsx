@@ -33,7 +33,7 @@ export default function AdminZtroRewardsPage() {
   const [justIssued, setJustIssued] = useState<ZtroRewardCodeItem[] | null>(null)
   const [poolBalance, setPoolBalance] = useState<number | null>(null)
   const [poolError, setPoolError] = useState<string | null>(null)
-  const [viewingQrCode, setViewingQrCode] = useState<string | null>(null)
+  const [viewingItem, setViewingItem] = useState<ZtroRewardCode | null>(null)
 
   const load = useCallback(() => {
     listZtroRewardCodes()
@@ -178,7 +178,7 @@ export default function AdminZtroRewardsPage() {
                   size="sm"
                   variant="secondary"
                   className="h-7 px-2 text-[10px]"
-                  onClick={() => setViewingQrCode(item.code)}
+                  onClick={() => setViewingItem(item)}
                 >
                   QR 보기
                 </Button>
@@ -227,7 +227,7 @@ export default function AdminZtroRewardsPage() {
                   size="sm"
                   variant="secondary"
                   className="h-7 px-2 text-[10px]"
-                  onClick={() => setViewingQrCode(item.code)}
+                  onClick={() => setViewingItem(item)}
                 >
                   QR 보기
                 </Button>
@@ -237,19 +237,26 @@ export default function AdminZtroRewardsPage() {
         </div>
       </div>
 
-      {viewingQrCode && (
+      {viewingItem && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="bg-card w-full max-w-sm rounded-lg border border-border/60 p-6 flex flex-col items-center gap-4 text-center shadow-xl">
             <h3 className="font-display text-sm font-semibold">QR 코드 리워드</h3>
             <div className="rounded-md border border-border/40 p-3 bg-white">
-              <img
-                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(viewingQrCode)}`}
-                alt={viewingQrCode}
-                className="w-48 h-48"
-              />
+              {viewingItem.qrDataUrl ? (
+                <img
+                  src={viewingItem.qrDataUrl}
+                  alt={viewingItem.code}
+                  className="w-48 h-48"
+                />
+              ) : (
+                <p className="w-48 text-xs text-muted-foreground">
+                  이 QR은 기능 업데이트 이전에 발행되어 이미지가 저장되어 있지 않습니다.
+                  코드를 아래에서 확인하세요.
+                </p>
+              )}
             </div>
-            <p className="font-mono text-xs text-muted-foreground">{viewingQrCode}</p>
-            <Button size="sm" onClick={() => setViewingQrCode(null)} className="w-full mt-2">
+            <p className="font-mono text-xs text-muted-foreground">{viewingItem.code}</p>
+            <Button size="sm" onClick={() => setViewingItem(null)} className="w-full mt-2">
               닫기
             </Button>
           </div>

@@ -30,16 +30,23 @@ export class ZtroRewardsService {
   }
 
   async issue(count: number, baseValue: number) {
-    const batch = this.db.batch();
     const codes: string[] = [];
     for (let i = 0; i < count; i++) {
       codes.push(generateCode());
     }
 
-    for (const code of codes) {
-      const ref = this.col().doc(code);
-      batch.set(ref, {
+    const items = await Promise.all(
+      codes.map(async (code) => ({
         code,
+        qrDataUrl: await QRCode.toDataURL(code, { margin: 1, width: 240 }),
+      })),
+    );
+
+    const batch = this.db.batch();
+    for (const item of items) {
+      const ref = this.col().doc(item.code);
+      batch.set(ref, {
+        code: item.code,
         baseValue,
         status: 'unused',
         createdAt: FieldValue.serverTimestamp(),
@@ -48,16 +55,10 @@ export class ZtroRewardsService {
         usedAt: null,
         amount: null,
         txHash: null,
+        qrDataUrl: item.qrDataUrl,
       });
     }
     await batch.commit();
-
-    const items = await Promise.all(
-      codes.map(async (code) => ({
-        code,
-        qrDataUrl: await QRCode.toDataURL(code, { margin: 1, width: 240 }),
-      })),
-    );
 
     return { issued: items.length, items };
   }
