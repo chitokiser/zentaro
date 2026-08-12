@@ -141,16 +141,27 @@ export default function ProfilePage() {
       <div className="mx-auto max-w-sm rounded-lg border border-border/60 bg-card p-6">
         <h3 className="font-display text-lg font-medium">{p.accountInfoTitle}</h3>
         <p className="mt-2 text-sm text-muted-foreground">{p.loggedInNotice}</p>
-        <Button
-          variant="outline"
-          className="mt-4"
-          onClick={() => {
-            clearToken()
-            setLoggedIn(false)
-          }}
-        >
-          {p.logout}
-        </Button>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Button
+            variant="outline"
+            onClick={() => {
+              clearToken()
+              setLoggedIn(false)
+            }}
+          >
+            {p.logout}
+          </Button>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              clearToken()
+              setLoggedIn(false)
+              setMode("login")
+            }}
+          >
+            {p.switchAccount}
+          </Button>
+        </div>
         <ShippingAddressSection />
       </div>
     )

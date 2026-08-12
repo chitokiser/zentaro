@@ -8,7 +8,7 @@ import { ChevronDown, Globe, Menu, Shield, ShoppingCart, User, Wallet } from "lu
 import { getMainNav, getProfileNav } from "@/lib/nav"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { LOCALE_LABELS, type Locale } from "@/lib/i18n/translations"
-import { getToken, fetchMe, fetchWallet, onAuthChanged, type Wallet as WalletData } from "@/lib/auth-client"
+import { getToken, clearToken, fetchMe, fetchWallet, onAuthChanged, type Wallet as WalletData } from "@/lib/auth-client"
 import { CartBadge } from "@/components/cart-badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -194,6 +194,9 @@ export function SiteHeader() {
                     </Link>
                   </DropdownMenuItem>
                 ))}
+                <DropdownMenuItem onClick={() => clearToken()}>
+                  <span className="text-sm font-medium">{t.myPage.profile.logout}</span>
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -274,6 +277,15 @@ export function SiteHeader() {
                         {item.label}
                       </Link>
                     ))}
+                    <button
+                      onClick={() => {
+                        clearToken()
+                        setMobileOpen(false)
+                      }}
+                      className="rounded-md px-2 py-1.5 text-left text-sm text-foreground/90 hover:bg-secondary hover:text-primary"
+                    >
+                      {t.myPage.profile.logout}
+                    </button>
                   </div>
                 ) : null}
                 {isAdmin ? (
