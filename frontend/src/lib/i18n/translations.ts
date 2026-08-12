@@ -425,6 +425,8 @@ const ko = {
       processing: "처리 중...",
       orDivider: "또는",
       genericError: "오류가 발생했습니다.",
+      inAppBrowserWarning:
+        "카카오톡·인스타그램 등 앱 내 브라우저에서는 구글 로그인이 지원되지 않습니다. 우측 상단(또는 하단) 메뉴에서 '다른 브라우저로 열기'를 선택한 뒤 다시 시도해주세요.",
       shippingTitle: "배송지 관리",
       recipientPlaceholder: "받는 사람",
       phonePlaceholder: "연락처",
@@ -1300,6 +1302,8 @@ const en: Dict = {
       processing: "Processing...",
       orDivider: "or",
       genericError: "An error occurred.",
+      inAppBrowserWarning:
+        "Sign in with Google isn't supported inside in-app browsers like KakaoTalk or Instagram. Please choose \"Open in browser\" from the app's menu and try again.",
       shippingTitle: "Manage Shipping Address",
       recipientPlaceholder: "Recipient",
       phonePlaceholder: "Phone",
@@ -2173,6 +2177,8 @@ const vi: Dict = {
       processing: "Đang xử lý...",
       orDivider: "hoặc",
       genericError: "Đã xảy ra lỗi.",
+      inAppBrowserWarning:
+        "Đăng nhập bằng Google không hoạt động trong trình duyệt trong ứng dụng như KakaoTalk, Instagram. Vui lòng chọn \"Mở bằng trình duyệt\" trong menu của ứng dụng rồi thử lại.",
       shippingTitle: "Quản lý địa chỉ giao hàng",
       recipientPlaceholder: "Người nhận",
       phonePlaceholder: "Liên hệ",
