@@ -21,11 +21,20 @@ function generateCode(): string {
 // printed QR with the phone's own camera app opens the redeem page
 // directly — no need to open our site first and use the in-page scanner.
 const BOTTLE_CAP_URL_BASE = 'https://zentaro.netlify.app/rewards/bottle-cap';
-const QR_VERSION = 2;
+const QR_VERSION = 3;
 
 function codeQrUrl(code: string): string {
   return `${BOTTLE_CAP_URL_BASE}?code=${code}`;
 }
+
+// The URL payload is ~6x longer than the old bare code, which forces a
+// denser QR pattern. margin:1 (a 1-module quiet zone) is already below the
+// ISO-recommended 4 modules, and a 240px raster shown at 96–192px on the
+// admin page leaves very little margin for a real camera (as opposed to
+// our own in-page jsQR-based scanner, which tolerates both far better) to
+// focus and decode reliably off a screen. Generate larger with a proper
+// quiet zone.
+const QR_RENDER_OPTIONS = { margin: 4, width: 400 };
 
 @Injectable()
 export class ZtroRewardsService {
@@ -48,7 +57,7 @@ export class ZtroRewardsService {
     const items = await Promise.all(
       codes.map(async (code) => ({
         code,
-        qrDataUrl: await QRCode.toDataURL(codeQrUrl(code), { margin: 1, width: 240 }),
+        qrDataUrl: await QRCode.toDataURL(codeQrUrl(code), QR_RENDER_OPTIONS),
       })),
     );
 
@@ -79,13 +88,11 @@ export class ZtroRewardsService {
     return Promise.all(
       snap.docs.map(async (doc) => {
         const data = doc.data();
-        // Regenerate when missing entirely, or still encoding the bare code
-        // (pre-QR_VERSION-2 docs) instead of the scannable redeem URL.
+        // Regenerate when missing entirely, or on an older qrVersion (bare
+        // code instead of the redeem URL, or the old low-res/tight-margin
+        // render settings).
         if (!data.qrDataUrl || data.qrVersion !== QR_VERSION) {
-          const qrDataUrl = await QRCode.toDataURL(codeQrUrl(data.code), {
-            margin: 1,
-            width: 240,
-          });
+          const qrDataUrl = await QRCode.toDataURL(codeQrUrl(data.code), QR_RENDER_OPTIONS);
           await doc.ref.update({ qrDataUrl, qrVersion: QR_VERSION });
           data.qrDataUrl = qrDataUrl;
           data.qrVersion = QR_VERSION;

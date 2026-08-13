@@ -159,14 +159,14 @@ export default function AdminZtroRewardsPage() {
             <p className="text-xs text-muted-foreground">
               방금 발행한 QR입니다 — 인쇄/스크린샷으로 저장해두세요 (다시 불러올 수 없습니다).
             </p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
               {justIssued.map((item) => (
                 <div
                   key={item.code}
-                  className="flex flex-col items-center gap-1 rounded-md border border-border/40 p-2"
+                  className="flex flex-col items-center gap-1 rounded-md border border-border/40 bg-white p-2"
                 >
-                  <img src={item.qrDataUrl} alt={item.code} className="h-24 w-24" />
-                  <span className="font-mono text-[10px]">{item.code}</span>
+                  <img src={item.qrDataUrl} alt={item.code} className="h-40 w-40" />
+                  <span className="font-mono text-[10px] text-black">{item.code}</span>
                 </div>
               ))}
             </div>

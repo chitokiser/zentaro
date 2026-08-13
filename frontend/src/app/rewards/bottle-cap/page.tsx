@@ -20,6 +20,23 @@ import {
 
 type ProductChoice = "origin" | "blue" | "other"
 
+// The in-page scanner decodes whatever text is embedded in the QR image.
+// Printed QRs now encode the redeem URL rather than a bare code, so a scan
+// off an actual sticker/screen here comes back as a full URL — pull the
+// `code` param back out. Falls through to treating the input as a bare
+// code, so old already-printed QR stock (still encoding just the code)
+// keeps working.
+function extractRewardCode(scanned: string): string {
+  try {
+    const url = new URL(scanned)
+    const code = url.searchParams.get("code")
+    if (code) return code
+  } catch {
+    // not a URL — fall through
+  }
+  return scanned
+}
+
 function BottleCapPageContent() {
   const { t } = useI18n()
   const router = useRouter()
@@ -122,12 +139,12 @@ function BottleCapPageContent() {
     }
   }
 
-  async function handleScan(code: string) {
+  async function handleScan(scanned: string) {
     setScanning(false)
     setRedeeming(true)
     setRewardError(null)
     try {
-      const result = await redeemZtroQr(code)
+      const result = await redeemZtroQr(extractRewardCode(scanned))
       setRewardResult(result)
       fetchZtroRewardPoolBalance()
         .then((data) => setPoolBalance(data.balance))
