@@ -234,6 +234,7 @@ export class AuthService {
       isAdmin: adminLevel !== null,
       adminLevel,
       hasPaymentPassword: !!data.paymentPasswordHash,
+      hasLoginPassword: !!data.passwordHash,
     };
   }
 
@@ -354,6 +355,19 @@ export class AuthService {
       .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
 
     return { referrer, referredMembers, totalEarnedExp, referredPurchases };
+  }
+
+  /**
+   * Sets or replaces the member's email+password login credential. Members
+   * who signed up via Google never got a passwordHash, so if Google sign-in
+   * is ever unavailable to them (blocked in-app browser, lost session on a
+   * new device, ...) they have zero way back into their own account. This
+   * lets any logged-in member add that fallback themselves.
+   */
+  async setPassword(uid: string, password: string): Promise<{ success: boolean }> {
+    const passwordHash = await bcrypt.hash(password, 10);
+    await this.usersCol().doc(uid).set({ passwordHash }, { merge: true });
+    return { success: true };
   }
 
   /** Specifies payment password (6-digit PIN) for the user. */

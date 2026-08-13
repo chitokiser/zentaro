@@ -9,6 +9,8 @@ import {
   clearToken,
   fetchShippingAddress,
   updateShippingAddress,
+  fetchMe,
+  setLoginPassword,
   type ShippingAddress,
 } from "@/lib/auth-client"
 import { GoogleSignInButton } from "@/components/google-sign-in-button"
@@ -106,6 +108,79 @@ function ShippingAddressSection() {
   )
 }
 
+function LoginPasswordSection() {
+  const { t } = useI18n()
+  const p = t.myPage.profile
+  const [hasPassword, setHasPassword] = useState<boolean | null>(null)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    fetchMe()
+      .then((me) => setHasPassword(me.hasLoginPassword))
+      .catch(() => setHasPassword(null))
+  }, [])
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setSaved(false)
+    if (newPassword !== confirmPassword) {
+      setError(p.passwordMismatchError)
+      return
+    }
+    setSaving(true)
+    try {
+      await setLoginPassword(newPassword)
+      setHasPassword(true)
+      setSaved(true)
+      setNewPassword("")
+      setConfirmPassword("")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : p.saveError)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (hasPassword === null) return null
+
+  return (
+    <form onSubmit={handleSave} className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-6">
+      <h3 className="font-display text-lg font-medium">{p.loginPasswordTitle}</h3>
+      <p className="text-xs text-muted-foreground">
+        {hasPassword ? p.loginPasswordDescriptionHas : p.loginPasswordDescriptionSet}
+      </p>
+      <input
+        className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+        type="password"
+        placeholder={p.newPasswordPlaceholder}
+        value={newPassword}
+        onChange={(e) => setNewPassword(e.target.value)}
+        minLength={8}
+        required
+      />
+      <input
+        className="rounded-md border border-border/60 bg-background px-3 py-2 text-sm"
+        type="password"
+        placeholder={p.confirmPasswordPlaceholder}
+        value={confirmPassword}
+        onChange={(e) => setConfirmPassword(e.target.value)}
+        minLength={8}
+        required
+      />
+      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {saved ? <p className="text-xs text-primary">{p.savedNotice}</p> : null}
+      <Button type="submit" disabled={saving} variant="outline" className="mt-1">
+        {saving ? p.saving : p.savePassword}
+      </Button>
+    </form>
+  )
+}
+
 export default function ProfilePage() {
   const { t } = useI18n()
   const p = t.myPage.profile
@@ -162,6 +237,7 @@ export default function ProfilePage() {
             {p.switchAccount}
           </Button>
         </div>
+        <LoginPasswordSection />
         <ShippingAddressSection />
       </div>
     )

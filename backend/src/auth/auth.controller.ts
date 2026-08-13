@@ -13,6 +13,7 @@ import { ShippingAddressDto } from './dto/shipping-address.dto';
 import { SetAdminLevelDto } from './dto/set-admin-level.dto';
 import { PromoteAdminDto } from './dto/promote-admin.dto';
 import { SetPaymentPasswordDto } from './dto/set-payment-password.dto';
+import { SetPasswordDto } from './dto/set-password.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -88,5 +89,11 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   setPaymentPassword(@CurrentUser() user: CurrentUserPayload, @Body() dto: SetPaymentPasswordDto) {
     return this.authService.setPaymentPassword(user.uid, dto.pin);
+  }
+
+  @Post('password')
+  @UseGuards(JwtAuthGuard)
+  setPassword(@CurrentUser() user: CurrentUserPayload, @Body() dto: SetPasswordDto) {
+    return this.authService.setPassword(user.uid, dto.password);
   }
 }

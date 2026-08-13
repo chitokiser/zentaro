@@ -86,6 +86,7 @@ export interface Me {
   isAdmin: boolean;
   adminLevel: 1 | 2 | 3 | null;
   hasPaymentPassword: boolean;
+  hasLoginPassword: boolean;
 }
 
 export async function fetchMe(): Promise<Me> {
@@ -99,6 +100,16 @@ export async function setPaymentPassword(pin: string): Promise<{ success: boolea
     method: "POST",
     headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ pin }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setLoginPassword(password: string): Promise<{ success: boolean }> {
+  const res = await fetch(`${API_URL}/auth/password`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ password }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
