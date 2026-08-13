@@ -1,6 +1,7 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { Suspense, useEffect, useState } from "react"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   getToken,
@@ -181,9 +182,15 @@ function LoginPasswordSection() {
   )
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const { t } = useI18n()
   const p = t.myPage.profile
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const nextParam = searchParams.get("next")
+  // Only ever follow a same-site relative path — never let this become an
+  // open redirect to an attacker-controlled URL.
+  const safeNext = nextParam && nextParam.startsWith("/") ? nextParam : null
   const [mode, setMode] = useState<"login" | "register">("login")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -192,6 +199,15 @@ export default function ProfilePage() {
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
+
+  // E.g. arriving here from a bottle-cap QR link while logged out: after any
+  // successful login/register/Google sign-in, continue on to wherever the
+  // visitor was originally headed instead of stopping at the account page.
+  useEffect(() => {
+    if (loggedIn && safeNext) {
+      router.replace(safeNext)
+    }
+  }, [loggedIn, safeNext, router])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -315,5 +331,13 @@ export default function ProfilePage() {
         referrerEmail={mode === "register" ? referrerEmail : undefined}
       />
     </div>
+  )
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={null}>
+      <ProfilePageContent />
+    </Suspense>
   )
 }

@@ -1,7 +1,8 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { Suspense, useEffect, useRef, useState, useCallback } from "react"
 import Link from "next/link"
+import { useRouter, useSearchParams } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -19,8 +20,12 @@ import {
 
 type ProductChoice = "origin" | "blue" | "other"
 
-export default function BottleCapRewardsPage() {
+function BottleCapPageContent() {
   const { t } = useI18n()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const codeParam = searchParams.get("code")
+  const autoRedeemTriggeredRef = useRef(false)
 
   // Gates the whole page behind a login prompt — set from loadClaims()'s auth failure.
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +72,20 @@ export default function BottleCapRewardsPage() {
   useEffect(() => {
     loadClaims()
   }, [loadClaims])
+
+  // Scanning the printed QR with the phone's own camera app lands here with
+  // ?code=. If the visitor is already logged in, redeem it immediately
+  // instead of making them tap "스캔하기" and go through the in-page camera
+  // again. `claims !== null` is our signal that fetchMyBottleCapClaims()
+  // succeeded, i.e. the visitor is authenticated (the not-logged-in case is
+  // handled separately below via the `error` banner).
+  useEffect(() => {
+    if (!codeParam || autoRedeemTriggeredRef.current || claims === null) return
+    autoRedeemTriggeredRef.current = true
+    router.replace("/rewards/bottle-cap")
+    handleScan(codeParam)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [codeParam, claims])
 
   async function handleClaimSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -140,9 +159,16 @@ export default function BottleCapRewardsPage() {
         {/* 상단 1: 로그인하지 않았을 때만 로그인 요구 배너 노출 */}
         {error === "로그인이 필요합니다." && (
           <div className="rounded-lg border border-border/60 bg-card p-6 text-sm text-muted-foreground">
-            {t.bottleCap.loginRequired}{" "}
-            <Link href="/my/profile" className="text-primary underline underline-offset-4">
-              {t.bottleCap.loginCta}
+            {codeParam ? t.bottleCap.qrCodeLoginPrompt : t.bottleCap.loginRequired}{" "}
+            <Link
+              href={
+                codeParam
+                  ? `/my/profile?next=${encodeURIComponent(`/rewards/bottle-cap?code=${codeParam}`)}`
+                  : "/my/profile"
+              }
+              className="text-primary underline underline-offset-4"
+            >
+              {codeParam ? t.bottleCap.qrCodeLoginCta : t.bottleCap.loginCta}
             </Link>
           </div>
         )}
@@ -385,5 +411,13 @@ export default function BottleCapRewardsPage() {
 
       </div>
     </div>
+  )
+}
+
+export default function BottleCapRewardsPage() {
+  return (
+    <Suspense fallback={null}>
+      <BottleCapPageContent />
+    </Suspense>
   )
 }

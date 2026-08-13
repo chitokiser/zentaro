@@ -17,6 +17,16 @@ function generateCode(): string {
   return randomBytes(5).toString('hex').toUpperCase();
 }
 
+// Encoding a plain URL (rather than the bare code) means scanning the
+// printed QR with the phone's own camera app opens the redeem page
+// directly — no need to open our site first and use the in-page scanner.
+const BOTTLE_CAP_URL_BASE = 'https://zentaro.netlify.app/rewards/bottle-cap';
+const QR_VERSION = 2;
+
+function codeQrUrl(code: string): string {
+  return `${BOTTLE_CAP_URL_BASE}?code=${code}`;
+}
+
 @Injectable()
 export class ZtroRewardsService {
   constructor(
@@ -38,7 +48,7 @@ export class ZtroRewardsService {
     const items = await Promise.all(
       codes.map(async (code) => ({
         code,
-        qrDataUrl: await QRCode.toDataURL(code, { margin: 1, width: 240 }),
+        qrDataUrl: await QRCode.toDataURL(codeQrUrl(code), { margin: 1, width: 240 }),
       })),
     );
 
@@ -56,6 +66,7 @@ export class ZtroRewardsService {
         amount: null,
         txHash: null,
         qrDataUrl: item.qrDataUrl,
+        qrVersion: QR_VERSION,
       });
     }
     await batch.commit();
@@ -68,13 +79,16 @@ export class ZtroRewardsService {
     return Promise.all(
       snap.docs.map(async (doc) => {
         const data = doc.data();
-        if (!data.qrDataUrl) {
-          const qrDataUrl = await QRCode.toDataURL(data.code, {
+        // Regenerate when missing entirely, or still encoding the bare code
+        // (pre-QR_VERSION-2 docs) instead of the scannable redeem URL.
+        if (!data.qrDataUrl || data.qrVersion !== QR_VERSION) {
+          const qrDataUrl = await QRCode.toDataURL(codeQrUrl(data.code), {
             margin: 1,
             width: 240,
           });
-          await doc.ref.update({ qrDataUrl });
+          await doc.ref.update({ qrDataUrl, qrVersion: QR_VERSION });
           data.qrDataUrl = qrDataUrl;
+          data.qrVersion = QR_VERSION;
         }
         return data;
       }),
