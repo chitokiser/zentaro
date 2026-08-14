@@ -139,6 +139,32 @@ export function DrinkDetailContent({ slug }: { slug: string }) {
         </div>
       ) : null}
 
+      {product.taste && product.taste.length > 0 ? (
+        <div className="mt-10">
+          <h2 className="mb-2 font-display text-lg font-semibold text-foreground">Tasting Notes</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {product.taste.map((note) => (
+              <Badge key={note} variant="outline">
+                {note}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {product.foodPairing && product.foodPairing.length > 0 ? (
+        <div className="mt-6">
+          <h2 className="mb-2 font-display text-lg font-semibold text-foreground">Food Pairing</h2>
+          <div className="flex flex-wrap gap-1.5">
+            {product.foodPairing.map((pairing) => (
+              <Badge key={pairing} variant="outline">
+                {pairing}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
       {relatedCocktails.length > 0 ? (
         <div className="mt-10">
           <h2 className="mb-3 font-display text-lg font-semibold text-foreground">Related Cocktails</h2>

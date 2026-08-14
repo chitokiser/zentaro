@@ -1687,6 +1687,8 @@ export interface DrinkProduct {
   weightedRating: number | null;
   isZentaroProduct: boolean;
   mergeCandidateOf?: string | null;
+  taste?: string[];
+  foodPairing?: string[];
 }
 
 export interface DrinkCocktail {
@@ -1771,6 +1773,23 @@ export async function fetchDrinkStatistics(): Promise<DrinkStatistics> {
   return res.json();
 }
 
+export interface DrinkCountryCount {
+  country: string;
+  count: number;
+}
+
+export async function fetchDrinkCountries(): Promise<DrinkCountryCount[]> {
+  const res = await fetch(`${API_URL}/drinks/countries`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchZentaroOriginals(): Promise<DrinkProduct[]> {
+  const res = await fetch(`${API_URL}/drinks/zentaro-originals`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function fetchCocktailById(id: string): Promise<DrinkCocktail> {
   const res = await fetch(`${API_URL}/drinks/cocktails/${encodeURIComponent(id)}`);
   if (!res.ok) throw new Error(await parseErrorMessage(res));
@@ -1824,6 +1843,36 @@ export async function fetchDrinkSyncLogs(): Promise<DrinkSyncLog[]> {
   return res.json();
 }
 
+export interface Beer9Status {
+  sourceName: string;
+  sourceUrl: string | null;
+  license: string;
+  lastSyncedAt?: { _seconds: number } | null;
+  oneTimeSyncCompletedAt?: { _seconds: number } | null;
+  lastRunProductsFetched?: number;
+  lastRunPagesFetched?: number;
+  lastRunStoppedReason?: string;
+}
+
+export async function fetchBeer9Status(): Promise<Beer9Status | null> {
+  const res = await fetch(`${API_URL}/drinks/admin/beer9-status`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function syncBeer9Once(
+  maxPages?: number,
+  force?: boolean,
+): Promise<{ newRecords: number; updatedRecords: number; errors: string[]; pagesFetched: number; stoppedReason: string }> {
+  const res = await fetch(`${API_URL}/drinks/admin/sync-beer9-once`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ maxPages, force }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
 export async function fetchDrinkMergeCandidates(): Promise<DrinkProduct[]> {
   const res = await fetch(`${API_URL}/drinks/admin/merge-candidates`, { headers: authHeaders() });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
@@ -1869,6 +1918,188 @@ export async function createBotanicalAdmin(input: {
 
 export async function deleteBotanicalAdmin(id: string): Promise<{ id: string }> {
   const res = await fetch(`${API_URL}/botanicals/admin/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setZentaroFlagAdmin(
+  slug: string,
+  isZentaroProduct: boolean,
+): Promise<{ id: string; isZentaroProduct: boolean }> {
+  const res = await fetch(`${API_URL}/drinks/admin/${encodeURIComponent(slug)}/zentaro-flag`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ isZentaroProduct }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// ZENTARO Whisky Market — Whisky Hunter (whiskyhunter.net) market analytics.
+// Whisky Hunter only ever provides MONTHLY AGGREGATE stats per distillery/auction
+// house (mean/min/max winning bid, trading volume, lots count) — there is no
+// live-lot, current-bid, or bottle-level data, so none of these types claim any.
+// ---------------------------------------------------------------------------
+
+export interface WhiskyDistillery {
+  name: string;
+  slug: string;
+  country: string;
+}
+
+export interface WhiskyDistilleryDataPoint {
+  dt: string;
+  winning_bid_max: number;
+  winning_bid_min: number;
+  winning_bid_mean: number;
+  trading_volume: number;
+  lots_count: number;
+}
+
+export interface WhiskyDistilleryDetail extends WhiskyDistillery {
+  history?: WhiskyDistilleryDataPoint[];
+}
+
+export interface WhiskyAuctionHouse {
+  name: string;
+  slug: string;
+  url: string;
+  buyersFee: number;
+  sellersFee: number;
+  reserveFee: number;
+  listingFee: number;
+  baseCurrency: string;
+}
+
+export interface WhiskyAuctionDataPoint {
+  dt: string;
+  winning_bid_mean: number;
+  auction_trading_volume: number;
+  auction_lots_count: number;
+}
+
+export interface WhiskyAuctionHouseDetail extends WhiskyAuctionHouse {
+  history?: WhiskyAuctionDataPoint[];
+}
+
+export interface WhiskyMarketTrendPoint {
+  dt: string;
+  totalTradingVolume: number;
+  totalLots: number;
+  weightedMeanBid: number;
+}
+
+export interface WhiskyMarketDashboard {
+  totalDistilleries: number;
+  totalAuctionHouses: number;
+  lastDataDate: string | null;
+  trend: WhiskyMarketTrendPoint[];
+  source: string;
+}
+
+export async function fetchWhiskyDashboard(): Promise<WhiskyMarketDashboard> {
+  const res = await fetch(`${API_URL}/whisky-market/dashboard`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchWhiskyDistilleries(filters: { country?: string; q?: string } = {}): Promise<WhiskyDistillery[]> {
+  const params = new URLSearchParams();
+  if (filters.country) params.set("country", filters.country);
+  if (filters.q) params.set("q", filters.q);
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/whisky-market/distilleries${qs ? `?${qs}` : ""}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchWhiskyDistillery(slug: string): Promise<WhiskyDistilleryDetail> {
+  const res = await fetch(`${API_URL}/whisky-market/distilleries/${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchWhiskyAuctionHouses(): Promise<WhiskyAuctionHouse[]> {
+  const res = await fetch(`${API_URL}/whisky-market/auction-houses`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchWhiskyAuctionHouse(slug: string): Promise<WhiskyAuctionHouseDetail> {
+  const res = await fetch(`${API_URL}/whisky-market/auction-houses/${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface WhiskyWatchItem {
+  id: string;
+  distillerySlug: string;
+  distilleryName: string;
+  country: string | null;
+}
+
+export async function fetchWhiskyWatchlist(): Promise<WhiskyWatchItem[]> {
+  const res = await fetch(`${API_URL}/whisky-market/watchlist`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function addWhiskyWatch(distillerySlug: string): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/whisky-market/watchlist`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ distillerySlug }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function removeWhiskyWatch(distillerySlug: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/whisky-market/watchlist/${encodeURIComponent(distillerySlug)}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface WhiskyTarget {
+  id: string;
+  distillerySlug: string;
+  distilleryName: string;
+  targetPrice: number;
+  notificationOn: boolean;
+  latestAvgPrice: number | null;
+  latestAvgDt: string | null;
+  status: "WITHIN_TARGET" | "OVER_TARGET" | "NO_DATA";
+}
+
+export async function fetchWhiskyTargets(): Promise<WhiskyTarget[]> {
+  const res = await fetch(`${API_URL}/whisky-market/targets`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function setWhiskyTarget(
+  distillerySlug: string,
+  targetPrice: number,
+  notificationOn?: boolean,
+): Promise<{ id: string }> {
+  const res = await fetch(`${API_URL}/whisky-market/targets`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ distillerySlug, targetPrice, notificationOn }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function removeWhiskyTarget(distillerySlug: string): Promise<{ ok: boolean }> {
+  const res = await fetch(`${API_URL}/whisky-market/targets/${encodeURIComponent(distillerySlug)}`, {
     method: "DELETE",
     headers: authHeaders(),
   });

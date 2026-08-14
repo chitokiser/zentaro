@@ -11,6 +11,7 @@ export default function MyPageLayout({ children }: { children: React.ReactNode }
     { label: t.nav.myPageItems.mentor, href: "/my/mentor" },
     { label: t.nav.myPageItems.wallet, href: "/my/wallet" },
     { label: "혜택 안내 ✨", href: "/my/benefits" },
+    { label: "위스키 마켓", href: "/my/whisky" },
   ]
 
   return (

@@ -143,6 +143,34 @@ export class DrinksService {
       .filter((p) => (p.country ?? '').toLowerCase() === country.toLowerCase());
   }
 
+  /** All distinct countries present in the products collection, with counts, for the "Explore by Country" browser. */
+  async listCountries() {
+    const snap = await this.productsCol().limit(SEARCH_SCAN_LIMIT).get();
+    const counts = new Map<string, number>();
+    snap.docs.forEach((d) => {
+      const country = d.data().country as string | undefined;
+      if (!country) return;
+      counts.set(country, (counts.get(country) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /** Products ZENTARO has flagged as its own (isZentaroProduct=true), for the "ZENTARO Originals" section. */
+  async listZentaroOriginals() {
+    const snap = await this.productsCol().where('isZentaroProduct', '==', true).limit(100).get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
+  async setZentaroFlagAdmin(slug: string, isZentaroProduct: boolean) {
+    const ref = this.productsCol().doc(slug);
+    const snap = await ref.get();
+    if (!snap.exists) throw new NotFoundException('Drink not found');
+    await ref.set({ isZentaroProduct, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { id: slug, isZentaroProduct };
+  }
+
   async getStatistics() {
     const [productsSnap, cocktailsSnap, ingredientsSnap, sourcesSnap] = await Promise.all([
       this.productsCol().get(),

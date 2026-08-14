@@ -25,7 +25,7 @@ export function DrinksCountryContent({ country }: { country: string }) {
         description={`Drinks and spirits from ${country}, including ZENTARO's own products where applicable.`}
       />
       <div className="mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
-        <div className="mb-8 flex flex-wrap gap-2">
+        <div className="mb-8 flex flex-wrap items-center gap-2">
           {FEATURED_COUNTRIES.map((c) => (
             <Link key={c} href={`/drinks/country/${encodeURIComponent(c)}`}>
               <Badge variant={c === country ? "default" : "outline"} className="cursor-pointer">
@@ -33,6 +33,9 @@ export function DrinksCountryContent({ country }: { country: string }) {
               </Badge>
             </Link>
           ))}
+          <Link href="/drinks/countries" className="ml-2 text-xs text-primary underline underline-offset-4">
+            View all countries →
+          </Link>
         </div>
 
         {items === null ? (

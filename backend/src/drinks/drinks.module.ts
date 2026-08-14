@@ -8,6 +8,7 @@ import { DrinksDedupeService } from './dedupe.service';
 import { DrinksRankingService } from './ranking.service';
 import { WhiskyEditionAdapter } from './adapters/whisky-edition.adapter';
 import { CocktailDbAdapter } from './adapters/cocktaildb.adapter';
+import { Beer9Adapter } from './adapters/beer9.adapter';
 
 @Module({
   imports: [AuthModule],
@@ -20,6 +21,7 @@ import { CocktailDbAdapter } from './adapters/cocktaildb.adapter';
     DrinksRankingService,
     WhiskyEditionAdapter,
     CocktailDbAdapter,
+    Beer9Adapter,
   ],
   exports: [DrinksService],
 })

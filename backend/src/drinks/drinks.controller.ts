@@ -10,6 +10,7 @@ import { DrinksRankingService } from './ranking.service';
 import { RateProductDto } from './dto/rate-product.dto';
 import { UpdateRankingConfigDto } from './dto/update-ranking-config.dto';
 import { CreateIngredientDto, UpdateIngredientDto } from './dto/ingredient.dto';
+import { SetZentaroFlagDto } from './dto/set-zentaro-flag.dto';
 
 @Controller()
 export class DrinksController {
@@ -50,6 +51,17 @@ export class DrinksController {
     return this.drinksService.listByCountry(code);
   }
 
+  // Kept above the /drinks/:slug catch-all below so Nest doesn't swallow these into :slug.
+  @Get('drinks/countries')
+  listCountries() {
+    return this.drinksService.listCountries();
+  }
+
+  @Get('drinks/zentaro-originals')
+  zentaroOriginals() {
+    return this.drinksService.listZentaroOriginals();
+  }
+
   @Get('drinks/cocktails/:id')
   getCocktail(@Param('id') id: string) {
     return this.drinksService.getCocktailById(id);
@@ -77,11 +89,32 @@ export class DrinksController {
     return this.drinksService.getProductBySlug(slug);
   }
 
+  @Post('drinks/admin/:slug/zentaro-flag')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  setZentaroFlag(@Param('slug') slug: string, @Body() dto: SetZentaroFlagDto) {
+    return this.drinksService.setZentaroFlagAdmin(slug, dto.isZentaroProduct);
+  }
+
   @Post('drinks/admin/sync-now')
   @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   syncNow() {
     return this.drinksSync.checkNow();
+  }
+
+  @Get('drinks/admin/beer9-status')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  beer9Status() {
+    return this.drinksSync.getBeer9Status();
+  }
+
+  @Post('drinks/admin/sync-beer9-once')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  syncBeer9Once(@Body() body: { maxPages?: number; force?: boolean }) {
+    return this.drinksSync.syncBeer9Once(body.maxPages ?? 80, body.force ?? false);
   }
 
   @Get('drinks/admin/sync-logs')

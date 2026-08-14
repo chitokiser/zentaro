@@ -10,8 +10,12 @@ import {
   fetchRankingConfig,
   updateRankingConfig,
   recalcDrinkRankings,
+  setZentaroFlagAdmin,
+  fetchBeer9Status,
+  syncBeer9Once,
   type DrinkSyncLog,
   type DrinkProduct,
+  type Beer9Status,
 } from "@/lib/auth-client"
 
 function formatTimestamp(ts?: { _seconds: number } | null) {
@@ -27,11 +31,18 @@ export default function AdminDrinksPage() {
   const [minReviews, setMinReviews] = useState<number>(10)
   const [rankingBusy, setRankingBusy] = useState(false)
   const [rankingMessage, setRankingMessage] = useState<string | null>(null)
+  const [zentaroSlug, setZentaroSlug] = useState("")
+  const [zentaroBusy, setZentaroBusy] = useState(false)
+  const [zentaroMessage, setZentaroMessage] = useState<string | null>(null)
+  const [beer9Status, setBeer9Status] = useState<Beer9Status | null>(null)
+  const [beer9Busy, setBeer9Busy] = useState(false)
+  const [beer9Message, setBeer9Message] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchDrinkSyncLogs().then(setLogs).catch(() => setLogs(null))
     fetchDrinkMergeCandidates().then(setCandidates).catch(() => setCandidates(null))
     fetchRankingConfig().then((res) => setMinReviews(res.minReviews)).catch(() => undefined)
+    fetchBeer9Status().then(setBeer9Status).catch(() => setBeer9Status(null))
   }, [])
 
   useEffect(() => {
@@ -75,6 +86,41 @@ export default function AdminDrinksPage() {
       setRankingMessage(err instanceof Error ? err.message : "재계산에 실패했습니다.")
     } finally {
       setRankingBusy(false)
+    }
+  }
+
+  async function handleSyncBeer9(force: boolean) {
+    setBeer9Busy(true)
+    setBeer9Message(null)
+    try {
+      const res = await syncBeer9Once(undefined, force)
+      setBeer9Message(
+        `${res.pagesFetched}페이지 수집, 신규 ${res.newRecords} / 갱신 ${res.updatedRecords}건. 중단 사유: ${res.stoppedReason}` +
+          (res.errors.length > 0 ? ` (오류 ${res.errors.length}건)` : ""),
+      )
+      fetchBeer9Status().then(setBeer9Status).catch(() => undefined)
+    } catch (err) {
+      setBeer9Message(err instanceof Error ? err.message : "수집에 실패했습니다.")
+    } finally {
+      setBeer9Busy(false)
+    }
+  }
+
+  async function handleSetZentaroFlag(isZentaroProduct: boolean) {
+    if (!zentaroSlug.trim()) return
+    setZentaroBusy(true)
+    setZentaroMessage(null)
+    try {
+      await setZentaroFlagAdmin(zentaroSlug.trim(), isZentaroProduct)
+      setZentaroMessage(
+        isZentaroProduct
+          ? `"${zentaroSlug.trim()}"을(를) ZENTARO ORIGINAL로 표시했습니다.`
+          : `"${zentaroSlug.trim()}"의 ZENTARO ORIGINAL 표시를 해제했습니다.`,
+      )
+    } catch (err) {
+      setZentaroMessage(err instanceof Error ? err.message : "처리에 실패했습니다.")
+    } finally {
+      setZentaroBusy(false)
     }
   }
 
@@ -138,6 +184,62 @@ export default function AdminDrinksPage() {
           </Button>
         </div>
         {rankingMessage ? <p className="mt-2 text-xs text-muted-foreground">{rankingMessage}</p> : null}
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-5">
+        <h3 className="mb-3 text-sm font-medium">Beer9 (맥주 데이터) 1회성 수집</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          RapidAPI Beer9는 월 100요청 제한이라 매일 동기화하지 않고, 여기서 버튼을 눌러 딱 한 번만
+          카탈로그를 가져옵니다. 이미 수집을 완료했다면 아래 버튼은 재수집(쿼터 추가 소모)만 가능합니다.
+        </p>
+        {beer9Status?.oneTimeSyncCompletedAt ? (
+          <p className="mb-3 text-xs text-muted-foreground">
+            마지막 수집: {formatTimestamp(beer9Status.lastSyncedAt)} · {beer9Status.lastRunPagesFetched ?? 0}페이지 ·{" "}
+            {beer9Status.lastRunProductsFetched ?? 0}개 상품 · 중단 사유: {beer9Status.lastRunStoppedReason ?? "-"}
+          </p>
+        ) : (
+          <p className="mb-3 text-xs text-muted-foreground">아직 수집한 적 없습니다.</p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {!beer9Status?.oneTimeSyncCompletedAt ? (
+            <Button size="sm" disabled={beer9Busy} onClick={() => handleSyncBeer9(false)}>
+              {beer9Busy ? "수집 중..." : "지금 1회 수집"}
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" disabled={beer9Busy} onClick={() => handleSyncBeer9(true)}>
+              {beer9Busy ? "수집 중..." : "쿼터 소모하고 재수집"}
+            </Button>
+          )}
+        </div>
+        {beer9Message ? <p className="mt-2 text-xs text-muted-foreground">{beer9Message}</p> : null}
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-5">
+        <h3 className="mb-3 text-sm font-medium">ZENTARO ORIGINAL 표시</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          상품의 slug(예: /drinks/hernos-gin 이면 hernos-gin)를 입력해 ZENTARO 자체 제품 여부를 표시하거나 해제합니다.
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="text"
+            value={zentaroSlug}
+            onChange={(e) => setZentaroSlug(e.target.value)}
+            placeholder="product-slug"
+            className="w-56 rounded-md border border-border/60 bg-background px-3 py-2 text-sm text-foreground"
+          />
+          <Button size="sm" disabled={zentaroBusy || !zentaroSlug.trim()} onClick={() => handleSetZentaroFlag(true)}>
+            ORIGINAL로 표시
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={zentaroBusy || !zentaroSlug.trim()}
+            onClick={() => handleSetZentaroFlag(false)}
+          >
+            표시 해제
+          </Button>
+        </div>
+        {zentaroMessage ? <p className="mt-2 text-xs text-muted-foreground">{zentaroMessage}</p> : null}
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">

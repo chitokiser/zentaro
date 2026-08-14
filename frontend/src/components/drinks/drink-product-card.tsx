@@ -26,6 +26,11 @@ export function DrinkProductCard({ product }: { product: DrinkProduct }) {
         ) : (
           <div className="flex h-full items-center justify-center text-xs text-muted-foreground">N/A</div>
         )}
+        {product.isZentaroProduct ? (
+          <span className="absolute left-2 top-2 rounded-full border border-primary/50 bg-background/90 px-2 py-0.5 text-[10px] font-medium tracking-wide text-primary">
+            ZENTARO ORIGINAL
+          </span>
+        ) : null}
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3">
         <div className="flex flex-wrap gap-1">

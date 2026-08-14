@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { DrinkProductCard } from "@/components/drinks/drink-product-card"
 import { useI18n } from "@/lib/i18n/i18n-context"
-import { searchDrinks, type DrinkSearchResult } from "@/lib/auth-client"
+import { searchDrinks, fetchZentaroOriginals, type DrinkSearchResult, type DrinkProduct } from "@/lib/auth-client"
 
 const CATEGORIES = [
   { value: "spirit", label: "Spirits" },
@@ -24,6 +24,7 @@ export function DrinksPageContent() {
   const [result, setResult] = useState<DrinkSearchResult | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [originals, setOriginals] = useState<DrinkProduct[] | null>(null)
 
   useEffect(() => {
     setLoading(true)
@@ -33,6 +34,12 @@ export function DrinksPageContent() {
       .catch((err) => setError(err instanceof Error ? err.message : "검색에 실패했습니다."))
       .finally(() => setLoading(false))
   }, [query, category])
+
+  useEffect(() => {
+    fetchZentaroOriginals()
+      .then(setOriginals)
+      .catch(() => setOriginals([]))
+  }, [])
 
   return (
     <div>
@@ -52,7 +59,30 @@ export function DrinksPageContent() {
           <Link href="/drinks/statistics" className="text-xs text-primary underline underline-offset-4">
             {t.drinks?.statisticsLink ?? "Statistics"}
           </Link>
+          <Link href="/drinks/countries" className="text-xs text-primary underline underline-offset-4">
+            Countries
+          </Link>
+          <Link href="/drinks/whisky" className="text-xs font-medium text-primary underline underline-offset-4">
+            Whisky Market
+          </Link>
         </div>
+
+        {!query && originals && originals.length > 0 ? (
+          <section className="mb-12 rounded-xl border border-primary/30 bg-primary/5 p-5">
+            <div className="mb-4 flex items-baseline justify-between gap-3">
+              <div>
+                <span className="text-[10px] font-medium tracking-widest text-primary">ZENTARO ORIGINAL</span>
+                <h2 className="font-display text-lg font-semibold text-foreground">ZENTARO Originals</h2>
+              </div>
+              <span className="text-[10px] text-muted-foreground">ZENTARO R&amp;D Database</span>
+            </div>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+              {originals.map((p) => (
+                <DrinkProductCard key={p.id} product={p} />
+              ))}
+            </div>
+          </section>
+        ) : null}
 
         <div className="mb-6 max-w-xl">
           <input

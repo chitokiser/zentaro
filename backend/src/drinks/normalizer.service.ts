@@ -2,6 +2,21 @@ import { Injectable } from '@nestjs/common';
 import { slugify } from './slugify';
 import type { WhiskyEditionReview } from './adapters/whisky-edition.adapter';
 import type { CocktailDbDrink, CocktailDbIngredient } from './adapters/cocktaildb.adapter';
+import type { Beer9Item } from './adapters/beer9.adapter';
+
+function parsePercent(value: string | undefined | null): number | null {
+  if (!value) return null;
+  const n = Number(String(value).replace('%', '').trim());
+  return Number.isFinite(n) ? n : null;
+}
+
+function splitCommaList(value: string | undefined | null): string[] {
+  if (!value) return [];
+  return value
+    .split(',')
+    .map((v) => v.trim())
+    .filter(Boolean);
+}
 
 // Curated from the request spec's own botanical examples (§9) plus common gin/spirit
 // botanicals — TheCocktailDB has no "is this a botanical" field, so this is an admin-style
@@ -57,6 +72,43 @@ export class DrinksNormalizerService {
       aroma: [] as string[],
       taste: [] as string[],
       finish: null as string | null,
+      foodPairing: [] as string[],
+      isZentaroProduct: false,
+      ingredientNames: [] as string[],
+    };
+  }
+
+  /**
+   * Beer9's `rating` field is almost always blank in practice and its docs don't state a scale
+   * (0-5? 0-10? 0-100?) — guessing would misrepresent it as a real score, so it's intentionally
+   * left out of externalRatings rather than assumed. `tasting_notes`/`food_pairing` are genuine
+   * comma-separated fields the API returns, split the same deterministic way TheCocktailDB's
+   * `strTags` already is above — not an inferred/guessed taxonomy.
+   */
+  normalizeBeer9Product(raw: Beer9Item) {
+    return {
+      source: 'beer9',
+      externalId: raw.sku,
+      name: raw.name,
+      slug: `beer9-${slugify(raw.name)}-${raw.sku}`,
+      category: 'beer' as const,
+      subCategory: raw.sub_category_2 || raw.sub_category_1 || null,
+      country: raw.country || null,
+      region: raw.region || null,
+      producerName: raw.brewery || null,
+      abv: parsePercent(raw.abv),
+      age: null as number | null,
+      bottleSize: null,
+      vintage: null,
+      description: raw.description || null,
+      imageUrl: null as string | null,
+      sourceUrl: null as string | null,
+      sourceLicense: 'RapidAPI Beer9 (subscription required)',
+      externalRatings: [] as { source: string; rating: number; ratingCount: number }[],
+      aroma: [] as string[],
+      taste: splitCommaList(raw.tasting_notes),
+      finish: null as string | null,
+      foodPairing: splitCommaList(raw.food_pairing),
       isZentaroProduct: false,
       ingredientNames: [] as string[],
     };

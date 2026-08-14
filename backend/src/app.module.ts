@@ -25,6 +25,7 @@ import { ProductReviewsModule } from './product-reviews/product-reviews.module';
 import { InvestorWatchModule } from './investor-watch/investor-watch.module';
 import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
 import { DrinksModule } from './drinks/drinks.module';
+import { WhiskyMarketModule } from './whisky-market/whisky-market.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { DrinksModule } from './drinks/drinks.module';
     InvestorWatchModule,
     YoutubeMonitorModule,
     DrinksModule,
+    WhiskyMarketModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

@@ -10,6 +10,26 @@ framework or database was introduced.
 | --- | --- | --- | --- |
 | WHISKY:EDITION | https://thewhiskyedition.com/developer | CC BY 4.0 — attribution link required wherever a review is shown | None required |
 | TheCocktailDB | https://www.thecocktaildb.com/ | Free/test key `"1"` — attribution recommended | `"1"` (shared free key, hardcoded in `adapters/cocktaildb.adapter.ts`) |
+| Beer9 (RapidAPI) | https://beer9.p.rapidapi.com | RapidAPI subscription — free tier capped at **100 requests/month** | `BEER9_API_KEY` env var |
+
+### Beer9 is NOT on the daily cron
+
+Beer9's free tier only allows 100 requests/month (100 items/page), so unlike the two
+sources above it is **never** called from `DrinksSyncService.handleCron()`. Instead:
+- `POST /drinks/admin/sync-beer9-once` (admin level 2+, from `/admin/drinks`) does a
+  one-time paginated pull, capped at `maxPages` (default 80) and stopping early if the
+  `X-RateLimit-Requests-Remaining` response header drops to ≤3 — so a single run can
+  never fully exhaust the month's quota.
+- Refuses to run a second time (`BadRequestException`) once `zentaro_drinks_sources/beer9`
+  has an `oneTimeSyncCompletedAt` unless `force: true` is explicitly passed — re-running
+  only refreshes existing docs (upserts are keyed by `sku`), so the guard exists purely to
+  stop *accidental* quota burn, not to prevent a deliberate re-run.
+- Category is `beer` (already a top-level filter in `/drinks`), producer is the brewery
+  name, and — unlike WHISKY:EDITION — Beer9 actually returns structured `tasting_notes`
+  and `food_pairing` text, which are split on commas into `product.taste` / `product.foodPairing`
+  (same deterministic comma-split already used for TheCocktailDB's `strTags`, not a guessed
+  taxonomy). Beer9's `rating` field has no documented scale and is almost always blank, so
+  it's intentionally left out of `externalRatings` rather than assumed to be out of 5/10/100.
 
 Attribution is satisfied by `product.sourceUrl` / `cocktail.sourceUrl` links rendered on every
 detail page, plus `ZENTARO_DRINKS_SOURCES` storing `sourceName/sourceUrl/license` per source.
