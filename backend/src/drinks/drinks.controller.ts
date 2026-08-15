@@ -1,4 +1,14 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AdminGuard } from '../auth/admin.guard';
 import { RequireAdminLevel } from '../auth/admin-level.decorator';
@@ -37,7 +47,10 @@ export class DrinksController {
   }
 
   @Get('drinks/rankings')
-  rankings(@Query('tab') tab = 'top-rated', @Query('category') category?: string) {
+  rankings(
+    @Query('tab') tab = 'top-rated',
+    @Query('category') category?: string,
+  ) {
     return this.drinksService.listRankings(tab, category);
   }
 
@@ -62,14 +75,41 @@ export class DrinksController {
     return this.drinksService.listZentaroOriginals();
   }
 
+  @Get('drinks/food-pairings/:productSlug')
+  listFoodPairings(@Param('productSlug') productSlug: string) {
+    return this.drinksService.listFoodPairings(productSlug);
+  }
+
   @Get('drinks/cocktails/:id')
   getCocktail(@Param('id') id: string) {
     return this.drinksService.getCocktailById(id);
   }
 
+  // Kept above the /drinks/:slug catch-all below so Nest doesn't swallow these into :slug.
+  @Get('drinks/producers')
+  listProducers(
+    @Query('type') producerType?: string,
+    @Query('country') country?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.drinksService.listProducers({ producerType, country, q });
+  }
+
+  @Get('drinks/producers/countries')
+  listProducerCountries() {
+    return this.drinksService.listProducerCountries();
+  }
+
+  @Get('drinks/producers/:slug')
+  getProducer(@Param('slug') slug: string) {
+    return this.drinksService.getProducerBySlug(slug);
+  }
+
   @Get('botanicals')
   listIngredients(@Query('botanicalOnly') botanicalOnly?: string) {
-    return this.drinksService.listIngredients(botanicalOnly === 'true' ? true : undefined);
+    return this.drinksService.listIngredients(
+      botanicalOnly === 'true' ? true : undefined,
+    );
   }
 
   @Get('botanicals/:slug')
@@ -79,7 +119,11 @@ export class DrinksController {
 
   @Post('drinks/:slug/rate')
   @UseGuards(JwtAuthGuard)
-  rate(@CurrentUser() user: CurrentUserPayload, @Param('slug') slug: string, @Body() dto: RateProductDto) {
+  rate(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('slug') slug: string,
+    @Body() dto: RateProductDto,
+  ) {
     return this.drinksService.rateProduct(user.uid, slug, dto.rating);
   }
 
@@ -114,7 +158,54 @@ export class DrinksController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @RequireAdminLevel(2)
   syncBeer9Once(@Body() body: { maxPages?: number; force?: boolean }) {
-    return this.drinksSync.syncBeer9Once(body.maxPages ?? 80, body.force ?? false);
+    return this.drinksSync.syncBeer9Once(
+      body.maxPages ?? 80,
+      body.force ?? false,
+    );
+  }
+
+  @Get('drinks/admin/producers-status')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  producersStatus() {
+    return this.drinksSync.getProducersSyncStatus();
+  }
+
+  @Post('drinks/admin/sync-producers-once')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  syncProducersOnce(
+    @Body()
+    body: {
+      maxPagesOpenBreweryDb?: number;
+      maxItemsPerWikidataType?: number;
+      force?: boolean;
+    },
+  ) {
+    return this.drinksSync.syncProducersOnce(
+      body.maxPagesOpenBreweryDb ?? 40,
+      body.maxItemsPerWikidataType ?? 2000,
+      body.force ?? false,
+    );
+  }
+
+  @Get('drinks/admin/food-pairings-status')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  foodPairingsStatus() {
+    return this.drinksSync.getFoodPairingsSyncStatus();
+  }
+
+  @Post('drinks/admin/sync-food-pairings-once')
+  @UseGuards(JwtAuthGuard, AdminGuard)
+  @RequireAdminLevel(2)
+  syncFoodPairingsOnce(
+    @Body() body: { recipesPerProduct?: number; force?: boolean },
+  ) {
+    return this.drinksSync.syncFoodPairingsOnce(
+      body.recipesPerProduct ?? 6,
+      body.force ?? false,
+    );
   }
 
   @Get('drinks/admin/sync-logs')

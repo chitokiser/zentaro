@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import Image from "next/image"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { fetchBotanicals, type DrinkIngredient } from "@/lib/auth-client"
@@ -40,11 +41,18 @@ export default function BotanicalsPage() {
               <Link
                 key={i.id}
                 href={`/botanicals/${i.slug}`}
-                className="rounded-lg border border-border/60 bg-card p-3 text-sm hover:border-primary/50"
+                className="overflow-hidden rounded-lg border border-border/60 bg-card text-sm hover:border-primary/50"
               >
-                <span className="font-medium">{i.name}</span>
-                {i.isBotanical ? <span className="ml-1">🌿</span> : null}
-                <p className="mt-1 text-xs text-muted-foreground">{i.type ?? "N/A"}</p>
+                {i.imageUrl ? (
+                  <div className="relative aspect-square w-full bg-secondary/20">
+                    <Image src={i.imageUrl} alt={i.name} fill className="object-cover" sizes="200px" />
+                  </div>
+                ) : null}
+                <div className="p-3">
+                  <span className="font-medium">{i.name}</span>
+                  {i.isBotanical ? <span className="ml-1">🌿</span> : null}
+                  <p className="mt-1 text-xs text-muted-foreground">{i.botanicalCategory ?? i.type ?? "N/A"}</p>
+                </div>
               </Link>
             ))}
           </div>

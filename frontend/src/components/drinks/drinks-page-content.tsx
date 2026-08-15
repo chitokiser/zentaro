@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation"
 import { PageHeader } from "@/components/page-header"
 import { Badge } from "@/components/ui/badge"
 import { DrinkProductCard } from "@/components/drinks/drink-product-card"
+import { DrinksWorldOverview } from "@/components/drinks/drinks-world-overview"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { searchDrinks, fetchZentaroOriginals, type DrinkSearchResult, type DrinkProduct } from "@/lib/auth-client"
 
@@ -62,10 +63,15 @@ export function DrinksPageContent() {
           <Link href="/drinks/countries" className="text-xs text-primary underline underline-offset-4">
             Countries
           </Link>
+          <Link href="/drinks/producers" className="text-xs text-primary underline underline-offset-4">
+            Breweries & Distilleries
+          </Link>
           <Link href="/drinks/whisky" className="text-xs font-medium text-primary underline underline-offset-4">
             Whisky Market
           </Link>
         </div>
+
+        {!query ? <DrinksWorldOverview /> : null}
 
         {!query && originals && originals.length > 0 ? (
           <section className="mb-12 rounded-xl border border-primary/30 bg-primary/5 p-5">

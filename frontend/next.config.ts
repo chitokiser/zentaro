@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdnv2.tgdd.vn" },
       { protocol: "https", hostname: "emartmall.com.vn" },
       { protocol: "https", hostname: "ruouphucloc.vn" },
+      { protocol: "https", hostname: "upload.wikimedia.org" },
+      { protocol: "https", hostname: "img.buzzfeed.com" },
     ],
   },
 };

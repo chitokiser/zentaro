@@ -13,9 +13,15 @@ import {
   setZentaroFlagAdmin,
   fetchBeer9Status,
   syncBeer9Once,
+  fetchProducersSyncStatus,
+  syncProducersOnce,
+  fetchFoodPairingsSyncStatus,
+  syncFoodPairingsOnce,
   type DrinkSyncLog,
   type DrinkProduct,
   type Beer9Status,
+  type ProducersSyncStatus,
+  type FoodPairingsSyncStatus,
 } from "@/lib/auth-client"
 
 function formatTimestamp(ts?: { _seconds: number } | null) {
@@ -37,12 +43,20 @@ export default function AdminDrinksPage() {
   const [beer9Status, setBeer9Status] = useState<Beer9Status | null>(null)
   const [beer9Busy, setBeer9Busy] = useState(false)
   const [beer9Message, setBeer9Message] = useState<string | null>(null)
+  const [producersStatus, setProducersStatus] = useState<ProducersSyncStatus | null>(null)
+  const [producersBusy, setProducersBusy] = useState(false)
+  const [producersMessage, setProducersMessage] = useState<string | null>(null)
+  const [foodPairingsStatus, setFoodPairingsStatus] = useState<FoodPairingsSyncStatus | null>(null)
+  const [foodPairingsBusy, setFoodPairingsBusy] = useState(false)
+  const [foodPairingsMessage, setFoodPairingsMessage] = useState<string | null>(null)
 
   const load = useCallback(() => {
     fetchDrinkSyncLogs().then(setLogs).catch(() => setLogs(null))
     fetchDrinkMergeCandidates().then(setCandidates).catch(() => setCandidates(null))
     fetchRankingConfig().then((res) => setMinReviews(res.minReviews)).catch(() => undefined)
     fetchBeer9Status().then(setBeer9Status).catch(() => setBeer9Status(null))
+    fetchProducersSyncStatus().then(setProducersStatus).catch(() => setProducersStatus(null))
+    fetchFoodPairingsSyncStatus().then(setFoodPairingsStatus).catch(() => setFoodPairingsStatus(null))
   }, [])
 
   useEffect(() => {
@@ -103,6 +117,41 @@ export default function AdminDrinksPage() {
       setBeer9Message(err instanceof Error ? err.message : "수집에 실패했습니다.")
     } finally {
       setBeer9Busy(false)
+    }
+  }
+
+  async function handleSyncProducers(force: boolean) {
+    setProducersBusy(true)
+    setProducersMessage(null)
+    try {
+      const res = await syncProducersOnce(undefined, undefined, force)
+      setProducersMessage(
+        `신규 ${res.newRecords} / 갱신 ${res.updatedRecords}건. Open Brewery DB ${res.openBreweryDbPagesFetched}페이지(${res.openBreweryDbStoppedReason}) ` +
+          `· Wikidata 양조장 ${res.wikidataBreweriesFetched}건 · 증류소 ${res.wikidataDistilleriesFetched}건` +
+          (res.errors.length > 0 ? ` (오류 ${res.errors.length}건)` : ""),
+      )
+      fetchProducersSyncStatus().then(setProducersStatus).catch(() => undefined)
+    } catch (err) {
+      setProducersMessage(err instanceof Error ? err.message : "수집에 실패했습니다.")
+    } finally {
+      setProducersBusy(false)
+    }
+  }
+
+  async function handleSyncFoodPairings(force: boolean) {
+    setFoodPairingsBusy(true)
+    setFoodPairingsMessage(null)
+    try {
+      const res = await syncFoodPairingsOnce(undefined, force)
+      setFoodPairingsMessage(
+        `신규 ${res.newRecords} / 갱신 ${res.updatedRecords}건.` +
+          (res.errors.length > 0 ? ` (오류 ${res.errors.length}건)` : ""),
+      )
+      fetchFoodPairingsSyncStatus().then(setFoodPairingsStatus).catch(() => undefined)
+    } catch (err) {
+      setFoodPairingsMessage(err instanceof Error ? err.message : "수집에 실패했습니다.")
+    } finally {
+      setFoodPairingsBusy(false)
     }
   }
 
@@ -212,6 +261,65 @@ export default function AdminDrinksPage() {
           )}
         </div>
         {beer9Message ? <p className="mt-2 text-xs text-muted-foreground">{beer9Message}</p> : null}
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-5">
+        <h3 className="mb-3 text-sm font-medium">양조장/증류소 1회성 수집 (Open Brewery DB + Wikidata)</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          전세계 브루어리(Open Brewery DB)와 양조장/증류소(Wikidata SPARQL)를 한 번만 가져옵니다.
+          데이터가 자주 바뀌지 않으므로 매일 동기화하지 않고, 여기서 버튼을 눌러 실행합니다.
+        </p>
+        {producersStatus?.oneTimeSyncCompletedAt ? (
+          <p className="mb-3 text-xs text-muted-foreground">
+            마지막 수집: {formatTimestamp(producersStatus.lastSyncedAt)} · 신규 {producersStatus.lastRunNewRecords ?? 0}건 ·{" "}
+            갱신 {producersStatus.lastRunUpdatedRecords ?? 0}건
+            {producersStatus.lastRunErrorCount ? ` · 오류 ${producersStatus.lastRunErrorCount}건` : ""}
+          </p>
+        ) : (
+          <p className="mb-3 text-xs text-muted-foreground">아직 수집한 적 없습니다.</p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {!producersStatus?.oneTimeSyncCompletedAt ? (
+            <Button size="sm" disabled={producersBusy} onClick={() => handleSyncProducers(false)}>
+              {producersBusy ? "수집 중... (1분 이상 걸릴 수 있음)" : "지금 1회 수집"}
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" disabled={producersBusy} onClick={() => handleSyncProducers(true)}>
+              {producersBusy ? "수집 중..." : "다시 수집 (force)"}
+            </Button>
+          )}
+        </div>
+        {producersMessage ? <p className="mt-2 text-xs text-muted-foreground">{producersMessage}</p> : null}
+      </div>
+
+      <div className="rounded-lg border border-border/60 bg-card p-5">
+        <h3 className="mb-3 text-sm font-medium">ZENTARO 제품 음식 페어링 1회성 수집 (Tasty API)</h3>
+        <p className="mb-3 text-xs text-muted-foreground">
+          ZENTARO 자체 제품(오크통 제외)에 어울리는 실제 Tasty 레시피를 한 번만 가져옵니다.
+          Tasty는 향미(스모키/시트러스 등) 태그가 없어서, Happy Hour/베트남 요리처럼 실제로 존재하는
+          상황·원산지 태그로만 매칭합니다.
+        </p>
+        {foodPairingsStatus?.oneTimeSyncCompletedAt ? (
+          <p className="mb-3 text-xs text-muted-foreground">
+            마지막 수집: {formatTimestamp(foodPairingsStatus.lastSyncedAt)} · 신규{" "}
+            {foodPairingsStatus.lastRunNewRecords ?? 0}건 · 갱신 {foodPairingsStatus.lastRunUpdatedRecords ?? 0}건
+            {foodPairingsStatus.lastRunErrorCount ? ` · 오류 ${foodPairingsStatus.lastRunErrorCount}건` : ""}
+          </p>
+        ) : (
+          <p className="mb-3 text-xs text-muted-foreground">아직 수집한 적 없습니다.</p>
+        )}
+        <div className="flex flex-wrap items-center gap-2">
+          {!foodPairingsStatus?.oneTimeSyncCompletedAt ? (
+            <Button size="sm" disabled={foodPairingsBusy} onClick={() => handleSyncFoodPairings(false)}>
+              {foodPairingsBusy ? "수집 중..." : "지금 1회 수집"}
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" disabled={foodPairingsBusy} onClick={() => handleSyncFoodPairings(true)}>
+              {foodPairingsBusy ? "수집 중..." : "다시 수집 (force)"}
+            </Button>
+          )}
+        </div>
+        {foodPairingsMessage ? <p className="mt-2 text-xs text-muted-foreground">{foodPairingsMessage}</p> : null}
       </div>
 
       <div className="rounded-lg border border-border/60 bg-card p-5">

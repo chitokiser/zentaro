@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Award, Beaker, Check, HelpCircle, Info, Sparkles, Star, Trash2 } from "lucide-react"
+import { ArrowRight, Award, Beaker, Check, Dna, HelpCircle, Info, Sparkles, Star, Trash2, UtensilsCrossed } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -17,7 +17,9 @@ import {
     fetchProductReviews,
     submitProductReview,
     deleteProductReview,
+    fetchFoodPairings,
     type ProductReview,
+    type FoodPairing,
 } from "@/lib/auth-client"
 
 interface ProductBrandInfo {
@@ -39,6 +41,34 @@ interface ProductBrandInfo {
     ingredients: { ko: string; en: string; vi: string }
     comingSoon?: boolean
     externalUrl?: string
+    /**
+     * Spirit DNA — 5-axis flavor fingerprint (1-5), ZENTARO's own editorial reading
+     * of this product's own description/ingredients copy above. Not lab-measured data.
+     */
+    dna?: SpiritDnaAxis[]
+}
+
+interface SpiritDnaAxis {
+    axis: { ko: string; en: string; vi: string }
+    score: 1 | 2 | 3 | 4 | 5
+}
+
+const DNA_AXIS_LABELS = {
+    botanical: { ko: "보태니컬 강도", en: "Botanical Intensity", vi: "Cường độ thảo mộc" },
+    sweetness: { ko: "단맛", en: "Sweetness", vi: "Độ ngọt" },
+    aroma: { ko: "아로마 복합도", en: "Aroma Complexity", vi: "Độ phức hợp hương thơm" },
+    smoothness: { ko: "부드러움", en: "Smoothness", vi: "Độ êm mượt" },
+    purity: { ko: "순수·클린함", en: "Purity & Clean Finish", vi: "Độ tinh khiết" },
+} as const
+
+function buildDna(scores: { botanical: 1 | 2 | 3 | 4 | 5; sweetness: 1 | 2 | 3 | 4 | 5; aroma: 1 | 2 | 3 | 4 | 5; smoothness: 1 | 2 | 3 | 4 | 5; purity: 1 | 2 | 3 | 4 | 5 }): SpiritDnaAxis[] {
+    return [
+        { axis: DNA_AXIS_LABELS.botanical, score: scores.botanical },
+        { axis: DNA_AXIS_LABELS.sweetness, score: scores.sweetness },
+        { axis: DNA_AXIS_LABELS.aroma, score: scores.aroma },
+        { axis: DNA_AXIS_LABELS.smoothness, score: scores.smoothness },
+        { axis: DNA_AXIS_LABELS.purity, score: scores.purity },
+    ]
 }
 
 const BRAND_PRODUCTS: ProductBrandInfo[] = [
@@ -93,6 +123,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "Juniper berries, Lemongrass, Cardamom, Coriander seed, Star anise, Licorice root, Szechuan pepper",
             vi: "Quả bách xù, Sả, Thảo quả, Hạt ngò, Đại hồi, Cam thảo, Tiêu rừng",
         },
+        dna: buildDna({ botanical: 5, sweetness: 2, aroma: 4, smoothness: 4, purity: 3 }),
     },
     {
         id: "zentaro-origin",
@@ -154,6 +185,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "ST25 rice 100%, Black Koji, Yeast, a trace of natural herbs (lemongrass, coriander seed, licorice, etc.), Purified water",
             vi: "Gạo ST25 100%, Men Khúc Đen (Black Koji), Men rượu, một chút thảo mộc tự nhiên (sả, hạt ngò, cam thảo...), Nước tinh khiết",
         },
+        dna: buildDna({ botanical: 2, sweetness: 1, aroma: 4, smoothness: 5, purity: 5 }),
     },
     {
         id: "zentaro-st",
@@ -206,6 +238,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "Zentaro base spirit, 100% natural strawberry extract, natural sugar cane, purified water",
             vi: "Rượu nền tinh khiết, nước ép dâu tây nguyên chất 100%, đường mía tự nhiên, nước tinh khiết",
         },
+        dna: buildDna({ botanical: 1, sweetness: 5, aroma: 3, smoothness: 3, purity: 4 }),
     },
     {
         id: "zentaro-an",
@@ -258,6 +291,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "Vietnamese wild wormwood, Star anise, Fennel seed, Lemon balm, Hyssop, Rice spirit base",
             vi: "Lá ngải cứu Tây Bắc, đại hồi, tiểu hồi, tía tô đất, thần sa cát, rượu nền tinh khiết",
         },
+        dna: buildDna({ botanical: 5, sweetness: 1, aroma: 5, smoothness: 2, purity: 3 }),
     },
     {
         id: "zentaro-oak",
@@ -363,6 +397,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "Selected sticky rice, wine yeast, purified water",
             vi: "Gạo nếp tuyển chọn, men rượu, nước tinh khiết",
         },
+        dna: buildDna({ botanical: 1, sweetness: 2, aroma: 3, smoothness: 4, purity: 3 }),
     },
     {
         id: "phuc-loc-bach-ngoc-tuu",
@@ -371,6 +406,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         comingSoon: false,
         image: "/images/products/phuc-loc/bach-ngoc-tuu.webp",
         externalUrl: "https://ruouphucloc.vn/san-pham/bach-ngoc-tuu/",
+        dna: buildDna({ botanical: 1, sweetness: 4, aroma: 2, smoothness: 4, purity: 4 }),
         category: {
             ko: "화이트 스피릿 소주",
             en: "White Spirit Rice Liquor",
@@ -423,6 +459,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         comingSoon: false,
         image: "/images/products/phuc-loc/tinh-que.webp",
         externalUrl: "https://ruouphucloc.vn/san-pham/tinh-que/",
+        dna: buildDna({ botanical: 3, sweetness: 3, aroma: 3, smoothness: 3, purity: 4 }),
         category: {
             ko: "데일리 전통 쌀 소주",
             en: "Everyday Traditional Rice Spirit",
@@ -475,6 +512,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         comingSoon: false,
         image: "/images/products/phuc-loc/song-que.webp",
         externalUrl: "https://ruouphucloc.vn/san-pham/song-que/",
+        dna: buildDna({ botanical: 3, sweetness: 3, aroma: 2, smoothness: 3, purity: 5 }),
         category: {
             ko: "데일리 전통 쌀 소주",
             en: "Everyday Traditional Rice Spirit",
@@ -571,6 +609,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             en: "Selected rice, wine yeast (36 herbal ingredients), purified water",
             vi: "Gạo tuyển chọn, men rượu (36 vị thuốc), nước tinh khiết",
         },
+        dna: buildDna({ botanical: 3, sweetness: 4, aroma: 3, smoothness: 4, purity: 3 }),
     },
     {
         id: "phuc-loc-dan-viet",
@@ -579,6 +618,7 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
         comingSoon: false,
         image: "/images/products/phuc-loc/dan-viet.webp",
         externalUrl: "https://ruouphucloc.vn/san-pham/dan-viet/",
+        dna: buildDna({ botanical: 1, sweetness: 2, aroma: 2, smoothness: 2, purity: 4 }),
         category: {
             ko: "대용량 패밀리 소주",
             en: "Large-Format Family Rice Spirit",
@@ -763,6 +803,10 @@ export default function ProductsPromotionalPage() {
                             </p>
                         </div>
 
+                        {selectedProduct.dna ? <SpiritDnaPanel dna={selectedProduct.dna} locale={locale} /> : null}
+
+                        <FoodPairingSection key={selectedProduct.id} productSlug={selectedProduct.id} locale={locale} />
+
                         {isComingSoon ? (
                             <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-secondary/20 px-6 py-8 text-center sm:text-left">
                                 <Sparkles className="h-8 w-8 shrink-0 text-amber-500" />
@@ -934,6 +978,94 @@ export default function ProductsPromotionalPage() {
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    )
+}
+
+function SpiritDnaPanel({ dna, locale }: { dna: SpiritDnaAxis[]; locale: Locale }) {
+    return (
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+            <div className="mb-3 flex items-center gap-2">
+                <Dna className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    {locale === "ko" ? "스피릿 DNA" : locale === "vi" ? "DNA Hương Vị" : "Spirit DNA"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                    {locale === "ko" ? "젠타로 테이스팅 노트 기반 5축 프로필" : locale === "vi" ? "Hồ sơ 5 trục dựa trên ghi chú nếm thử của ZENTARO" : "5-axis profile from ZENTARO's own tasting notes"}
+                </span>
+            </div>
+            <div className="space-y-2.5">
+                {dna.map((row, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                        <span className="w-32 shrink-0 text-[11px] text-muted-foreground sm:w-36">{row.axis[locale]}</span>
+                        <div className="flex flex-1 gap-1" role="img" aria-label={`${row.axis[locale]}: ${row.score}/5`}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <span
+                                    key={i}
+                                    className={`h-1.5 flex-1 rounded-full ${i < row.score ? "bg-primary" : "bg-border/50"}`}
+                                />
+                            ))}
+                        </div>
+                        <span className="w-7 shrink-0 text-right text-[11px] font-mono text-foreground/70">{row.score}/5</span>
+                    </div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+/**
+ * Real Tasty (BuzzFeed, via RapidAPI) recipes matched to this product — see
+ * PRODUCT_FOOD_PAIRING_TAGS in backend drinks-sync.service.ts for which real
+ * Tasty tags were queried per product. Renders nothing until the admin has
+ * run the one-time sync from /admin/drinks for at least this product.
+ */
+function FoodPairingSection({ productSlug, locale }: { productSlug: string; locale: Locale }) {
+    const [pairings, setPairings] = useState<FoodPairing[] | null>(null)
+
+    useEffect(() => {
+        fetchFoodPairings(productSlug)
+            .then(setPairings)
+            .catch(() => setPairings([]))
+    }, [productSlug])
+
+    if (!pairings || pairings.length === 0) return null
+
+    return (
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+            <div className="mb-3 flex items-center gap-2">
+                <UtensilsCrossed className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    {locale === "ko" ? "함께 즐기기 좋은 요리" : locale === "vi" ? "Món Ăn Kèm Gợi Ý" : "Pairs Well With"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                    {locale === "ko"
+                        ? "Tasty(BuzzFeed) 실제 레시피 추천"
+                        : locale === "vi"
+                            ? "Gợi ý công thức thực tế từ Tasty (BuzzFeed)"
+                            : "Real recipes via Tasty (BuzzFeed)"}
+                </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {pairings.slice(0, 6).map((p) => (
+                    <a
+                        key={p.id}
+                        href={p.sourceUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="overflow-hidden rounded-lg border border-border/60 bg-card text-xs hover:border-primary/50"
+                    >
+                        {p.imageUrl ? (
+                            <div className="relative aspect-square w-full bg-secondary/20">
+                                <Image src={p.imageUrl} alt={p.name} fill className="object-cover" sizes="150px" />
+                            </div>
+                        ) : null}
+                        <div className="p-2">
+                            <span className="line-clamp-2 font-medium text-foreground">{p.name}</span>
+                        </div>
+                    </a>
+                ))}
             </div>
         </div>
     )

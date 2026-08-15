@@ -9,6 +9,10 @@ import { DrinksRankingService } from './ranking.service';
 import { WhiskyEditionAdapter } from './adapters/whisky-edition.adapter';
 import { CocktailDbAdapter } from './adapters/cocktaildb.adapter';
 import { Beer9Adapter } from './adapters/beer9.adapter';
+import { OpenBreweryDbAdapter } from './adapters/open-brewery-db.adapter';
+import { WikidataAdapter } from './adapters/wikidata.adapter';
+import { WikipediaBotanicalAdapter } from './adapters/wikipedia-botanical.adapter';
+import { TastyAdapter } from './adapters/tasty.adapter';
 
 @Module({
   imports: [AuthModule],
@@ -22,6 +26,10 @@ import { Beer9Adapter } from './adapters/beer9.adapter';
     WhiskyEditionAdapter,
     CocktailDbAdapter,
     Beer9Adapter,
+    OpenBreweryDbAdapter,
+    WikidataAdapter,
+    WikipediaBotanicalAdapter,
+    TastyAdapter,
   ],
   exports: [DrinksService],
 })

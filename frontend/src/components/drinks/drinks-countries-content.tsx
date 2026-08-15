@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { PageHeader } from "@/components/page-header"
 import { fetchDrinkCountries, type DrinkCountryCount } from "@/lib/auth-client"
+import { WorldSpiritsMap } from "@/components/drinks/world-spirits-map"
 
 export function DrinksCountriesContent() {
   const [countries, setCountries] = useState<DrinkCountryCount[] | null>(null)
@@ -29,6 +30,11 @@ export function DrinksCountriesContent() {
         ) : null}
         {countries && countries.length === 0 ? (
           <p className="text-sm text-muted-foreground">등록된 국가가 없습니다.</p>
+        ) : null}
+        {countries && countries.length > 0 ? (
+          <div className="mb-10">
+            <WorldSpiritsMap countries={countries} />
+          </div>
         ) : null}
         {countries && countries.length > 0 ? (
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">

@@ -47,14 +47,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const staticEntries = STATIC_ENTRIES.map((e) => entry(e.path, e.changeFrequency, e.priority, lastModified))
 
     try {
-        const [searchRes, distilleriesRes, auctionHousesRes] = await Promise.all([
+        const [searchRes, distilleriesRes, auctionHousesRes, producersRes] = await Promise.all([
             fetch(`${API_URL}/drinks/search?q=`, { next: { revalidate: 3600 } }),
             fetch(`${API_URL}/whisky-market/distilleries`, { next: { revalidate: 3600 } }),
             fetch(`${API_URL}/whisky-market/auction-houses`, { next: { revalidate: 3600 } }),
+            fetch(`${API_URL}/drinks/producers`, { next: { revalidate: 3600 } }),
         ])
-        if (!searchRes.ok || !distilleriesRes.ok || !auctionHousesRes.ok) return staticEntries
+        if (!searchRes.ok || !distilleriesRes.ok || !auctionHousesRes.ok || !producersRes.ok) return staticEntries
 
-        const [search, distilleries, auctionHouses] = await Promise.all([
+        const [search, distilleries, auctionHouses, producers] = await Promise.all([
             searchRes.json() as Promise<{
                 products: { slug: string }[]
                 cocktails: { id: string }[]
@@ -62,6 +63,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             }>,
             distilleriesRes.json() as Promise<{ slug: string }[]>,
             auctionHousesRes.json() as Promise<{ slug: string }[]>,
+            producersRes.json() as Promise<{ slug: string }[]>,
         ])
 
         const productEntries = search.products.map((p) => entry(`/drinks/${p.slug}`, "monthly", 0.7, lastModified))
@@ -73,6 +75,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         const auctionHouseEntries = auctionHouses.map((a) =>
             entry(`/drinks/whisky/auction-house/${a.slug}`, "monthly", 0.5, lastModified),
         )
+        const producerEntries = producers.map((p) => entry(`/drinks/producers/${p.slug}`, "yearly", 0.4, lastModified))
 
         return [
             ...staticEntries,
@@ -81,6 +84,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
             ...ingredientEntries,
             ...distilleryEntries,
             ...auctionHouseEntries,
+            ...producerEntries,
         ]
     } catch {
         return staticEntries

@@ -1714,6 +1714,9 @@ export interface DrinkIngredient {
   abv: number | null;
   isBotanical: boolean;
   botanicalCategory: string | null;
+  imageUrl: string | null;
+  sourceUrl: string | null;
+  sourceLicense: string | null;
 }
 
 export interface DrinkSearchResult {
@@ -2102,6 +2105,145 @@ export async function removeWhiskyTarget(distillerySlug: string): Promise<{ ok: 
   const res = await fetch(`${API_URL}/whisky-market/targets/${encodeURIComponent(distillerySlug)}`, {
     method: "DELETE",
     headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+// --- Producer / Distillery directory (Open Brewery DB + Wikidata) ---
+
+export interface DrinkProducer {
+  id: string;
+  source: "openbrewerydb" | "wikidata";
+  externalId: string;
+  name: string;
+  slug: string;
+  producerType: "brewery" | "distillery";
+  country: string | null;
+  region: string | null;
+  city: string | null;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  website: string | null;
+  foundedYear: number | null;
+  description: string | null;
+  sourceUrl: string | null;
+  sourceLicense: string;
+}
+
+export async function fetchDrinkProducers(filters?: {
+  producerType?: string;
+  country?: string;
+  q?: string;
+}): Promise<DrinkProducer[]> {
+  const params = new URLSearchParams();
+  if (filters?.producerType) params.set("type", filters.producerType);
+  if (filters?.country) params.set("country", filters.country);
+  if (filters?.q) params.set("q", filters.q);
+  const qs = params.toString();
+  const res = await fetch(`${API_URL}/drinks/producers${qs ? `?${qs}` : ""}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkProducerCountries(): Promise<DrinkCountryCount[]> {
+  const res = await fetch(`${API_URL}/drinks/producers/countries`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchDrinkProducer(
+  slug: string,
+): Promise<{ producer: DrinkProducer; relatedProducts: DrinkProduct[] }> {
+  const res = await fetch(`${API_URL}/drinks/producers/${encodeURIComponent(slug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface ProducersSyncStatus {
+  sourceName: string;
+  license: string;
+  lastSyncedAt?: { _seconds: number } | null;
+  oneTimeSyncCompletedAt?: { _seconds: number } | null;
+  lastRunNewRecords?: number;
+  lastRunUpdatedRecords?: number;
+  lastRunErrorCount?: number;
+}
+
+export async function fetchProducersSyncStatus(): Promise<ProducersSyncStatus | null> {
+  const res = await fetch(`${API_URL}/drinks/admin/producers-status`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function syncProducersOnce(
+  maxPagesOpenBreweryDb?: number,
+  maxItemsPerWikidataType?: number,
+  force?: boolean,
+): Promise<{
+  newRecords: number;
+  updatedRecords: number;
+  errors: string[];
+  openBreweryDbPagesFetched: number;
+  openBreweryDbStoppedReason: string;
+  wikidataBreweriesFetched: number;
+  wikidataDistilleriesFetched: number;
+}> {
+  const res = await fetch(`${API_URL}/drinks/admin/sync-producers-once`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ maxPagesOpenBreweryDb, maxItemsPerWikidataType, force }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface FoodPairing {
+  id: string;
+  productSlug: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  imageUrl: string | null;
+  totalTimeMinutes: number | null;
+  servings: number | null;
+  ratingScore: number | null;
+  tags: string[];
+  sourceUrl: string;
+  sourceLicense: string;
+}
+
+export async function fetchFoodPairings(productSlug: string): Promise<FoodPairing[]> {
+  const res = await fetch(`${API_URL}/drinks/food-pairings/${encodeURIComponent(productSlug)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export interface FoodPairingsSyncStatus {
+  sourceName: string;
+  license: string;
+  lastSyncedAt?: { _seconds: number } | null;
+  oneTimeSyncCompletedAt?: { _seconds: number } | null;
+  lastRunNewRecords?: number;
+  lastRunUpdatedRecords?: number;
+  lastRunErrorCount?: number;
+}
+
+export async function fetchFoodPairingsSyncStatus(): Promise<FoodPairingsSyncStatus | null> {
+  const res = await fetch(`${API_URL}/drinks/admin/food-pairings-status`, { headers: authHeaders() });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function syncFoodPairingsOnce(
+  recipesPerProduct?: number,
+  force?: boolean,
+): Promise<{ newRecords: number; updatedRecords: number; errors: string[] }> {
+  const res = await fetch(`${API_URL}/drinks/admin/sync-food-pairings-once`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify({ recipesPerProduct, force }),
   });
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();

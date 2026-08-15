@@ -11,8 +11,20 @@ const SEARCH_SCAN_LIMIT = 2000;
 // of these generic terms appears in the product's name/subcategory, not an exact ingredient
 // name match (a single-malt review will never literally be a cocktail ingredient name).
 const SPIRIT_KEYWORDS = [
-  'gin', 'vodka', 'rum', 'tequila', 'mezcal', 'whisky', 'whiskey', 'bourbon', 'rye',
-  'scotch', 'brandy', 'cognac', 'absinthe', 'liqueur',
+  'gin',
+  'vodka',
+  'rum',
+  'tequila',
+  'mezcal',
+  'whisky',
+  'whiskey',
+  'bourbon',
+  'rye',
+  'scotch',
+  'brandy',
+  'cognac',
+  'absinthe',
+  'liqueur',
 ];
 
 function findSpiritKeyword(text: string): string | null {
@@ -39,6 +51,12 @@ export class DrinksService {
   private ingredientsCol() {
     return this.db.collection(COLLECTIONS.ZENTARO_DRINKS_INGREDIENTS);
   }
+  private producersCol() {
+    return this.db.collection(COLLECTIONS.ZENTARO_DRINKS_PRODUCERS);
+  }
+  private foodPairingsCol() {
+    return this.db.collection(COLLECTIONS.ZENTARO_DRINKS_FOOD_PAIRINGS);
+  }
 
   /**
    * Firestore has no full-text search, so this is a bounded field-match scan
@@ -47,7 +65,15 @@ export class DrinksService {
    * A dedicated search index (Algolia etc.) is a Phase 2 concern once volume
    * outgrows this.
    */
-  async search(query: string, filters: { category?: string; country?: string; minAbv?: number; maxAbv?: number }) {
+  async search(
+    query: string,
+    filters: {
+      category?: string;
+      country?: string;
+      minAbv?: number;
+      maxAbv?: number;
+    },
+  ) {
     const [productsSnap, cocktailsSnap, ingredientsSnap] = await Promise.all([
       this.productsCol().limit(SEARCH_SCAN_LIMIT).get(),
       this.cocktailsCol().limit(SEARCH_SCAN_LIMIT).get(),
@@ -56,15 +82,32 @@ export class DrinksService {
 
     const products = productsSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }) as any)
-      .filter((p) => matchesQuery([p.name, p.producerName, p.country, p.subCategory, p.category], query))
+      .filter((p) =>
+        matchesQuery(
+          [p.name, p.producerName, p.country, p.subCategory, p.category],
+          query,
+        ),
+      )
       .filter((p) => !filters.category || p.category === filters.category)
-      .filter((p) => !filters.country || (p.country ?? '').toLowerCase() === filters.country.toLowerCase())
-      .filter((p) => filters.minAbv == null || (p.abv != null && p.abv >= filters.minAbv))
-      .filter((p) => filters.maxAbv == null || (p.abv != null && p.abv <= filters.maxAbv));
+      .filter(
+        (p) =>
+          !filters.country ||
+          (p.country ?? '').toLowerCase() === filters.country.toLowerCase(),
+      )
+      .filter(
+        (p) =>
+          filters.minAbv == null || (p.abv != null && p.abv >= filters.minAbv),
+      )
+      .filter(
+        (p) =>
+          filters.maxAbv == null || (p.abv != null && p.abv <= filters.maxAbv),
+      );
 
     const cocktails = cocktailsSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }) as any)
-      .filter((c) => matchesQuery([c.name, c.category, ...(c.ingredientNames ?? [])], query));
+      .filter((c) =>
+        matchesQuery([c.name, c.category, ...(c.ingredientNames ?? [])], query),
+      );
 
     const ingredients = ingredientsSnap.docs
       .map((d) => ({ id: d.id, ...d.data() }) as any)
@@ -78,8 +121,12 @@ export class DrinksService {
     if (!doc.exists) throw new NotFoundException('Drink not found');
     const product = { id: doc.id, ...doc.data() } as any;
 
-    const keyword = findSpiritKeyword(`${product.name} ${product.subCategory ?? ''}`);
-    const relatedCocktails = keyword ? await this.findCocktailsByIngredientName(keyword) : [];
+    const keyword = findSpiritKeyword(
+      `${product.name} ${product.subCategory ?? ''}`,
+    );
+    const relatedCocktails = keyword
+      ? await this.findCocktailsByIngredientName(keyword)
+      : [];
 
     return { product, relatedCocktails };
   }
@@ -94,7 +141,9 @@ export class DrinksService {
     const doc = await this.ingredientsCol().doc(slug).get();
     if (!doc.exists) throw new NotFoundException('Ingredient not found');
     const ingredient = { id: doc.id, ...doc.data() } as any;
-    const relatedCocktails = await this.findCocktailsByIngredientName(ingredient.name);
+    const relatedCocktails = await this.findCocktailsByIngredientName(
+      ingredient.name,
+    );
     return { ingredient, relatedCocktails };
   }
 
@@ -119,14 +168,22 @@ export class DrinksService {
     let query: FirebaseFirestore.Query = this.productsCol();
     if (category) query = query.where('category', '==', category);
     const snap = await query.limit(1000).get();
-    let items = snap.docs.map((d) => ({ id: d.id, ...d.data() }) as any).filter((p) => p.weightedRating != null);
+    let items = snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as any)
+      .filter((p) => p.weightedRating != null);
 
     switch (tab) {
       case 'most-reviewed':
-        items.sort((a, b) => (b.externalRatings?.[0]?.ratingCount ?? 0) - (a.externalRatings?.[0]?.ratingCount ?? 0));
+        items.sort(
+          (a, b) =>
+            (b.externalRatings?.[0]?.ratingCount ?? 0) -
+            (a.externalRatings?.[0]?.ratingCount ?? 0),
+        );
         break;
       case 'new-releases':
-        items.sort((a, b) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+        items.sort(
+          (a, b) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0),
+        );
         break;
       case 'top-rated':
       default:
@@ -157,9 +214,84 @@ export class DrinksService {
       .sort((a, b) => b.count - a.count);
   }
 
+  /**
+   * Global brewery/distillery directory (Open Brewery DB + Wikidata). Same bounded
+   * scan + in-memory filter approach as search()/listCountries() — this collection
+   * can run into the low thousands after a full sync, well under SEARCH_SCAN_LIMIT.
+   */
+  async listProducers(filters: {
+    producerType?: string;
+    country?: string;
+    q?: string;
+  }) {
+    const snap = await this.producersCol().limit(SEARCH_SCAN_LIMIT).get();
+    return snap.docs
+      .map((d) => ({ id: d.id, ...d.data() }) as any)
+      .filter(
+        (p) => !filters.producerType || p.producerType === filters.producerType,
+      )
+      .filter(
+        (p) =>
+          !filters.country ||
+          (p.country ?? '').toLowerCase() === filters.country.toLowerCase(),
+      )
+      .filter(
+        (p) =>
+          !filters.q ||
+          matchesQuery([p.name, p.country, p.city, p.region], filters.q),
+      )
+      .sort((a, b) => (a.name ?? '').localeCompare(b.name ?? ''));
+  }
+
+  /** Producer detail, cross-linked to any ZENTARO Drinks DB products sharing the same producerName. */
+  async getProducerBySlug(slug: string) {
+    const doc = await this.producersCol().doc(slug).get();
+    if (!doc.exists) throw new NotFoundException('Producer not found');
+    const producer = { id: doc.id, ...doc.data() } as any;
+
+    const productsSnap = await this.productsCol()
+      .where('producerName', '==', producer.name)
+      .limit(24)
+      .get();
+
+    return {
+      producer,
+      relatedProducts: productsSnap.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+      })),
+    };
+  }
+
+  /** All distinct countries present in the producers collection, with counts, for the directory's country filter. */
+  async listProducerCountries() {
+    const snap = await this.producersCol().limit(SEARCH_SCAN_LIMIT).get();
+    const counts = new Map<string, number>();
+    snap.docs.forEach((d) => {
+      const country = d.data().country as string | undefined;
+      if (!country) return;
+      counts.set(country, (counts.get(country) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([country, count]) => ({ country, count }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  /** Real Tasty recipes matched to a ZENTARO product slug, for the "Pairs well with" section on its product page. */
+  async listFoodPairings(productSlug: string) {
+    const snap = await this.foodPairingsCol()
+      .where('productSlug', '==', productSlug)
+      .limit(12)
+      .get();
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+
   /** Products ZENTARO has flagged as its own (isZentaroProduct=true), for the "ZENTARO Originals" section. */
   async listZentaroOriginals() {
-    const snap = await this.productsCol().where('isZentaroProduct', '==', true).limit(100).get();
+    const snap = await this.productsCol()
+      .where('isZentaroProduct', '==', true)
+      .limit(100)
+      .get();
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
 
@@ -167,17 +299,21 @@ export class DrinksService {
     const ref = this.productsCol().doc(slug);
     const snap = await ref.get();
     if (!snap.exists) throw new NotFoundException('Drink not found');
-    await ref.set({ isZentaroProduct, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await ref.set(
+      { isZentaroProduct, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
     return { id: slug, isZentaroProduct };
   }
 
   async getStatistics() {
-    const [productsSnap, cocktailsSnap, ingredientsSnap, sourcesSnap] = await Promise.all([
-      this.productsCol().get(),
-      this.cocktailsCol().get(),
-      this.ingredientsCol().get(),
-      this.db.collection(COLLECTIONS.ZENTARO_DRINKS_SOURCES).get(),
-    ]);
+    const [productsSnap, cocktailsSnap, ingredientsSnap, sourcesSnap] =
+      await Promise.all([
+        this.productsCol().get(),
+        this.cocktailsCol().get(),
+        this.ingredientsCol().get(),
+        this.db.collection(COLLECTIONS.ZENTARO_DRINKS_SOURCES).get(),
+      ]);
 
     const countries = new Set<string>();
     const producers = new Set<string>();
@@ -188,12 +324,18 @@ export class DrinksService {
       if (data.country) countries.add(data.country);
       if (data.producerName) producers.add(data.producerName);
       const createdAt = data.createdAt?.toDate?.();
-      if (createdAt && createdAt.getFullYear() === now.getFullYear() && createdAt.getMonth() === now.getMonth()) {
+      if (
+        createdAt &&
+        createdAt.getFullYear() === now.getFullYear() &&
+        createdAt.getMonth() === now.getMonth()
+      ) {
         newThisMonth += 1;
       }
     });
 
-    const botanicalsCount = ingredientsSnap.docs.filter((d) => d.data().isBotanical === true).length;
+    const botanicalsCount = ingredientsSnap.docs.filter(
+      (d) => d.data().isBotanical === true,
+    ).length;
     const lastSyncedAt = sourcesSnap.docs
       .map((d) => d.data().lastSyncedAt?.toDate?.())
       .filter(Boolean)
@@ -221,7 +363,10 @@ export class DrinksService {
   }
 
   async listMergeCandidates() {
-    const snap = await this.productsCol().orderBy('mergeCandidateOf').limit(200).get();
+    const snap = await this.productsCol()
+      .orderBy('mergeCandidateOf')
+      .limit(200)
+      .get();
     return snap.docs
       .map((d) => ({ id: d.id, ...d.data() }) as any)
       .filter((p) => p.mergeCandidateOf);
@@ -260,12 +405,20 @@ export class DrinksService {
 
   async updateIngredientAdmin(
     id: string,
-    patch: Partial<{ name: string; description: string; isBotanical: boolean; botanicalCategory: string }>,
+    patch: Partial<{
+      name: string;
+      description: string;
+      isBotanical: boolean;
+      botanicalCategory: string;
+    }>,
   ) {
     const ref = this.ingredientsCol().doc(id);
     const snap = await ref.get();
     if (!snap.exists) throw new NotFoundException('Ingredient not found');
-    await ref.set({ ...patch, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    await ref.set(
+      { ...patch, updatedAt: FieldValue.serverTimestamp() },
+      { merge: true },
+    );
     return { id };
   }
 
@@ -276,7 +429,9 @@ export class DrinksService {
 
   async rateProduct(uid: string, slug: string, rating: number) {
     const productRef = this.productsCol().doc(slug);
-    const ratingRef = this.db.collection(COLLECTIONS.ZENTARO_DRINKS_USER_RATINGS).doc(`${uid}_${slug}`);
+    const ratingRef = this.db
+      .collection(COLLECTIONS.ZENTARO_DRINKS_USER_RATINGS)
+      .doc(`${uid}_${slug}`);
 
     await this.db.runTransaction(async (tx) => {
       const productSnap = await tx.get(productRef);
@@ -290,14 +445,20 @@ export class DrinksService {
       let newCount = prevCount;
       let newSum = prevAvg * prevCount;
       if (existingRatingSnap.exists) {
-        newSum = newSum - (existingRatingSnap.data()!.rating as number) + rating;
+        newSum =
+          newSum - (existingRatingSnap.data()!.rating as number) + rating;
       } else {
         newSum += rating;
         newCount += 1;
       }
       const newAvg = newCount > 0 ? newSum / newCount : 0;
 
-      tx.set(ratingRef, { uid, productId: slug, rating, updatedAt: FieldValue.serverTimestamp() });
+      tx.set(ratingRef, {
+        uid,
+        productId: slug,
+        rating,
+        updatedAt: FieldValue.serverTimestamp(),
+      });
       tx.update(productRef, {
         zentaroRating: Math.round(newAvg * 100) / 100,
         zentaroRatingCount: newCount,
