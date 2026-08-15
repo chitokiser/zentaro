@@ -37,11 +37,13 @@ function toProducerCountryKey(country: string): string {
   return PRODUCER_COUNTRY_ALIASES[lower] ?? lower
 }
 
+const MAX_SIGNATURES_PER_COUNTRY = 3
+
 interface CountryHighlight {
   country: string
   productCount: number
   producerCount: number
-  signature: DrinkProduct | null
+  signatures: DrinkProduct[]
 }
 
 export function DrinksWorldOverview() {
@@ -82,15 +84,26 @@ export function DrinksWorldOverview() {
     Promise.all(
       top.map(async (c) => {
         const products = await fetchDrinksByCountry(c.country).catch(() => [] as DrinkProduct[])
-        const signature =
-          products
-            .slice()
-            .sort((a, b) => (b.weightedRating ?? b.zentaroRating ?? 0) - (a.weightedRating ?? a.zentaroRating ?? 0))[0] ?? null
+        // A single "top rated" pick tends to collapse to the same subCategory for
+        // whisky-heavy countries (e.g. always "Single Malt"), hiding real variety
+        // that does exist in the data (Blended, Single Grain, Bourbon, ...). Picking
+        // the best-rated product per distinct subCategory instead shows that real
+        // diversity without inventing categories that have no data (e.g. gin — the
+        // whisky-market source has none).
+        const bestBySubCategory = new Map<string, DrinkProduct>()
+        products
+          .slice()
+          .sort((a, b) => (b.weightedRating ?? b.zentaroRating ?? 0) - (a.weightedRating ?? a.zentaroRating ?? 0))
+          .forEach((p) => {
+            const key = p.subCategory || p.category || "other"
+            if (!bestBySubCategory.has(key)) bestBySubCategory.set(key, p)
+          })
+        const signatures = Array.from(bestBySubCategory.values()).slice(0, MAX_SIGNATURES_PER_COUNTRY)
         return {
           country: c.country,
           productCount: c.count,
           producerCount: producerCountByKey.get(toProducerCountryKey(c.country)) ?? 0,
-          signature,
+          signatures,
         }
       }),
     ).then(setHighlights)
@@ -150,8 +163,15 @@ export function DrinksWorldOverview() {
             {h.producerCount > 0 ? (
               <p className="mt-1 text-[11px] text-muted-foreground">{h.producerCount} distilleries/breweries listed</p>
             ) : null}
-            {h.signature ? (
-              <p className="mt-2 truncate text-xs text-primary">★ {h.signature.name}</p>
+            {h.signatures.length > 0 ? (
+              <ul className="mt-2 space-y-0.5">
+                {h.signatures.map((p) => (
+                  <li key={p.id} className="truncate text-xs text-primary">
+                    ★ {p.name}
+                    {p.subCategory ? <span className="text-muted-foreground"> · {p.subCategory}</span> : null}
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </Link>
         ))}

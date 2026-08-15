@@ -723,9 +723,8 @@ export class DrinksSyncService {
         await ref.set(
           {
             ...normalized,
-            createdAt: existing.exists
-              ? existing.data()!.createdAt
-              : FieldValue.serverTimestamp(),
+            createdAt:
+              existing.data()?.createdAt ?? FieldValue.serverTimestamp(),
             updatedAt: FieldValue.serverTimestamp(),
             lastSyncedAt: FieldValue.serverTimestamp(),
           },
