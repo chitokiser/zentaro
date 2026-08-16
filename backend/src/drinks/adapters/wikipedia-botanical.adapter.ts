@@ -124,6 +124,116 @@ export const CURATED_BOTANICALS: CuratedBotanical[] = [
     wikipediaTitle: 'Lime_(fruit)',
     botanicalCategory: 'Peel',
   },
+  { name: 'Bay Leaf', wikipediaTitle: 'Bay_leaf', botanicalCategory: 'Leaf' },
+  {
+    name: 'Caraway Seed',
+    wikipediaTitle: 'Caraway',
+    botanicalCategory: 'Seed',
+  },
+  { name: 'Dill Seed', wikipediaTitle: 'Dill', botanicalCategory: 'Seed' },
+  {
+    name: 'Anise Seed',
+    wikipediaTitle: 'Pimpinella_anisum',
+    botanicalCategory: 'Seed',
+  },
+  {
+    name: 'Gentian Root',
+    wikipediaTitle: 'Gentiana_lutea',
+    botanicalCategory: 'Root',
+  },
+  {
+    name: 'Rhubarb Root',
+    wikipediaTitle: 'Rheum_rhabarbarum',
+    botanicalCategory: 'Root',
+  },
+  {
+    name: 'Cascarilla Bark',
+    wikipediaTitle: 'Cascarilla',
+    botanicalCategory: 'Bark',
+  },
+  {
+    name: 'Quassia',
+    wikipediaTitle: 'Quassia_amara',
+    botanicalCategory: 'Bark',
+  },
+  {
+    name: 'Cinchona Bark',
+    wikipediaTitle: 'Cinchona',
+    botanicalCategory: 'Bark',
+  },
+  {
+    name: 'Sweet Woodruff',
+    wikipediaTitle: 'Galium_odoratum',
+    botanicalCategory: 'Herb',
+  },
+  { name: 'Rose Petal', wikipediaTitle: 'Rose', botanicalCategory: 'Flower' },
+  {
+    name: 'Hibiscus',
+    wikipediaTitle: 'Hibiscus_sabdariffa',
+    botanicalCategory: 'Flower',
+  },
+  { name: 'Saffron', wikipediaTitle: 'Saffron', botanicalCategory: 'Flower' },
+  { name: 'Turmeric', wikipediaTitle: 'Turmeric', botanicalCategory: 'Root' },
+  {
+    name: 'Black Pepper',
+    wikipediaTitle: 'Black_pepper',
+    botanicalCategory: 'Seed',
+  },
+  {
+    name: 'Pink Peppercorn',
+    wikipediaTitle: 'Schinus_molle',
+    botanicalCategory: 'Berry',
+  },
+  {
+    name: 'Grapefruit Peel',
+    wikipediaTitle: 'Grapefruit',
+    botanicalCategory: 'Peel',
+  },
+  {
+    name: 'Bergamot Orange',
+    wikipediaTitle: 'Citrus_bergamia',
+    botanicalCategory: 'Peel',
+  },
+  {
+    name: 'Sage',
+    wikipediaTitle: 'Salvia_officinalis',
+    botanicalCategory: 'Herb',
+  },
+  { name: 'Tarragon', wikipediaTitle: 'Tarragon', botanicalCategory: 'Herb' },
+  {
+    name: 'Calamus Root',
+    wikipediaTitle: 'Acorus_calamus',
+    botanicalCategory: 'Root',
+  },
+  {
+    name: 'Galangal',
+    wikipediaTitle: 'Alpinia_galanga',
+    botanicalCategory: 'Root',
+  },
+  {
+    name: 'Bison Grass',
+    wikipediaTitle: 'Hierochloe_odorata',
+    botanicalCategory: 'Herb',
+  },
+  {
+    name: 'Sassafras',
+    wikipediaTitle: 'Sassafras_albidum',
+    botanicalCategory: 'Root',
+  },
+  { name: 'Kola Nut', wikipediaTitle: 'Kola_nut', botanicalCategory: 'Seed' },
+  { name: 'Vetiver', wikipediaTitle: 'Vetiver', botanicalCategory: 'Root' },
+  {
+    name: 'Elecampane',
+    wikipediaTitle: 'Inula_helenium',
+    botanicalCategory: 'Root',
+  },
+  { name: 'Myrrh', wikipediaTitle: 'Myrrh', botanicalCategory: 'Resin' },
+  {
+    name: 'Frankincense',
+    wikipediaTitle: 'Frankincense',
+    botanicalCategory: 'Resin',
+  },
+  { name: 'Damiana', wikipediaTitle: 'Damiana', botanicalCategory: 'Herb' },
 ];
 
 const USER_AGENT =
