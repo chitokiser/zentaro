@@ -18,8 +18,11 @@ import {
     submitProductReview,
     deleteProductReview,
     fetchFoodPairings,
+    fetchProductDnaOverrides,
+    updateProductDna,
     type ProductReview,
     type FoodPairing,
+    type ProductDnaScores,
 } from "@/lib/auth-client"
 
 interface ProductBrandInfo {
@@ -50,7 +53,7 @@ interface ProductBrandInfo {
 
 interface SpiritDnaAxis {
     axis: { ko: string; en: string; vi: string }
-    score: 1 | 2 | 3 | 4 | 5
+    score: number
 }
 
 const DNA_AXIS_LABELS = {
@@ -61,14 +64,20 @@ const DNA_AXIS_LABELS = {
     purity: { ko: "순수·클린함", en: "Purity & Clean Finish", vi: "Độ tinh khiết" },
 } as const
 
-function buildDna(scores: { botanical: 1 | 2 | 3 | 4 | 5; sweetness: 1 | 2 | 3 | 4 | 5; aroma: 1 | 2 | 3 | 4 | 5; smoothness: 1 | 2 | 3 | 4 | 5; purity: 1 | 2 | 3 | 4 | 5 }): SpiritDnaAxis[] {
-    return [
-        { axis: DNA_AXIS_LABELS.botanical, score: scores.botanical },
-        { axis: DNA_AXIS_LABELS.sweetness, score: scores.sweetness },
-        { axis: DNA_AXIS_LABELS.aroma, score: scores.aroma },
-        { axis: DNA_AXIS_LABELS.smoothness, score: scores.smoothness },
-        { axis: DNA_AXIS_LABELS.purity, score: scores.purity },
-    ]
+// Fixed axis order used to convert between DNA scores and the SpiritDnaAxis[]
+// display form (buildDna / axesToScores).
+const DNA_AXIS_ORDER: (keyof ProductDnaScores)[] = ["botanical", "sweetness", "aroma", "smoothness", "purity"]
+
+function buildDna(scores: ProductDnaScores): SpiritDnaAxis[] {
+    return DNA_AXIS_ORDER.map((key) => ({ axis: DNA_AXIS_LABELS[key], score: scores[key] }))
+}
+
+function axesToScores(dna: SpiritDnaAxis[]): ProductDnaScores {
+    const scores = {} as ProductDnaScores
+    DNA_AXIS_ORDER.forEach((key, i) => {
+        scores[key] = dna[i]?.score ?? 3
+    })
+    return scores
 }
 
 const BRAND_PRODUCTS: ProductBrandInfo[] = [
@@ -181,9 +190,9 @@ const BRAND_PRODUCTS: ProductBrandInfo[] = [
             ],
         },
         ingredients: {
-            ko: "ST25 쌀 100%, 흑국균(Black Koji), 효모, 레몬그라스·고수씨·감초 등 극소량의 천연 허브, 정제수",
-            en: "ST25 rice 100%, Black Koji, Yeast, a trace of natural herbs (lemongrass, coriander seed, licorice, etc.), Purified water",
-            vi: "Gạo ST25 100%, Men Khúc Đen (Black Koji), Men rượu, một chút thảo mộc tự nhiên (sả, hạt ngò, cam thảo...), Nước tinh khiết",
+            ko: "ST25 쌀 100%, 흑국균(Black Koji), 효모, 레몬그라스·박하·감초 등 극소량의 천연 허브, 정제수",
+            en: "ST25 rice 100%, Black Koji, Yeast, a trace of natural herbs (lemongrass, mint, licorice, etc.), Purified water",
+            vi: "Gạo ST25 100%, Men Khúc Đen (Black Koji), Men rượu, một chút thảo mộc tự nhiên (sả, bạc hà, cam thảo...), Nước tinh khiết",
         },
         dna: buildDna({ botanical: 2, sweetness: 1, aroma: 4, smoothness: 5, purity: 5 }),
     },
@@ -678,11 +687,19 @@ const PHUC_LOC_TAB_PRODUCTS = ORDERED_PRODUCTS.filter((p) => p.brand === "phuc-l
 export default function ProductsPromotionalPage() {
     const { t, locale } = useI18n()
     const [activeTab, setActiveTab] = useState(ORDERED_PRODUCTS[0].id)
+    const [dnaOverrides, setDnaOverrides] = useState<Record<string, ProductDnaScores>>({})
+
+    useEffect(() => {
+        fetchProductDnaOverrides().then(setDnaOverrides).catch(() => undefined)
+    }, [])
 
     const selectedProduct = BRAND_PRODUCTS.find((p) => p.id === activeTab) || ORDERED_PRODUCTS[0]
     const isComingSoon = selectedProduct.comingSoon ?? false
     const activeBrand = selectedProduct.brand
     const visibleTabProducts = activeBrand === "zentaro" ? ZENTARO_TAB_PRODUCTS : PHUC_LOC_TAB_PRODUCTS
+    const baseDnaScores = selectedProduct.dna ? axesToScores(selectedProduct.dna) : null
+    const currentDnaScores = dnaOverrides[selectedProduct.id] ?? baseDnaScores
+    const effectiveDna = currentDnaScores ? buildDna(currentDnaScores) : null
 
     return (
         <div className="bg-background text-foreground min-h-screen">
@@ -803,7 +820,17 @@ export default function ProductsPromotionalPage() {
                             </p>
                         </div>
 
-                        {selectedProduct.dna ? <SpiritDnaPanel dna={selectedProduct.dna} locale={locale} /> : null}
+                        {effectiveDna ? <SpiritDnaPanel dna={effectiveDna} locale={locale} /> : null}
+
+                        {currentDnaScores ? (
+                            <SpiritDnaAdminEditor
+                                key={selectedProduct.id}
+                                productSlug={selectedProduct.id}
+                                currentScores={currentDnaScores}
+                                locale={locale}
+                                onSaved={(scores) => setDnaOverrides((prev) => ({ ...prev, [selectedProduct.id]: scores }))}
+                            />
+                        ) : null}
 
                         <FoodPairingSection key={selectedProduct.id} productSlug={selectedProduct.id} locale={locale} />
 
@@ -1010,6 +1037,97 @@ function SpiritDnaPanel({ dna, locale }: { dna: SpiritDnaAxis[]; locale: Locale 
                         <span className="w-7 shrink-0 text-right text-[11px] font-mono text-foreground/70">{row.score}/5</span>
                     </div>
                 ))}
+            </div>
+        </div>
+    )
+}
+
+/**
+ * Lets an admin (level 2+) adjust this product's Spirit DNA scores directly on
+ * the page and save them to Firestore (via POST /product-dna/:slug), overriding
+ * the hardcoded default in BRAND_PRODUCTS above. Renders nothing for non-admins —
+ * same "no client-side gate, backend enforces it" pattern as /admin/drinks, but
+ * this component additionally hides itself so regular visitors never see it.
+ */
+function SpiritDnaAdminEditor({
+    productSlug,
+    currentScores,
+    locale,
+    onSaved,
+}: {
+    productSlug: string
+    currentScores: ProductDnaScores
+    locale: Locale
+    onSaved: (scores: ProductDnaScores) => void
+}) {
+    const [isAdmin, setIsAdmin] = useState(false)
+    const [draft, setDraft] = useState<ProductDnaScores>(currentScores)
+    const [syncedScores, setSyncedScores] = useState(currentScores)
+    const [saving, setSaving] = useState(false)
+    const [message, setMessage] = useState<string | null>(null)
+
+    useEffect(() => {
+        if (!getToken()) return
+        fetchMe()
+            .then((me) => setIsAdmin(Boolean(me.adminLevel && me.adminLevel >= 2)))
+            .catch(() => setIsAdmin(false))
+    }, [])
+
+    // Keeps the draft in sync when the parent's currentScores changes after mount
+    // (e.g. the DNA overrides fetch resolves after this component already rendered
+    // with the static default) — updated during render, not an effect, per React's
+    // guidance for resetting state from props.
+    if (currentScores !== syncedScores) {
+        setSyncedScores(currentScores)
+        setDraft(currentScores)
+        setMessage(null)
+    }
+
+    if (!isAdmin) return null
+
+    async function handleSave() {
+        setSaving(true)
+        setMessage(null)
+        try {
+            const saved = await updateProductDna(productSlug, draft)
+            onSaved(saved)
+            setMessage(locale === "ko" ? "저장되었습니다." : locale === "vi" ? "Đã lưu." : "Saved.")
+        } catch (err) {
+            setMessage(err instanceof Error ? err.message : locale === "ko" ? "저장에 실패했습니다." : "Failed to save.")
+        } finally {
+            setSaving(false)
+        }
+    }
+
+    return (
+        <div className="rounded-xl border border-dashed border-primary/40 bg-primary/5 p-4">
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary">
+                {locale === "ko" ? "관리자: Spirit DNA 수정" : locale === "vi" ? "Quản trị: Chỉnh Spirit DNA" : "Admin: Edit Spirit DNA"}
+            </p>
+            <div className="space-y-2.5">
+                {DNA_AXIS_ORDER.map((key) => (
+                    <div key={key} className="flex items-center gap-3">
+                        <span className="w-32 shrink-0 text-[11px] text-muted-foreground sm:w-36">{DNA_AXIS_LABELS[key][locale]}</span>
+                        <input
+                            type="range"
+                            min={1}
+                            max={5}
+                            step={1}
+                            value={draft[key]}
+                            onChange={(e) => setDraft((d) => ({ ...d, [key]: Number(e.target.value) }))}
+                            className="h-1.5 flex-1 accent-primary"
+                        />
+                        <span className="w-7 shrink-0 text-right text-[11px] font-mono text-foreground/70">{draft[key]}/5</span>
+                    </div>
+                ))}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+                <Button size="sm" disabled={saving} onClick={handleSave}>
+                    {saving
+                        ? locale === "ko" ? "저장 중..." : locale === "vi" ? "Đang lưu..." : "Saving..."
+                        : locale === "ko" ? "저장" : locale === "vi" ? "Lưu" : "Save"}
+                </Button>
+                {message ? <span className="text-xs text-muted-foreground">{message}</span> : null}
             </div>
         </div>
     )

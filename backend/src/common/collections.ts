@@ -35,6 +35,7 @@ export const COLLECTIONS = {
   ZENTARO_DRINKS_SYNC_LOGS: 'zentaro_drinks_sync_logs',
   ZENTARO_DRINKS_RANKING_CONFIG: 'zentaro_drinks_ranking_config',
   ZENTARO_DRINKS_FOOD_PAIRINGS: 'zentaro_drinks_food_pairings',
+  ZENTARO_PRODUCT_DNA: 'zentaro_product_dna',
   ZENTARO_WHISKY_DISTILLERIES: 'zentaro_whisky_distilleries',
   ZENTARO_WHISKY_AUCTION_HOUSES: 'zentaro_whisky_auction_houses',
   ZENTARO_WHISKY_MARKET_META: 'zentaro_whisky_market_meta',

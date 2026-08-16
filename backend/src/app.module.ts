@@ -26,6 +26,7 @@ import { InvestorWatchModule } from './investor-watch/investor-watch.module';
 import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
 import { DrinksModule } from './drinks/drinks.module';
 import { WhiskyMarketModule } from './whisky-market/whisky-market.module';
+import { ProductDnaModule } from './product-dna/product-dna.module';
 
 @Module({
   imports: [
@@ -55,6 +56,7 @@ import { WhiskyMarketModule } from './whisky-market/whisky-market.module';
     YoutubeMonitorModule,
     DrinksModule,
     WhiskyMarketModule,
+    ProductDnaModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

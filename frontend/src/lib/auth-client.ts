@@ -2248,3 +2248,27 @@ export async function syncFoodPairingsOnce(
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface ProductDnaScores {
+  botanical: number;
+  sweetness: number;
+  aroma: number;
+  smoothness: number;
+  purity: number;
+}
+
+export async function fetchProductDnaOverrides(): Promise<Record<string, ProductDnaScores>> {
+  const res = await fetch(`${API_URL}/product-dna`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function updateProductDna(slug: string, scores: ProductDnaScores): Promise<ProductDnaScores> {
+  const res = await fetch(`${API_URL}/product-dna/${encodeURIComponent(slug)}`, {
+    method: "POST",
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
+    body: JSON.stringify(scores),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
