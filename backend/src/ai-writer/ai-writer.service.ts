@@ -114,17 +114,18 @@ export class AiWriterService {
     return topic;
   }
 
-  // Once a day, one article per category (6 tags = 6 posts/day).
+  // Once a day, one article, cycling through categories via nextTag() — 1 post/day.
+  // (Cut from looping all AI_TAGS every run, which was 8 posts/day, to reduce
+  // Gemini/Anthropic spend — credits were burning too fast.)
   @Cron('0 9 * * *')
   async handleCron() {
-    for (const tag of AI_TAGS) {
-      await this.generateOne(tag);
-    }
+    await this.generateOne();
   }
 
-  // Every 6 hours, one ZenTaro system-promo "card news" post (rotates through
-  // Barrel Reserve, ZTRO Exchange, Bottle Cap, Contribution, Mall) — 4 posts/day.
-  @Cron('0 */6 * * *')
+  // Once a day, one ZenTaro system-promo "card news" post (rotates through
+  // Barrel Reserve, ZTRO Exchange, Bottle Cap, Contribution, Mall) — 1 post/day.
+  // (Cut from every 6 hours / 4 posts/day for the same reason as handleCron.)
+  @Cron('0 21 * * *')
   async handleSystemPromoCron() {
     await this.generateSystemPromoOne();
   }
