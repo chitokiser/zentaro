@@ -80,6 +80,12 @@ export class DrinksController {
     return this.drinksService.listFoodPairings(productSlug);
   }
 
+  // Kept above the /drinks/cocktails/:id route below so Nest doesn't swallow this into :id.
+  @Get('drinks/cocktails/by-ingredient/:name')
+  cocktailsByIngredient(@Param('name') name: string) {
+    return this.drinksService.findCocktailsByIngredientName(name);
+  }
+
   @Get('drinks/cocktails/:id')
   getCocktail(@Param('id') id: string) {
     return this.drinksService.getCocktailById(id);

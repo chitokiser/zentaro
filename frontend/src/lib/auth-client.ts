@@ -2272,3 +2272,10 @@ export async function updateProductDna(slug: string, scores: ProductDnaScores): 
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+/** Real TheCocktailDB cocktails whose ingredient list contains this exact ingredient name (e.g. "gin"). */
+export async function fetchCocktailsByIngredient(name: string): Promise<DrinkCocktail[]> {
+  const res = await fetch(`${API_URL}/drinks/cocktails/by-ingredient/${encodeURIComponent(name)}`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

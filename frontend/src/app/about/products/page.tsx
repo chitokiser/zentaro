@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Award, Beaker, Check, Dna, HelpCircle, Info, Sparkles, Star, Trash2, UtensilsCrossed } from "lucide-react"
+import { ArrowRight, Award, Beaker, Check, Dna, HelpCircle, Info, Martini, Sparkles, Star, Trash2, UtensilsCrossed } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -20,9 +20,11 @@ import {
     fetchFoodPairings,
     fetchProductDnaOverrides,
     updateProductDna,
+    fetchCocktailsByIngredient,
     type ProductReview,
     type FoodPairing,
     type ProductDnaScores,
+    type DrinkCocktail,
 } from "@/lib/auth-client"
 
 interface ProductBrandInfo {
@@ -834,6 +836,8 @@ export default function ProductsPromotionalPage() {
 
                         <FoodPairingSection key={selectedProduct.id} productSlug={selectedProduct.id} locale={locale} />
 
+                        <RelatedCocktailsSection key={`cocktails-${selectedProduct.id}`} productSlug={selectedProduct.id} locale={locale} />
+
                         {isComingSoon ? (
                             <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-secondary/20 px-6 py-8 text-center sm:text-left">
                                 <Sparkles className="h-8 w-8 shrink-0 text-amber-500" />
@@ -1183,6 +1187,65 @@ function FoodPairingSection({ productSlug, locale }: { productSlug: string; loca
                             <span className="line-clamp-2 font-medium text-foreground">{p.name}</span>
                         </div>
                     </a>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+/**
+ * Real TheCocktailDB cocktails using this product's spirit type as an exact
+ * ingredient (not a text search — "gin" won't match "Virgin Mojito"). Only
+ * mapped for products with a real match: TheCocktailDB has no "soju"/rice-spirit
+ * ingredient at all, so ZENTARO ORIGIN and the PHÚC LỘC line intentionally have
+ * no entry here rather than showing fabricated results.
+ */
+const PRODUCT_COCKTAIL_INGREDIENT: Record<string, string> = {
+    "zentaro-blue": "gin",
+    "zentaro-an": "absinthe",
+    "zentaro-st": "strawberry schnapps",
+}
+
+function RelatedCocktailsSection({ productSlug, locale }: { productSlug: string; locale: Locale }) {
+    const [cocktails, setCocktails] = useState<DrinkCocktail[] | null>(null)
+    const keyword = PRODUCT_COCKTAIL_INGREDIENT[productSlug]
+
+    useEffect(() => {
+        if (!keyword) return
+        fetchCocktailsByIngredient(keyword)
+            .then(setCocktails)
+            .catch(() => setCocktails([]))
+    }, [keyword])
+
+    if (!cocktails || cocktails.length === 0) return null
+
+    return (
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+            <div className="mb-3 flex items-center gap-2">
+                <Martini className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    {locale === "ko" ? "실제 칵테일 레시피" : locale === "vi" ? "Công thức cocktail thực tế" : "Real Cocktail Recipes"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                    {locale === "ko" ? "TheCocktailDB 실제 데이터 기반" : locale === "vi" ? "Dữ liệu thực từ TheCocktailDB" : "via TheCocktailDB"}
+                </span>
+            </div>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                {cocktails.slice(0, 6).map((c) => (
+                    <Link
+                        key={c.id}
+                        href={`/drinks/cocktails/${c.id}`}
+                        className="overflow-hidden rounded-lg border border-border/60 bg-card text-xs hover:border-primary/50"
+                    >
+                        {c.imageUrl ? (
+                            <div className="relative aspect-square w-full bg-secondary/20">
+                                <Image src={c.imageUrl} alt={c.name} fill className="object-cover" sizes="150px" unoptimized />
+                            </div>
+                        ) : null}
+                        <div className="p-2">
+                            <span className="line-clamp-2 font-medium text-foreground">{c.name}</span>
+                        </div>
+                    </Link>
                 ))}
             </div>
         </div>

@@ -156,7 +156,14 @@ export class DrinksService {
     return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
   }
 
-  private async findCocktailsByIngredientName(name: string) {
+  /**
+   * Exact match against a cocktail's real ingredient list (not a text search —
+   * "gin" won't false-positive-match "Virgin Mojito" the way a substring search
+   * would). Used both for whisky-market products (via getProductBySlug above)
+   * and, publicly, for ZENTARO's own static product pages which aren't in the
+   * products collection at all.
+   */
+  async findCocktailsByIngredientName(name: string) {
     const snap = await this.cocktailsCol()
       .where('ingredientNames', 'array-contains', name.trim().toLowerCase())
       .limit(24)
