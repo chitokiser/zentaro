@@ -62,9 +62,10 @@ ${input.flavorHint ? `User's request: ${input.flavorHint}` : 'No specific flavor
 Respond in ${languageName}, in this exact JSON shape only, no other text, no markdown fences:
 {"name": "cocktail name", "tagline": "one evocative sentence", "ingredients": [{"name": "ingredient", "amount": "quantity"}], "instructions": ["step 1", "step 2"], "glassware": "glass type", "garnish": "garnish or null"}`;
 
-    const rawText = this.geminiApiKey
-      ? await this.callGemini(prompt)
-      : await this.callAnthropic(prompt);
+    let rawText = this.geminiApiKey ? await this.callGemini(prompt) : null;
+    if (!rawText && this.anthropic) {
+      rawText = await this.callAnthropic(prompt);
+    }
     if (!rawText) return null;
 
     try {
