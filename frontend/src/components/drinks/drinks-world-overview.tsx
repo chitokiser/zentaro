@@ -3,15 +3,19 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { WorldSpiritsMap } from "@/components/drinks/world-spirits-map"
+import Image from "next/image"
 import {
   fetchDrinkCountries,
   fetchDrinkProducerCountries,
   fetchDrinkStatistics,
   fetchDrinksByCountry,
+  fetchDrinkRankings,
   type DrinkCountryCount,
   type DrinkStatistics,
   type DrinkProduct,
 } from "@/lib/auth-client"
+
+const TOP_WHISKIES_SHOWN = 10
 
 const TOP_COUNTRIES_SHOWN = 6
 
@@ -51,6 +55,7 @@ export function DrinksWorldOverview() {
   const [producerCountries, setProducerCountries] = useState<DrinkCountryCount[]>([])
   const [stats, setStats] = useState<DrinkStatistics | null>(null)
   const [highlights, setHighlights] = useState<CountryHighlight[] | null>(null)
+  const [topWhiskies, setTopWhiskies] = useState<DrinkProduct[] | null>(null)
 
   useEffect(() => {
     fetchDrinkCountries()
@@ -62,6 +67,12 @@ export function DrinksWorldOverview() {
     fetchDrinkStatistics()
       .then(setStats)
       .catch(() => undefined)
+    // "spirit" is whisky-market's only category (thewhiskyedition.com is the sole
+    // source for it), so this is effectively a real world whisky top-10, not a
+    // generic spirits mix.
+    fetchDrinkRankings("top-rated", "spirit")
+      .then((items) => setTopWhiskies(items.slice(0, TOP_WHISKIES_SHOWN)))
+      .catch(() => setTopWhiskies([]))
   }, [])
 
   const producerCountByKey = useMemo(() => {
@@ -136,6 +147,41 @@ export function DrinksWorldOverview() {
       </div>
 
       <WorldSpiritsMap countries={countries} />
+
+      {topWhiskies && topWhiskies.length > 0 ? (
+        <section className="mt-8">
+          <div className="mb-4 flex items-baseline justify-between gap-3">
+            <h2 className="font-display text-lg font-semibold text-foreground">World Whisky Rankings — Top 10</h2>
+            <Link href="/drinks/rankings" className="text-xs text-primary underline underline-offset-4">
+              Full rankings →
+            </Link>
+          </div>
+          <ol className="divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60 bg-card">
+            {topWhiskies.map((p, idx) => (
+              <li key={p.id}>
+                <Link href={`/drinks/${p.slug}`} className="flex items-center gap-3 p-3 text-sm transition-colors hover:bg-secondary/30">
+                  <span className="w-5 shrink-0 text-center font-display text-sm font-bold text-primary">{idx + 1}</span>
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-secondary/30">
+                    {p.imageUrl ? (
+                      <Image src={p.imageUrl} alt={p.name} fill className="object-contain p-1" sizes="40px" unoptimized />
+                    ) : null}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-medium text-foreground">{p.name}</p>
+                    <p className="truncate text-xs text-muted-foreground">
+                      {p.subCategory ?? p.category}
+                      {p.country ? ` · ${p.country}` : ""}
+                    </p>
+                  </div>
+                  {p.weightedRating != null ? (
+                    <span className="shrink-0 font-mono text-sm font-semibold text-primary">{p.weightedRating.toFixed(1)}</span>
+                  ) : null}
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </section>
+      ) : null}
 
       <div className="mt-6 flex items-baseline justify-between gap-3">
         <h2 className="font-display text-lg font-semibold text-foreground">Explore by Country</h2>
