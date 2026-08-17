@@ -2279,3 +2279,32 @@ export async function fetchCocktailsByIngredient(name: string): Promise<DrinkCoc
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+export interface AiCocktailRecipe {
+  name: string;
+  tagline: string;
+  ingredients: { name: string; amount: string }[];
+  instructions: string[];
+  glassware: string;
+  garnish: string | null;
+}
+
+export interface GenerateCocktailInput {
+  productName: string;
+  productCategory: string;
+  productDescription: string;
+  abv?: string;
+  flavorHint?: string;
+  locale: "ko" | "en" | "vi";
+}
+
+/** AI-generated ORIGINAL cocktail recipe — not a lookup against an existing published cocktail. */
+export async function generateAiCocktail(input: GenerateCocktailInput): Promise<AiCocktailRecipe> {
+  const res = await fetch(`${API_URL}/ai-cocktail/generate`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

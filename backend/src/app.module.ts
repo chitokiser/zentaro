@@ -27,6 +27,7 @@ import { YoutubeMonitorModule } from './youtube-monitor/youtube-monitor.module';
 import { DrinksModule } from './drinks/drinks.module';
 import { WhiskyMarketModule } from './whisky-market/whisky-market.module';
 import { ProductDnaModule } from './product-dna/product-dna.module';
+import { AiCocktailModule } from './ai-cocktail/ai-cocktail.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { ProductDnaModule } from './product-dna/product-dna.module';
     DrinksModule,
     WhiskyMarketModule,
     ProductDnaModule,
+    AiCocktailModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

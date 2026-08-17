@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ArrowRight, Award, Beaker, Check, Dna, HelpCircle, Info, Martini, Sparkles, Star, Trash2, UtensilsCrossed } from "lucide-react"
+import { ArrowRight, Award, Beaker, Check, Dna, HelpCircle, Info, Martini, Sparkles, Star, Trash2, UtensilsCrossed, Wand2 } from "lucide-react"
 
 import { PageHeader } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
@@ -21,10 +21,12 @@ import {
     fetchProductDnaOverrides,
     updateProductDna,
     fetchCocktailsByIngredient,
+    generateAiCocktail,
     type ProductReview,
     type FoodPairing,
     type ProductDnaScores,
     type DrinkCocktail,
+    type AiCocktailRecipe,
 } from "@/lib/auth-client"
 
 interface ProductBrandInfo {
@@ -838,6 +840,15 @@ export default function ProductsPromotionalPage() {
 
                         <RelatedCocktailsSection key={`cocktails-${selectedProduct.id}`} productSlug={selectedProduct.id} locale={locale} />
 
+                        <AiCocktailGenerator
+                            key={`ai-cocktail-${selectedProduct.id}`}
+                            productName={selectedProduct.displayName}
+                            productCategory={selectedProduct.category[locale]}
+                            productDescription={selectedProduct.desc[locale]}
+                            abv={selectedProduct.specs.abv}
+                            locale={locale}
+                        />
+
                         {isComingSoon ? (
                             <div className="flex items-center gap-3 rounded-2xl border border-dashed border-border/60 bg-secondary/20 px-6 py-8 text-center sm:text-left">
                                 <Sparkles className="h-8 w-8 shrink-0 text-amber-500" />
@@ -1248,6 +1259,137 @@ function RelatedCocktailsSection({ productSlug, locale }: { productSlug: string;
                     </Link>
                 ))}
             </div>
+        </div>
+    )
+}
+
+/**
+ * AI-generated ORIGINAL cocktail recipe combining this product with common
+ * ingredients — not a lookup against a real published cocktail (see
+ * RelatedCocktailsSection for the real-data-only version). Available for
+ * every product, including the soju line, since TheCocktailDB has no
+ * matching real data there. Result is always labeled as an AI suggestion.
+ */
+function AiCocktailGenerator({
+    productName,
+    productCategory,
+    productDescription,
+    abv,
+    locale,
+}: {
+    productName: string
+    productCategory: string
+    productDescription: string
+    abv?: string
+    locale: Locale
+}) {
+    const [flavorHint, setFlavorHint] = useState("")
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState(false)
+    const [recipe, setRecipe] = useState<AiCocktailRecipe | null>(null)
+
+    const handleGenerate = () => {
+        setLoading(true)
+        setError(false)
+        generateAiCocktail({
+            productName,
+            productCategory,
+            productDescription,
+            abv,
+            flavorHint: flavorHint.trim() || undefined,
+            locale,
+        })
+            .then((r) => setRecipe(r))
+            .catch(() => setError(true))
+            .finally(() => setLoading(false))
+    }
+
+    return (
+        <div className="rounded-xl border border-border/60 bg-secondary/20 p-4">
+            <div className="mb-3 flex items-center gap-2">
+                <Wand2 className="h-4 w-4 text-primary" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                    {locale === "ko" ? "AI 칵테일 레시피 생성" : locale === "vi" ? "Tạo công thức cocktail bằng AI" : "AI Cocktail Generator"}
+                </span>
+                <span className="text-[10px] text-muted-foreground">
+                    {locale === "ko" ? "AI가 새로 창작한 레시피" : locale === "vi" ? "Công thức do AI sáng tạo" : "AI-original, not an existing recipe"}
+                </span>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                    type="text"
+                    value={flavorHint}
+                    onChange={(e) => setFlavorHint(e.target.value)}
+                    placeholder={
+                        locale === "ko"
+                            ? "원하는 맛/스타일 (선택, 예: 상큼한 여름 칵테일)"
+                            : locale === "vi"
+                              ? "Hương vị/phong cách mong muốn (không bắt buộc)"
+                              : "Optional flavor request (e.g. citrusy summer drink)"
+                    }
+                    className="flex-1 rounded-md border border-border/60 bg-card px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                />
+                <Button onClick={handleGenerate} disabled={loading} size="sm" className="shrink-0">
+                    {loading
+                        ? locale === "ko"
+                            ? "생성 중..."
+                            : locale === "vi"
+                              ? "Đang tạo..."
+                              : "Generating..."
+                        : locale === "ko"
+                          ? "레시피 생성"
+                          : locale === "vi"
+                            ? "Tạo công thức"
+                            : "Generate Recipe"}
+                </Button>
+            </div>
+
+            {error ? (
+                <p className="mt-3 text-xs text-destructive">
+                    {locale === "ko"
+                        ? "생성에 실패했습니다. 잠시 후 다시 시도해주세요."
+                        : locale === "vi"
+                          ? "Tạo công thức thất bại. Vui lòng thử lại sau."
+                          : "Failed to generate a recipe. Please try again shortly."}
+                </p>
+            ) : null}
+
+            {recipe ? (
+                <div className="mt-4 rounded-lg border border-primary/30 bg-card p-4">
+                    <h4 className="font-display text-lg font-bold text-foreground">{recipe.name}</h4>
+                    <p className="mt-1 text-sm italic text-muted-foreground">&ldquo;{recipe.tagline}&rdquo;</p>
+
+                    <div className="mt-3">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {locale === "ko" ? "재료" : locale === "vi" ? "Nguyên liệu" : "Ingredients"}
+                        </span>
+                        <ul className="mt-1 space-y-0.5 text-sm text-foreground">
+                            {recipe.ingredients.map((ing, i) => (
+                                <li key={i}>
+                                    {ing.name} — {ing.amount}
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+
+                    <div className="mt-3">
+                        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                            {locale === "ko" ? "만드는 법" : locale === "vi" ? "Cách pha" : "Instructions"}
+                        </span>
+                        <ol className="mt-1 list-decimal space-y-0.5 pl-4 text-sm text-foreground">
+                            {recipe.instructions.map((step, i) => (
+                                <li key={i}>{step}</li>
+                            ))}
+                        </ol>
+                    </div>
+
+                    <p className="mt-3 text-xs text-muted-foreground">
+                        {locale === "ko" ? "잔" : locale === "vi" ? "Ly" : "Glassware"}: {recipe.glassware}
+                        {recipe.garnish ? ` · ${locale === "ko" ? "가니시" : locale === "vi" ? "Trang trí" : "Garnish"}: ${recipe.garnish}` : ""}
+                    </p>
+                </div>
+            ) : null}
         </div>
     )
 }
