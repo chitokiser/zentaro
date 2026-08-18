@@ -1,4 +1,13 @@
-import { ArrayMinSize, IsArray, IsIn, IsOptional, IsString, IsUrl, MinLength } from 'class-validator';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsIn,
+  IsOptional,
+  IsString,
+  IsUrl,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 import { Transform } from 'class-transformer';
 import { WEBZINE_TAGS } from '../../common/webzine-tags';
 
@@ -38,7 +47,9 @@ export class CreatePostDto {
   @IsOptional()
   // Raw spaces (common in copy-pasted video file links) aren't valid in a
   // URL — encode them rather than reject an otherwise-valid link.
-  @Transform(({ value }) => (typeof value === 'string' ? value.trim().replace(/ /g, '%20') : value))
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.trim().replace(/ /g, '%20') : value,
+  )
   @IsUrl()
   videoUrl?: string;
 
@@ -46,4 +57,16 @@ export class CreatePostDto {
   @ArrayMinSize(1)
   @IsIn(WEBZINE_TAGS, { each: true })
   tags: string[];
+
+  /** 🍿 영화와 술 posts only — the film being discussed. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  movieTitle?: string;
+
+  /** 🍿 영화와 술 posts only — the featured drink/spirit type. */
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  drinkType?: string;
 }

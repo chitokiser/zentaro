@@ -7,25 +7,10 @@ import { Badge } from "@/components/ui/badge"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import { localizedText } from "@/lib/i18n/content"
 import type { WebzinePost } from "@/lib/api"
-import { getYoutubeThumbnail, isDirectVideoFile } from "@/lib/video-utils"
+import { getPostThumbnail } from "@/lib/webzine-thumbnail"
 
 function stripHtml(html: string): string {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
-}
-
-function extractThumbnail(html: string): string | null {
-  const match = html.match(/<img[^>]+src="([^"]+)"/)
-  return match ? match[1] : null
-}
-
-function getPostThumbnail(post: WebzinePost): { url: string; isVideoFrame: boolean } | null {
-  const imgThumbnail = extractThumbnail(post.contentHtml)
-  if (imgThumbnail) return { url: imgThumbnail, isVideoFrame: false }
-  if (!post.videoUrl) return null
-  const ytThumb = getYoutubeThumbnail(post.videoUrl)
-  if (ytThumb) return { url: ytThumb, isVideoFrame: false }
-  if (isDirectVideoFile(post.videoUrl)) return { url: post.videoUrl, isVideoFrame: true }
-  return null
 }
 
 export function WebzineList({

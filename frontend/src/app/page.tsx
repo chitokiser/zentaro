@@ -6,6 +6,7 @@ import { ShoppingMall } from "@/components/home/shopping-mall";
 import { RewardEcosystem } from "@/components/home/reward-ecosystem";
 import { BarrelReservePromo } from "@/components/home/barrel-reserve-promo";
 import { ExperienceCenter } from "@/components/home/experience-center";
+import { LatestWebzine } from "@/components/home/latest-webzine";
 import { Community } from "@/components/home/community";
 
 export default function Home() {
@@ -19,6 +20,7 @@ export default function Home() {
       <RewardEcosystem />
       <BarrelReservePromo />
       <ExperienceCenter />
+      <LatestWebzine />
       <Community />
     </div>
   );

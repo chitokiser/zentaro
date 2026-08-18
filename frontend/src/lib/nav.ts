@@ -69,6 +69,11 @@ export function getMainNav(t: (typeof DICTIONARIES)["ko"]): NavGroup[] {
           href: "/webzine",
           description: t.nav.serviceItems.webzineDesc,
         },
+        {
+          label: t.nav.serviceItems.cinemaSpirits,
+          href: "/webzine/cinema-spirits",
+          description: t.nav.serviceItems.cinemaSpiritsDesc,
+        },
       ],
     },
     {

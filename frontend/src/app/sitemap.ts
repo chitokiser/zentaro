@@ -20,6 +20,7 @@ const STATIC_ENTRIES: Entry[] = [
     { path: "/about/certifications", changeFrequency: "yearly", priority: 0.5 },
     { path: "/mall", changeFrequency: "daily", priority: 0.9 },
     { path: "/webzine", changeFrequency: "weekly", priority: 0.7 },
+    { path: "/webzine/cinema-spirits", changeFrequency: "weekly", priority: 0.6 },
     { path: "/rewards/bottle-cap", changeFrequency: "monthly", priority: 0.6 },
     { path: "/rewards/contribution", changeFrequency: "monthly", priority: 0.5 },
     { path: "/rewards/barrel-reserve", changeFrequency: "monthly", priority: 0.6 },

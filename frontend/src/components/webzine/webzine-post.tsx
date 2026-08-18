@@ -39,6 +39,23 @@ export function WebzinePostView({
           ))}
         </div>
 
+        {post.movieTitle || post.drinkType ? (
+          <div className="mb-8 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-primary/30 bg-primary/5 px-5 py-4 text-sm">
+            {post.movieTitle ? (
+              <span>
+                <span className="text-muted-foreground">{t.webzine.cinema.movieLabel}: </span>
+                <span className="font-medium text-foreground">🎬 {post.movieTitle}</span>
+              </span>
+            ) : null}
+            {post.drinkType ? (
+              <span>
+                <span className="text-muted-foreground">{t.webzine.cinema.drinkLabel}: </span>
+                <span className="font-medium text-foreground">🥃 {post.drinkType}</span>
+              </span>
+            ) : null}
+          </div>
+        ) : null}
+
         {embedUrl ? (
           <div className="mb-8 aspect-video w-full overflow-hidden rounded-lg border border-border/60">
             <iframe

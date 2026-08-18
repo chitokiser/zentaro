@@ -72,6 +72,8 @@ export interface WebzinePost {
   contentHtmlVi?: string | null;
   videoUrl: string | null;
   tags: string[];
+  movieTitle?: string | null;
+  drinkType?: string | null;
   source: "ai" | "admin";
   authorName: string;
   published: boolean;

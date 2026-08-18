@@ -17,9 +17,11 @@ const IMAGE_QUERY_BY_TAG: Record<string, string> = {
   '👑 ZenTaro Story': 'luxury whiskey lifestyle',
   '🧘 젠(禪)&불교철학': 'zen garden meditation temple',
   '📈 위스키재테크': 'luxury whiskey bottle glass gold',
+  '🍿 영화와 술': 'cinema film reel vintage bar',
 };
 
 const SYSTEM_PROMO_TAG = '📰 ZenTaro 카드뉴스';
+const CINEMA_SPIRITS_TAG = '🍿 영화와 술';
 
 // ZENTARO's own video/CF content is posted manually by admins; the system-promo card
 // news has its own dedicated cron (handleSystemPromoCron), so both are excluded here.
@@ -97,7 +99,9 @@ export class AiWriterService {
     private readonly crossPostService: CrossPostService,
   ) {
     const anthropicKey = this.config.get<string>('ANTHROPIC_API_KEY');
-    this.anthropic = anthropicKey ? new Anthropic({ apiKey: anthropicKey }) : null;
+    this.anthropic = anthropicKey
+      ? new Anthropic({ apiKey: anthropicKey })
+      : null;
     this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || null;
     this.pexelsApiKey = this.config.get<string>('PEXELS_API_KEY') || null;
   }
@@ -109,7 +113,8 @@ export class AiWriterService {
   }
 
   private nextPromoTopic(): SystemPromoTopic {
-    const topic = SYSTEM_PROMO_TOPICS[this.promoCursor % SYSTEM_PROMO_TOPICS.length];
+    const topic =
+      SYSTEM_PROMO_TOPICS[this.promoCursor % SYSTEM_PROMO_TOPICS.length];
     this.promoCursor += 1;
     return topic;
   }
@@ -139,8 +144,23 @@ export class AiWriterService {
     }
 
     const chosenTag = tag ?? this.nextTag();
+    const isCinemaSpirits = chosenTag === CINEMA_SPIRITS_TAG;
 
-    const prompt = `당신은 프리미엄 크래프트 증류소 브랜드 "ZENTARO"가 운영하는 술/미식 웹진의 에디터입니다.
+    const prompt = isCinemaSpirits
+      ? `당신은 프리미엄 크래프트 증류소 브랜드 "ZENTARO"가 운영하는 술/미식 웹진의 에디터입니다.
+"영화와 술"을 주제로, 영화 속 음주 장면이나 술 문화를 다루는 베트남어(Tiếng Việt) 웹진 칼럼을 한 편 작성하세요.
+제목과 본문 모두 반드시 베트남어로 작성하세요 (한국어 금지).
+
+요구사항:
+- 반드시 실제로 존재하고 널리 알려져 검증 가능한 유명 영화만 다루세요 (예: 007 시리즈의 마티니, 카사블랑카의 샴페인 등 대중적으로 잘 알려진 장면). 구체적인 대사, 장면 디테일, 통계를 확실하지 않은데 단정적으로 지어내지 마세요.
+- 특정 영화의 사실관계가 불확실하다면, 그 영화를 언급하지 말고 "영화 속 음주 문화/바 씬"이라는 일반적인 주제로 작성하세요.
+- 분량: 600~900자 내외의 본문
+- 형식: 소제목(h3), 문단(p), 필요시 목록(ul/li)을 사용한 HTML 조각 (html/head/body 태그 없이 본문 내용만)
+- 어조: 고급스럽고 신뢰감 있는 매거진 톤
+
+아래 JSON 형식으로만 응답하세요 (다른 텍스트 없이, title/contentHtml/movieTitle/drinkType 모두 베트남어, 특정 영화를 다루지 않았다면 movieTitle은 null):
+{"title": "Tiêu đề bài viết (Tiếng Việt)", "contentHtml": "<h3>...</h3><p>...</p>", "movieTitle": "Tên phim hoặc null", "drinkType": "Loại rượu được nhắc đến"}`
+      : `당신은 프리미엄 크래프트 증류소 브랜드 "ZENTARO"가 운영하는 술/미식 웹진의 에디터입니다.
 "${chosenTag}"를 주제로, ZENTARO Mall(쇼핑몰) 방문객이 흥미롭게 읽을 만한 베트남어(Tiếng Việt) 웹진 아티클을 한 편 작성하세요.
 제목과 본문 모두 반드시 베트남어로 작성하세요 (한국어 금지).
 
@@ -162,7 +182,12 @@ export class AiWriterService {
       return null;
     }
 
-    let parsed: { title: string; contentHtml: string };
+    let parsed: {
+      title: string;
+      contentHtml: string;
+      movieTitle?: string | null;
+      drinkType?: string | null;
+    };
     try {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
@@ -171,7 +196,9 @@ export class AiWriterService {
       return null;
     }
 
-    const imageUrl = await this.fetchFreeImage(IMAGE_QUERY_BY_TAG[chosenTag] ?? 'craft spirits bar');
+    const imageUrl = await this.fetchFreeImage(
+      IMAGE_QUERY_BY_TAG[chosenTag] ?? 'craft spirits bar',
+    );
     const contentHtml = imageUrl
       ? `<img src="${imageUrl}" alt="${parsed.title}" style="width:100%;border-radius:12px;margin-bottom:1.5rem;" />${parsed.contentHtml}`
       : parsed.contentHtml;
@@ -181,11 +208,19 @@ export class AiWriterService {
         title: parsed.title,
         contentHtml,
         tags: [chosenTag],
+        ...(isCinemaSpirits
+          ? {
+              movieTitle: parsed.movieTitle ?? undefined,
+              drinkType: parsed.drinkType ?? undefined,
+            }
+          : {}),
       },
       'ai',
       'ZENTARO AI',
     );
-    this.logger.log(`AI webzine post created: "${parsed.title}" (${chosenTag})`);
+    this.logger.log(
+      `AI webzine post created: "${parsed.title}" (${chosenTag})`,
+    );
 
     this.crossPostService
       .postEverywhere({
@@ -213,7 +248,9 @@ export class AiWriterService {
       return null;
     }
 
-    const topic = (topicId && SYSTEM_PROMO_TOPICS.find((t) => t.id === topicId)) || this.nextPromoTopic();
+    const topic =
+      (topicId && SYSTEM_PROMO_TOPICS.find((t) => t.id === topicId)) ||
+      this.nextPromoTopic();
 
     const prompt = `당신은 프리미엄 크래프트 증류소 브랜드 "ZENTARO"의 마케팅 에디터입니다.
 아래 ZenTaro 자체 시스템/기능을 홍보하는 "카드뉴스" 스타일의 베트남어(Tiếng Việt) 웹진 게시글을 작성하세요.
@@ -246,7 +283,9 @@ export class AiWriterService {
       const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       parsed = JSON.parse(jsonMatch ? jsonMatch[0] : rawText);
     } catch {
-      this.logger.error('AI writer: failed to parse JSON response for system-promo');
+      this.logger.error(
+        'AI writer: failed to parse JSON response for system-promo',
+      );
       return null;
     }
 
@@ -268,7 +307,9 @@ export class AiWriterService {
       'ai',
       'ZENTARO AI',
     );
-    this.logger.log(`AI system-promo card news created: "${parsed.title}" (${topic.id})`);
+    this.logger.log(
+      `AI system-promo card news created: "${parsed.title}" (${topic.id})`,
+    );
 
     this.crossPostService
       .postEverywhere({
@@ -308,7 +349,12 @@ export class AiWriterService {
     this.logger.log(`External AI post published: "${input.title}" (${tag})`);
 
     this.crossPostService
-      .postEverywhere({ id: result.id, title: input.title, contentHtml, imageUrl: input.imageUrl ?? null })
+      .postEverywhere({
+        id: result.id,
+        title: input.title,
+        contentHtml,
+        imageUrl: input.imageUrl ?? null,
+      })
       .catch((err) => this.logger.error(`Cross-posting failed: ${err}`));
 
     return result;
@@ -334,7 +380,9 @@ export class AiWriterService {
           { headers: { Authorization: this.pexelsApiKey } },
         );
         if (!res.ok) {
-          this.logger.warn(`Pexels API error (${res.status}) for query "${query}"`);
+          this.logger.warn(
+            `Pexels API error (${res.status}) for query "${query}"`,
+          );
           continue;
         }
         const body = await res.json();
@@ -351,7 +399,9 @@ export class AiWriterService {
       }
     }
 
-    this.logger.warn(`No unused Pexels image found for query "${query}" after retries — posting without an image.`);
+    this.logger.warn(
+      `No unused Pexels image found for query "${query}" after retries — posting without an image.`,
+    );
     return null;
   }
 
@@ -362,7 +412,12 @@ export class AiWriterService {
     agingMonths: number;
     totalScore: number;
     grade: string;
-    breakdown?: { aroma: number; palate: number; finish: number; barrelQuality: number } | null;
+    breakdown?: {
+      aroma: number;
+      palate: number;
+      finish: number;
+      barrelQuality: number;
+    } | null;
   }): Promise<string | null> {
     if (!this.geminiApiKey && !this.anthropic) return null;
 

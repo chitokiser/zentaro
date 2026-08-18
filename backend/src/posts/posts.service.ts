@@ -29,7 +29,7 @@ function toIso(ts: { _seconds: number } | undefined | null): string | null {
 
 @Injectable()
 export class PostsService {
-  constructor(@Inject(FIRESTORE) private readonly db: Firestore) { }
+  constructor(@Inject(FIRESTORE) private readonly db: Firestore) {}
 
   private col() {
     return this.db.collection(COLLECTIONS.ZENTARO_POSTS);
@@ -42,12 +42,17 @@ export class PostsService {
       id: post.id,
       url: `${WEBZINE_BASE_URL}/${post.id}`,
       title: post.title,
-      excerpt: contentText.length > 200 ? `${contentText.slice(0, 200)}…` : contentText,
+      excerpt:
+        contentText.length > 200
+          ? `${contentText.slice(0, 200)}…`
+          : contentText,
       contentHtml: post.contentHtml,
       contentText,
       thumbnailUrl: extractThumbnail(post.contentHtml ?? ''),
       videoUrl: post.videoUrl ?? null,
       tags: post.tags ?? [],
+      movieTitle: post.movieTitle ?? null,
+      drinkType: post.drinkType ?? null,
       author: post.authorName,
       source: post.source,
       publishedAt: toIso(post.createdAt),
@@ -75,14 +80,20 @@ export class PostsService {
         if (createdSeconds > nowSeconds) return false;
         return !tag || (post.tags ?? []).includes(tag);
       })
-      .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+      .sort(
+        (a: any, b: any) =>
+          (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0),
+      );
   }
 
   async listAllAdmin() {
     const snap = await this.col().get();
     return snap.docs
       .map((doc) => ({ id: doc.id, ...doc.data() }))
-      .sort((a: any, b: any) => (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0));
+      .sort(
+        (a: any, b: any) =>
+          (b.createdAt?._seconds ?? 0) - (a.createdAt?._seconds ?? 0),
+      );
   }
 
   // Site-wide: an image already used on any past post must never be reused.
@@ -111,11 +122,7 @@ export class PostsService {
     return { id: snap.id, ...data };
   }
 
-  async create(
-    dto: CreatePostDto,
-    source: PostSource,
-    authorName: string,
-  ) {
+  async create(dto: CreatePostDto, source: PostSource, authorName: string) {
     const docRef = await this.col().add({
       title: dto.title,
       contentHtml: dto.contentHtml,
@@ -127,6 +134,8 @@ export class PostsService {
       contentHtmlVi: dto.contentHtmlVi ?? null,
       videoUrl: dto.videoUrl ?? null,
       tags: dto.tags,
+      movieTitle: dto.movieTitle ?? null,
+      drinkType: dto.drinkType ?? null,
       source,
       authorName,
       published: true,

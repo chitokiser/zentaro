@@ -9,4 +9,8 @@ export const WEBZINE_TAGS = [
   "🎬 젠타로 동영상",
   "📰 ZenTaro 카드뉴스",
   "📈 위스키재테크",
+  "🍿 영화와 술",
 ] as const;
+
+/** Category tag for the Cinema & Spirits webzine section — dedicated page at /webzine/cinema-spirits. */
+export const CINEMA_SPIRITS_TAG = "🍿 영화와 술";

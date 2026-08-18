@@ -43,6 +43,8 @@ const ko = {
       daoStakingDesc: "메타마스크 등 개인 Web3 지갑을 연결하여 Ztaro Vault 스마트 계약에 직접 스테이킹합니다.",
       webzine: "ZENTARO 웹진",
       webzineDesc: "술·미식 매거진",
+      cinemaSpirits: "영화와 술",
+      cinemaSpiritsDesc: "영화 속 술 이야기와 페어링",
     },
     myPage: { label: "My Page" },
     myPageItems: {
@@ -141,6 +143,14 @@ const ko = {
     relatedVideo: "관련 영상 보러가기 →",
     ctaTitle: "ZENTARO 바로가기",
     ctaDescription: "PHÚC LỘC 증류소의 프리미엄 브랜드 ZENTARO에서 더 많은 이야기를 만나보세요",
+    cinema: {
+      eyebrow: "영화와 술",
+      title: "영화와 술",
+      catchphrase: "장면 속에 흘러넘치는 잔의 기억",
+      movieLabel: "영화",
+      drinkLabel: "술",
+      backToAll: "전체 웹진 보기 →",
+    },
   },
   mall: {
     eyebrow: "서비스",
@@ -790,6 +800,13 @@ const ko = {
         tasting: "시음회",
       },
     },
+    webzine: {
+      eyebrow: "Webzine",
+      title: "ZENTARO 웹진 최신글",
+      description: "증류주, 허브, 미식, 그리고 영화 속 술 이야기까지.",
+      viewAll: "웹진 전체 보기 →",
+      empty: "등록된 글이 없습니다.",
+    },
     community: {
       eyebrow: "Community",
       title: "ZENTARO와 함께하기",
@@ -989,6 +1006,8 @@ const en: Dict = {
       daoStakingDesc: "Connect your MetaMask or other Web3 wallets to stake Ztaro directly to the Vault smart contract.",
       webzine: "ZENTARO Webzine",
       webzineDesc: "Spirits & food magazine",
+      cinemaSpirits: "Cinema & Spirits",
+      cinemaSpiritsDesc: "Drinks in the movies, and pairing ideas",
     },
     myPage: { label: "My Page" },
     myPageItems: {
@@ -1087,6 +1106,14 @@ const en: Dict = {
     relatedVideo: "Watch the related video →",
     ctaTitle: "Visit ZENTARO",
     ctaDescription: "Discover more stories from ZENTARO, the premium brand of PHÚC LỘC Distillery",
+    cinema: {
+      eyebrow: "Cinema & Spirits",
+      title: "Cinema & Spirits",
+      catchphrase: "The memory of a glass, poured across the screen",
+      movieLabel: "Movie",
+      drinkLabel: "Drink",
+      backToAll: "View all webzine posts →",
+    },
   },
   mall: {
     eyebrow: "Services",
@@ -1736,6 +1763,13 @@ const en: Dict = {
         tasting: "Tasting Session",
       },
     },
+    webzine: {
+      eyebrow: "Webzine",
+      title: "Latest from the ZENTARO Webzine",
+      description: "Spirits, botanicals, food — and drinks from the movies.",
+      viewAll: "View all webzine posts →",
+      empty: "No posts yet.",
+    },
     community: {
       eyebrow: "Community",
       title: "Join ZENTARO",
@@ -1933,6 +1967,8 @@ const vi: Dict = {
       daoStakingDesc: "Kết nối ví MetaMask hoặc ví Web3 cá nhân khác để tham gia staking trực tiếp vào hợp đồng thông minh Ztaro Vault.",
       webzine: "Tạp chí ZENTARO",
       webzineDesc: "Tạp chí rượu & ẩm thực",
+      cinemaSpirits: "Điện ảnh & Rượu",
+      cinemaSpiritsDesc: "Câu chuyện về rượu trong phim và gợi ý kết hợp",
     },
     myPage: { label: "Trang của tôi" },
     myPageItems: {
@@ -2031,6 +2067,14 @@ const vi: Dict = {
     relatedVideo: "Xem video liên quan →",
     ctaTitle: "Đến trang ZENTARO",
     ctaDescription: "Khám phá thêm câu chuyện từ ZENTARO, thương hiệu cao cấp của Nhà máy Rượu PHÚC LỘC",
+    cinema: {
+      eyebrow: "Điện ảnh & Rượu",
+      title: "Điện ảnh & Rượu",
+      catchphrase: "Ký ức về những ly rượu tràn qua từng thước phim",
+      movieLabel: "Phim",
+      drinkLabel: "Rượu",
+      backToAll: "Xem toàn bộ tạp chí →",
+    },
   },
   mall: {
     eyebrow: "Dịch vụ",
@@ -2679,6 +2723,13 @@ const vi: Dict = {
         herbGarden: "Vườn thảo mộc",
         tasting: "Buổi nếm thử",
       },
+    },
+    webzine: {
+      eyebrow: "Webzine",
+      title: "Bài viết mới nhất từ Tạp chí ZENTARO",
+      description: "Rượu, thảo mộc, ẩm thực — và cả câu chuyện về rượu trong phim.",
+      viewAll: "Xem toàn bộ tạp chí →",
+      empty: "Chưa có bài viết nào.",
     },
     community: {
       eyebrow: "Community",
