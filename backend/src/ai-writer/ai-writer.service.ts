@@ -452,6 +452,44 @@ ${usedMovieTitles.length > 0 ? `- 아래 영화들은 이미 다뤘으니 이번
     }
   }
 
+  /**
+   * One-off maintenance: replaces the generic stock-photo header image on existing
+   * 🍿 영화와 술 posts with the real TMDB poster, for posts that named a movie but
+   * couldn't reach TMDB when they were generated (e.g. run from an environment
+   * without TMDB network access). Safe to call repeatedly — skips posts that
+   * already have a TMDB image or have no movieTitle.
+   */
+  async backfillCinemaPosters(): Promise<{ updated: number; skipped: number }> {
+    const allPosts: any[] = await this.postsService.listAllAdmin();
+    const targets = allPosts.filter(
+      (p: any) =>
+        Array.isArray(p.tags) &&
+        p.tags.includes(CINEMA_SPIRITS_TAG) &&
+        p.movieTitle &&
+        p.movieTitle.toLowerCase() !== 'null' &&
+        typeof p.contentHtml === 'string' &&
+        !p.contentHtml.includes('image.tmdb.org'),
+    );
+
+    let updated = 0;
+    for (const post of targets) {
+      const movieTitle = post.movieTitle.split(/[,;]/)[0].trim();
+      const poster = await this.fetchTmdbPoster(movieTitle);
+      if (!poster) continue;
+
+      const strippedContentHtml = post.contentHtml.replace(
+        /^<img[^>]*\/>\s*(<p style="font-size:11px[^"]*"[^>]*>[^<]*<\/p>\s*)?/,
+        '',
+      );
+      const newContentHtml = `<img src="${poster}" alt="${post.title}" style="width:100%;border-radius:12px;margin-bottom:0.25rem;" /><p style="font-size:11px;color:#888;margin:0 0 1.5rem;">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>${strippedContentHtml}`;
+
+      await this.postsService.update(post.id, { contentHtml: newContentHtml });
+      updated++;
+    }
+
+    return { updated, skipped: targets.length - updated };
+  }
+
   async generateBarrelTastingComment(input: {
     capacityLiters: number;
     charLevel: string;

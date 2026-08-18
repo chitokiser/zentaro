@@ -39,4 +39,12 @@ export class AiWriterController {
   publishExternal(@Body() dto: PublishExternalPostDto) {
     return this.aiWriterService.publishExternal(dto);
   }
+
+  // One-off maintenance trigger — replaces stock-photo headers on 🍿 영화와 술 posts
+  // with the real TMDB poster where one wasn't available at generation time.
+  @Post('external/backfill-cinema-posters')
+  @UseGuards(ApiKeyGuard)
+  backfillCinemaPosters() {
+    return this.aiWriterService.backfillCinemaPosters();
+  }
 }
