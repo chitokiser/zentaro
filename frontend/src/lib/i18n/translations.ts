@@ -840,7 +840,7 @@ const ko = {
         title: "ZEN",
         subtitle: "Simplicity. Balance. Mastery.",
         description:
-          "Zen은 단순한 명상이 아니라 삶의 태도입니다. 우리는 좋은 위스키는 천천히 완성된다고 믿습니다. 조급함보다 기다림을, 화려함보다 본질을 선택합니다.",
+          "Zen은 단순한 명상이 아니라 삶의 태도입니다. 우리는 좋은 보태니컬 진은 천천히 완성된다고 믿습니다. 조급함보다 기다림을, 화려함보다 본질을 선택합니다.",
         values: {
           balance: "균형",
           craftsmanship: "장인정신",
@@ -851,7 +851,7 @@ const ko = {
       taro: {
         title: "TARO",
         subtitle: "Taste · Aroma · Refined · Origin",
-        description: "Taro는 ZenTaro가 추구하는 위스키의 네 가지 가치입니다.",
+        description: "Taro는 ZenTaro가 추구하는 보태니컬 진의 네 가지 가치입니다.",
         letters: {
           taste: { label: "Taste", desc: "깊고 균형 잡힌 맛" },
           aroma: { label: "Aroma", desc: "오래 기억되는 향" },
@@ -862,11 +862,11 @@ const ko = {
       philosophy: {
         line1: "Zen creates the mindset.",
         line2: "Taro defines the experience.",
-        body: "Zen은 만드는 사람의 철학이며, Taro는 마시는 사람이 경험하는 가치입니다. 우리는 단순히 위스키를 만드는 것이 아니라, 시간과 장인정신, 그리고 품격을 한 병에 담습니다.",
+        body: "Zen은 만드는 사람의 철학이며, Taro는 마시는 사람이 경험하는 가치입니다. 우리는 단순히 보태니컬 진을 만드는 것이 아니라, 시간과 장인정신, 그리고 품격을 한 병에 담습니다.",
       },
       manifestoTitle: "Brand Manifesto",
       manifestoLines: [
-        "Every great whisky begins with patience.",
+        "Every great botanical gin begins with patience.",
         "Every memorable aroma begins with purity.",
         "Every refined taste begins with craftsmanship.",
         "Every authentic story begins with its origin.",
@@ -875,7 +875,7 @@ const ko = {
       sloganTitle: "슬로건",
       slogans: [
         "Crafted in Balance",
-        "The Art of Refined Whisky",
+        "The Art of Refined Botanical Gin",
         "Taste the Balance",
         "Where Craft Meets Serenity",
         "Born from Origin. Perfected by Time.",
@@ -1803,7 +1803,7 @@ const en: Dict = {
         title: "ZEN",
         subtitle: "Simplicity. Balance. Mastery.",
         description:
-          "Zen is not merely meditation — it is an attitude toward life. We believe a good whisky is completed slowly. We choose patience over haste, and essence over spectacle.",
+          "Zen is not merely meditation — it is an attitude toward life. We believe a good botanical gin is completed slowly. We choose patience over haste, and essence over spectacle.",
         values: {
           balance: "Balance",
           craftsmanship: "Craftsmanship",
@@ -1814,7 +1814,7 @@ const en: Dict = {
       taro: {
         title: "TARO",
         subtitle: "Taste · Aroma · Refined · Origin",
-        description: "Taro represents the four core values ZenTaro pursues in whisky.",
+        description: "Taro represents the four core values ZenTaro pursues in botanical gin.",
         letters: {
           taste: { label: "Taste", desc: "A deep, well-balanced taste" },
           aroma: { label: "Aroma", desc: "An aroma that lingers in memory" },
@@ -1825,11 +1825,11 @@ const en: Dict = {
       philosophy: {
         line1: "Zen creates the mindset.",
         line2: "Taro defines the experience.",
-        body: "Zen is the philosophy of the maker, and Taro is the value experienced by the drinker. We don't simply make whisky — we capture time, craftsmanship, and dignity in every bottle.",
+        body: "Zen is the philosophy of the maker, and Taro is the value experienced by the drinker. We don't simply make botanical gin — we capture time, craftsmanship, and dignity in every bottle.",
       },
       manifestoTitle: "Brand Manifesto",
       manifestoLines: [
-        "Every great whisky begins with patience.",
+        "Every great botanical gin begins with patience.",
         "Every memorable aroma begins with purity.",
         "Every refined taste begins with craftsmanship.",
         "Every authentic story begins with its origin.",
@@ -1838,7 +1838,7 @@ const en: Dict = {
       sloganTitle: "Slogans",
       slogans: [
         "Crafted in Balance",
-        "The Art of Refined Whisky",
+        "The Art of Refined Botanical Gin",
         "Taste the Balance",
         "Where Craft Meets Serenity",
         "Born from Origin. Perfected by Time.",
@@ -2764,7 +2764,7 @@ const vi: Dict = {
         title: "ZEN",
         subtitle: "Simplicity. Balance. Mastery.",
         description:
-          "Zen không chỉ đơn thuần là thiền định mà là một thái độ sống. Chúng tôi tin rằng một loại whisky ngon được hoàn thiện một cách chậm rãi. Chúng tôi chọn sự kiên nhẫn thay vì vội vàng, và bản chất thay vì sự phô trương.",
+          "Zen không chỉ đơn thuần là thiền định mà là một thái độ sống. Chúng tôi tin rằng một loại gin thảo mộc ngon được hoàn thiện một cách chậm rãi. Chúng tôi chọn sự kiên nhẫn thay vì vội vàng, và bản chất thay vì sự phô trương.",
         values: {
           balance: "Cân bằng",
           craftsmanship: "Tay nghề thủ công",
@@ -2775,7 +2775,7 @@ const vi: Dict = {
       taro: {
         title: "TARO",
         subtitle: "Taste · Aroma · Refined · Origin",
-        description: "Taro là bốn giá trị cốt lõi mà ZenTaro theo đuổi trong whisky.",
+        description: "Taro là bốn giá trị cốt lõi mà ZenTaro theo đuổi trong gin thảo mộc.",
         letters: {
           taste: { label: "Taste", desc: "Hương vị sâu và cân bằng" },
           aroma: { label: "Aroma", desc: "Hương thơm lưu lại mãi trong ký ức" },
@@ -2786,11 +2786,11 @@ const vi: Dict = {
       philosophy: {
         line1: "Zen creates the mindset.",
         line2: "Taro defines the experience.",
-        body: "Zen là triết lý của người tạo ra, còn Taro là giá trị mà người thưởng thức trải nghiệm. Chúng tôi không chỉ đơn thuần sản xuất whisky mà còn lưu giữ thời gian, tay nghề thủ công và sự sang trọng trong từng chai rượu.",
+        body: "Zen là triết lý của người tạo ra, còn Taro là giá trị mà người thưởng thức trải nghiệm. Chúng tôi không chỉ đơn thuần sản xuất gin thảo mộc mà còn lưu giữ thời gian, tay nghề thủ công và sự sang trọng trong từng chai rượu.",
       },
       manifestoTitle: "Brand Manifesto",
       manifestoLines: [
-        "Every great whisky begins with patience.",
+        "Every great botanical gin begins with patience.",
         "Every memorable aroma begins with purity.",
         "Every refined taste begins with craftsmanship.",
         "Every authentic story begins with its origin.",
@@ -2799,7 +2799,7 @@ const vi: Dict = {
       sloganTitle: "Khẩu hiệu",
       slogans: [
         "Crafted in Balance",
-        "The Art of Refined Whisky",
+        "The Art of Refined Botanical Gin",
         "Taste the Balance",
         "Where Craft Meets Serenity",
         "Born from Origin. Perfected by Time.",

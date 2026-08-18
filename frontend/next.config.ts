@@ -20,6 +20,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "ruouphucloc.vn" },
       { protocol: "https", hostname: "upload.wikimedia.org" },
       { protocol: "https", hostname: "img.buzzfeed.com" },
+      { protocol: "https", hostname: "image.tmdb.org" },
     ],
   },
 };

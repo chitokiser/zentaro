@@ -90,6 +90,7 @@ export class AiWriterService {
   private readonly anthropic: Anthropic | null;
   private readonly geminiApiKey: string | null;
   private readonly pexelsApiKey: string | null;
+  private readonly tmdbApiKey: string | null;
   private tagCursor = 0;
   private promoCursor = 0;
 
@@ -104,6 +105,7 @@ export class AiWriterService {
       : null;
     this.geminiApiKey = this.config.get<string>('GEMINI_API_KEY') || null;
     this.pexelsApiKey = this.config.get<string>('PEXELS_API_KEY') || null;
+    this.tmdbApiKey = this.config.get<string>('TMDB_API_KEY') || null;
   }
 
   private nextTag(): string {
@@ -196,12 +198,28 @@ export class AiWriterService {
       return null;
     }
 
-    const imageUrl = await this.fetchFreeImage(
-      IMAGE_QUERY_BY_TAG[chosenTag] ?? 'craft spirits bar',
-    );
-    const contentHtml = imageUrl
-      ? `<img src="${imageUrl}" alt="${parsed.title}" style="width:100%;border-radius:12px;margin-bottom:1.5rem;" />${parsed.contentHtml}`
-      : parsed.contentHtml;
+    const movieTitleForPoster =
+      isCinemaSpirits &&
+      parsed.movieTitle &&
+      parsed.movieTitle.toLowerCase() !== 'null'
+        ? parsed.movieTitle.split(/[,;]/)[0].trim()
+        : null;
+    const tmdbPoster = movieTitleForPoster
+      ? await this.fetchTmdbPoster(movieTitleForPoster)
+      : null;
+    const imageUrl =
+      tmdbPoster ??
+      (await this.fetchFreeImage(
+        IMAGE_QUERY_BY_TAG[chosenTag] ?? 'craft spirits bar',
+      ));
+    const imageBlock = imageUrl
+      ? `<img src="${imageUrl}" alt="${parsed.title}" style="width:100%;border-radius:12px;margin-bottom:${tmdbPoster ? '0.25rem' : '1.5rem'};" />${
+          tmdbPoster
+            ? '<p style="font-size:11px;color:#888;margin:0 0 1.5rem;">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>'
+            : ''
+        }`
+      : '';
+    const contentHtml = imageBlock + parsed.contentHtml;
 
     const result = await this.postsService.create(
       {
@@ -403,6 +421,32 @@ export class AiWriterService {
       `No unused Pexels image found for query "${query}" after retries — posting without an image.`,
     );
     return null;
+  }
+
+  // Real, officially-released poster art for a specific movie (via TMDB's free API)
+  // — used only for 🍿 영화와 술 posts that named a real, verifiable film, so the
+  // image actually matches the movie discussed rather than a generic stock photo.
+  private async fetchTmdbPoster(movieTitle: string): Promise<string | null> {
+    if (!this.tmdbApiKey) return null;
+    try {
+      const res = await fetch(
+        `https://api.themoviedb.org/3/search/movie?api_key=${this.tmdbApiKey}&query=${encodeURIComponent(movieTitle)}&include_adult=false`,
+      );
+      if (!res.ok) {
+        this.logger.warn(
+          `TMDB API error (${res.status}) for movie "${movieTitle}"`,
+        );
+        return null;
+      }
+      const body = await res.json();
+      const results: Array<{ poster_path?: string | null }> =
+        body?.results ?? [];
+      const posterPath = results.find((r) => r.poster_path)?.poster_path;
+      return posterPath ? `https://image.tmdb.org/t/p/w780${posterPath}` : null;
+    } catch (err) {
+      this.logger.warn(`TMDB fetch failed for movie "${movieTitle}": ${err}`);
+      return null;
+    }
   }
 
   async generateBarrelTastingComment(input: {
