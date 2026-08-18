@@ -1,5 +1,7 @@
 "use client";
 
+import type { WebzinePost } from "@/lib/api";
+
 const TOKEN_KEY = "zentaro_token";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001/api";
 
@@ -23,6 +25,22 @@ export function clearToken() {
 export function onAuthChanged(callback: () => void) {
   window.addEventListener(AUTH_CHANGED_EVENT, callback);
   return () => window.removeEventListener(AUTH_CHANGED_EVENT, callback);
+}
+
+export type WebzinePostDetailResult =
+  | { status: "ok"; post: WebzinePost }
+  | { status: "unauthorized" }
+  | { status: "not_found" };
+
+/** Members-only webzine post body, relayed through /api/webzine-post/[id] (see that route for why). */
+export async function fetchWebzinePostDetail(id: string): Promise<WebzinePostDetailResult> {
+  const token = getToken();
+  const res = await fetch(`/api/webzine-post/${id}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (res.status === 401) return { status: "unauthorized" };
+  if (!res.ok) return { status: "not_found" };
+  return { status: "ok", post: await res.json() };
 }
 
 async function parseErrorMessage(res: Response): Promise<string> {

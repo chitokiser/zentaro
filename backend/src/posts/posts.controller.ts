@@ -34,7 +34,9 @@ export class PostsController {
     return this.postsService.listAllAdmin();
   }
 
+  // Detail view is members-only; the list/browse view above stays public.
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   getOne(@Param('id') id: string) {
     return this.postsService.getOne(id);
   }

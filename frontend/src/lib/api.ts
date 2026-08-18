@@ -91,9 +91,22 @@ export async function getPosts(tag?: string): Promise<WebzinePost[]> {
   }
 }
 
-export async function getPost(id: string): Promise<WebzinePost | null> {
+export interface WebzinePostPreview {
+  id: string;
+  title: string;
+  excerpt: string;
+  thumbnailUrl: string | null;
+}
+
+/**
+ * Title/excerpt only, via the public syndication feed — used for SEO metadata
+ * on the (now members-only) post detail page. The full post body requires a
+ * logged-in fetch (see fetchWebzinePostDetail in auth-client.ts) since
+ * GET /posts/:id is JWT-guarded.
+ */
+export async function getPostPreview(id: string): Promise<WebzinePostPreview | null> {
   try {
-    const res = await fetch(`${API_URL}/posts/${id}`, { next: { revalidate: 60 } });
+    const res = await fetch(`${API_URL}/webzine/feed/${id}`, { next: { revalidate: 60 } });
     if (!res.ok) return null;
     return res.json();
   } catch {
