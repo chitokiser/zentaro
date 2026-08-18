@@ -147,6 +147,9 @@ export class AiWriterService {
 
     const chosenTag = tag ?? this.nextTag();
     const isCinemaSpirits = chosenTag === CINEMA_SPIRITS_TAG;
+    const usedMovieTitles = isCinemaSpirits
+      ? await this.postsService.getUsedMovieTitles(CINEMA_SPIRITS_TAG)
+      : [];
 
     const prompt = isCinemaSpirits
       ? `당신은 프리미엄 크래프트 증류소 브랜드 "ZENTARO"가 운영하는 술/미식 웹진의 에디터입니다.
@@ -154,9 +157,9 @@ export class AiWriterService {
 제목과 본문 모두 반드시 베트남어로 작성하세요 (한국어 금지).
 
 요구사항:
-- 반드시 실제로 존재하고 널리 알려져 검증 가능한 유명 영화만 다루세요 (예: 007 시리즈의 마티니, 카사블랑카의 샴페인 등 대중적으로 잘 알려진 장면). 구체적인 대사, 장면 디테일, 통계를 확실하지 않은데 단정적으로 지어내지 마세요.
+- 반드시 실제로 존재하고 널리 알려져 검증 가능한 유명 영화만 다루세요. 예시(참고용일 뿐 반드시 이 중에서 고를 필요는 없음 — 실제로 검증 가능하다면 이 목록 밖의 다른 유명 영화도 좋습니다): 007 시리즈의 마티니, 카사블랑카의 샴페인, 위대한 레보스키의 화이트 러시안, 사이드웨이의 피노 누아 와인, 사랑도 통역이 되나요(Lost in Translation)의 산토리 위스키, 칵테일(1988)의 플레어 바텐딩. 구체적인 대사, 장면 디테일, 통계를 확실하지 않은데 단정적으로 지어내지 마세요.
 - 특정 영화의 사실관계가 불확실하다면, 그 영화를 언급하지 말고 "영화 속 음주 문화/바 씬"이라는 일반적인 주제로 작성하세요.
-- 분량: 600~900자 내외의 본문
+${usedMovieTitles.length > 0 ? `- 아래 영화들은 이미 다뤘으니 이번에는 다루지 마세요: ${usedMovieTitles.join(', ')}\n` : ''}- 분량: 600~900자 내외의 본문
 - 형식: 소제목(h3), 문단(p), 필요시 목록(ul/li)을 사용한 HTML 조각 (html/head/body 태그 없이 본문 내용만)
 - 어조: 고급스럽고 신뢰감 있는 매거진 톤
 

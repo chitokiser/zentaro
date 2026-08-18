@@ -96,6 +96,18 @@ export class PostsService {
       );
   }
 
+  // So the AI doesn't keep anchoring on the same one or two famous films
+  // (e.g. James Bond's martini) once they've already been covered.
+  async getUsedMovieTitles(tag: string): Promise<string[]> {
+    const snap = await this.col().where('tags', 'array-contains', tag).get();
+    const titles = new Set<string>();
+    for (const doc of snap.docs) {
+      const data = doc.data() as { movieTitle?: string | null };
+      if (data.movieTitle) titles.add(data.movieTitle);
+    }
+    return [...titles];
+  }
+
   // Site-wide: an image already used on any past post must never be reused.
   async getUsedImageUrls(): Promise<Set<string>> {
     const snap = await this.col().get();
