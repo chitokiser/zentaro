@@ -6,7 +6,7 @@ import { AppModule } from '../app.module';
 import { AiWriterService } from '../ai-writer/ai-writer.service';
 
 const CINEMA_SPIRITS_TAG = '🍿 영화와 술';
-const SEED_COUNT = 3;
+const SEED_COUNT = Number(process.argv[2]) || 3;
 
 /**
  * One-off seed for the new 🍿 영화와 술 (Cinema & Spirits) webzine category —
