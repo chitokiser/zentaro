@@ -2,13 +2,7 @@
 
 import { PageHeader, Section } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
-
-const BOTANICALS = [
-  "Juniper Berry", "Coriander Seed", "Angelica Root", "Orris Root",
-  "Licorice Root", "Cardamom", "Saigon Cinnamon", "Star Anise",
-  "Black Pepper", "Pink Pepper", "Lemongrass", "Lotus Flower",
-  "Jasmine Flower", "Rose Petals", "Hibiscus", "Freeze Dried Yuzu Peel",
-]
+import BotanicalArchive from "@/components/research-lab/botanical-archive"
 
 export default function ResearchLabPage() {
   const { t } = useI18n()
@@ -32,19 +26,9 @@ export default function ResearchLabPage() {
           ))}
         </div>
       </Section>
-      <Section id="botanical-library" title={r.botanicalLibraryTitle} className="border-t border-border/60">
-        <p className="mb-4">{r.botanicalLibraryIntro}</p>
-        <div className="flex flex-wrap gap-2">
-          {BOTANICALS.map((b) => (
-            <span
-              key={b}
-              className="rounded-full bg-secondary px-4 py-1.5 text-xs text-foreground"
-            >
-              {b}
-            </span>
-          ))}
-        </div>
-      </Section>
+      <div id="botanical-library" className="scroll-mt-24 border-t border-border/60">
+        <BotanicalArchive />
+      </div>
       <Section id="lab" title={r.labTitle} className="border-t border-border/60">
         <p>{r.labBody}</p>
       </Section>
