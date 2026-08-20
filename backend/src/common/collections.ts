@@ -41,4 +41,6 @@ export const COLLECTIONS = {
   ZENTARO_WHISKY_MARKET_META: 'zentaro_whisky_market_meta',
   ZENTARO_WHISKY_WATCHLIST: 'zentaro_whisky_watchlist',
   ZENTARO_WHISKY_TARGETS: 'zentaro_whisky_targets',
+  ZENTARO_FLAVOR_LAB_BOTANICALS: 'zentaro_flavor_lab_botanicals',
+  ZENTARO_FLAVOR_LAB_PROJECTS: 'zentaro_flavor_lab_projects',
 } as const;

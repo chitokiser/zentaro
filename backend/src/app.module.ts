@@ -28,6 +28,7 @@ import { DrinksModule } from './drinks/drinks.module';
 import { WhiskyMarketModule } from './whisky-market/whisky-market.module';
 import { ProductDnaModule } from './product-dna/product-dna.module';
 import { AiCocktailModule } from './ai-cocktail/ai-cocktail.module';
+import { FlavorLabModule } from './flavor-lab/flavor-lab.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { AiCocktailModule } from './ai-cocktail/ai-cocktail.module';
     WhiskyMarketModule,
     ProductDnaModule,
     AiCocktailModule,
+    FlavorLabModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
