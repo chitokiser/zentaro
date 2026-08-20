@@ -1,8 +1,8 @@
 "use client"
 
-import { useState, type MouseEvent } from "react"
+import { useState, useMemo, type MouseEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, FlaskConical, Leaf, Sparkles, Beaker, Check, FlaskRound } from "lucide-react"
+import { X, FlaskConical, Leaf, Sparkles, Beaker, Check, FlaskRound, SlidersHorizontal } from "lucide-react"
 import {
     RadarChart,
     PolarGrid,
@@ -54,6 +54,68 @@ function computeMixChart(selection: Botanical[]): FlavorChartPoint[] {
         const avg = values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0
         return { subject, A: Math.round(avg), fullMark: 100 }
     })
+}
+
+const AXES = ["Citrus", "Spicy", "Floral", "Earthy", "Sweet"] as const
+type Axis = (typeof AXES)[number]
+
+interface BalanceTarget {
+    sweet: number
+    spicy: number
+    citrus: number
+    floral: number
+    earthy: number
+}
+
+const DEFAULT_TARGET: BalanceTarget = { sweet: 50, spicy: 50, citrus: 50, floral: 50, earthy: 50 }
+
+const SLIDER_DEFS: { key: keyof BalanceTarget; label: string }[] = [
+    { key: "sweet", label: "단맛" },
+    { key: "spicy", label: "스파이시" },
+    { key: "citrus", label: "시트러스" },
+    { key: "floral", label: "꽃향" },
+    { key: "earthy", label: "거친 느낌" },
+]
+
+function toAxisTarget(t: BalanceTarget): Record<Axis, number> {
+    return { Citrus: t.citrus, Spicy: t.spicy, Floral: t.floral, Earthy: t.earthy, Sweet: t.sweet }
+}
+
+function axisAverages(selection: Botanical[]): Record<Axis, number> {
+    const result = {} as Record<Axis, number>
+    for (const axis of AXES) {
+        const values = selection.map((b) => b.flavorChart.find((p) => p.subject === axis)?.A ?? 0)
+        result[axis] = values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0
+    }
+    return result
+}
+
+function distance(a: Record<Axis, number>, b: Record<Axis, number>): number {
+    return Math.sqrt(AXES.reduce((sum, axis) => sum + (a[axis] - b[axis]) ** 2, 0))
+}
+
+/** Greedy nearest-blend search over the full archive — at each step, adds
+ * whichever remaining botanical brings the running average closest to the
+ * target, stopping once another pick stops meaningfully improving the fit. */
+function recommendBlend(target: Record<Axis, number>, maxCount = 5): Botanical[] {
+    const picked: Botanical[] = []
+    for (let step = 0; step < maxCount; step++) {
+        let best: Botanical | null = null
+        let bestDist = Infinity
+        for (const candidate of botanicalData) {
+            if (picked.includes(candidate)) continue
+            const dist = distance(axisAverages([...picked, candidate]), target)
+            if (dist < bestDist) {
+                bestDist = dist
+                best = candidate
+            }
+        }
+        if (!best) break
+        const prevDist = distance(axisAverages(picked), target)
+        picked.push(best)
+        if (picked.length >= 2 && prevDist - bestDist < 2) break
+    }
+    return picked
 }
 
 const botanicalData: Botanical[] = [
@@ -1583,6 +1645,21 @@ export default function BotanicalArchive() {
     const [selected, setSelected] = useState<Botanical | null>(null)
     const [mixIds, setMixIds] = useState<Set<string>>(new Set())
     const [showMix, setShowMix] = useState(false)
+    const [target, setTarget] = useState<BalanceTarget>(DEFAULT_TARGET)
+
+    const axisTarget = useMemo(() => toAxisTarget(target), [target])
+    const recommended = useMemo(() => recommendBlend(axisTarget), [axisTarget])
+    const recommendedAvg = useMemo(() => axisAverages(recommended), [recommended])
+    const compareChart = useMemo(
+        () =>
+            AXES.map((axis) => ({
+                subject: axis,
+                Target: Math.round(axisTarget[axis]),
+                Blend: Math.round(recommendedAvg[axis]),
+                fullMark: 100,
+            })),
+        [axisTarget, recommendedAvg],
+    )
 
     function toggleMix(id: string, e: MouseEvent) {
         e.stopPropagation()
@@ -1614,6 +1691,87 @@ export default function BotanicalArchive() {
                     젠타로 증류소의 비밀 실험실에서 엄선한 보태니컬 원료 {botanicalData.length}종의 향미 구조와 추출 비법을
                     기록합니다. 카드를 눌러 자세히 탐구하거나, 원 모양 버튼으로 여러 원료를 골라 믹스 결과를 미리 볼 수 있습니다.
                 </p>
+            </div>
+
+            {/* Balance Recommender */}
+            <div className="mx-auto mt-12 max-w-4xl rounded-2xl border border-slate-700/60 bg-slate-800/60 p-6 sm:p-8">
+                <div className="flex items-center gap-2">
+                    <SlidersHorizontal className="h-4 w-4 text-amber-500" />
+                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-500">Balance Recommender</p>
+                </div>
+                <h2 className="mt-2 font-serif text-xl font-semibold text-slate-50">밸런스 추천 배합</h2>
+                <p className="mt-1 text-sm text-slate-400">
+                    원하는 향미 밸런스를 슬라이더로 조정하면 {botanicalData.length}종의 데이터베이스에서 가장 가까운 배합을
+                    실시간으로 추천합니다.
+                </p>
+
+                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                    {SLIDER_DEFS.map(({ key, label }) => (
+                        <label key={key} className="block text-xs text-slate-400">
+                            <div className="mb-1.5 flex items-center justify-between">
+                                <span className="font-medium uppercase tracking-wider text-slate-300">{label}</span>
+                                <span className="font-mono text-amber-400">{target[key]}</span>
+                            </div>
+                            <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                step={5}
+                                value={target[key]}
+                                onChange={(e) => setTarget((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
+                                className="w-full accent-amber-500"
+                            />
+                        </label>
+                    ))}
+                </div>
+
+                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div className="h-56 sm:h-64">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <RadarChart data={compareChart} outerRadius="75%">
+                                <PolarGrid stroke="#334155" />
+                                <PolarAngleAxis dataKey="subject" tick={{ fill: "#cbd5e1", fontSize: 11 }} />
+                                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 9 }} />
+                                <Radar
+                                    name="목표"
+                                    dataKey="Target"
+                                    stroke="#64748b"
+                                    fill="#64748b"
+                                    fillOpacity={0.12}
+                                    strokeWidth={1.5}
+                                    strokeDasharray="4 3"
+                                />
+                                <Radar name="추천 배합" dataKey="Blend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.35} strokeWidth={2} />
+                            </RadarChart>
+                        </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-col justify-center">
+                        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">추천 원료 ({recommended.length}종)</p>
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                            {recommended.map((b) => (
+                                <button
+                                    key={b.id}
+                                    type="button"
+                                    onClick={() => setSelected(b)}
+                                    className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300 transition-colors hover:border-amber-500/60"
+                                >
+                                    {b.nameKo}
+                                </button>
+                            ))}
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                setMixIds(new Set(recommended.map((b) => b.id)))
+                                setShowMix(true)
+                            }}
+                            className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-opacity hover:opacity-90"
+                        >
+                            <FlaskRound className="h-3.5 w-3.5" />
+                            이 배합 자세히 보기
+                        </button>
+                    </div>
+                </div>
             </div>
 
             {/* Grid */}
