@@ -1,8 +1,13 @@
 "use client"
 
-import { useState, useMemo, type MouseEvent } from "react"
+import { useState, useMemo, useEffect, type MouseEvent } from "react"
+import { useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, FlaskConical, Leaf, Sparkles, Beaker, Check, FlaskRound, SlidersHorizontal, Search } from "lucide-react"
+import { X, FlaskConical, Leaf, Sparkles, Beaker, FlaskRound, SlidersHorizontal, Search, ExternalLink } from "lucide-react"
+import { getToken, onAuthChanged } from "@/lib/auth-client"
+import { useWikipediaThumbnail } from "@/lib/wikipedia-thumbnail"
+import { MemberFeatureLock } from "@/components/research-lab/member-feature-lock"
+import { BotanicalCard } from "@/components/research-lab/botanical-card"
 import {
     RadarChart,
     PolarGrid,
@@ -18,7 +23,7 @@ interface FlavorChartPoint {
     fullMark: number
 }
 
-interface Botanical {
+export interface Botanical {
     id: string
     nameKo: string
     nameEn: string
@@ -2885,11 +2890,19 @@ const botanicalData: Botanical[] = [
 ]
 
 export default function BotanicalArchive() {
+    const router = useRouter()
+    const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
     const [selected, setSelected] = useState<Botanical | null>(null)
     const [mixIds, setMixIds] = useState<Set<string>>(new Set())
     const [showMix, setShowMix] = useState(false)
     const [target, setTarget] = useState<BalanceTarget>(DEFAULT_TARGET)
     const [searchQuery, setSearchQuery] = useState("")
+
+    useEffect(() => onAuthChanged(() => setLoggedIn(Boolean(getToken()))), [])
+
+    const { thumbnail: selectedThumbnail, pageUrl: selectedPageUrl, ref: selectedThumbRef } = useWikipediaThumbnail(
+        selected?.scientificName ?? "",
+    )
 
     const filteredBotanicals = useMemo(() => {
         const q = searchQuery.trim().toLowerCase()
@@ -2919,6 +2932,10 @@ export default function BotanicalArchive() {
 
     function toggleMix(id: string, e: MouseEvent) {
         e.stopPropagation()
+        if (!loggedIn) {
+            router.push(`/my/profile?next=${encodeURIComponent("/about/research-lab#botanical-library")}`)
+            return
+        }
         setMixIds((prev) => {
             const next = new Set(prev)
             if (next.has(id)) next.delete(id)
@@ -2961,73 +2978,85 @@ export default function BotanicalArchive() {
                     실시간으로 추천합니다.
                 </p>
 
-                <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
-                    {SLIDER_DEFS.map(({ key, label }) => (
-                        <label key={key} className="block text-xs text-slate-400">
-                            <div className="mb-1.5 flex items-center justify-between">
-                                <span className="font-medium uppercase tracking-wider text-slate-300">{label}</span>
-                                <span className="font-mono text-amber-400">{target[key]}</span>
-                            </div>
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                step={5}
-                                value={target[key]}
-                                onChange={(e) => setTarget((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
-                                className="w-full accent-amber-500"
-                            />
-                        </label>
-                    ))}
-                </div>
-
-                <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
-                    <div className="h-56 sm:h-64">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <RadarChart data={compareChart} outerRadius="75%">
-                                <PolarGrid stroke="#334155" />
-                                <PolarAngleAxis dataKey="subject" tick={{ fill: "#cbd5e1", fontSize: 11 }} />
-                                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 9 }} />
-                                <Radar
-                                    name="목표"
-                                    dataKey="Target"
-                                    stroke="#64748b"
-                                    fill="#64748b"
-                                    fillOpacity={0.12}
-                                    strokeWidth={1.5}
-                                    strokeDasharray="4 3"
-                                />
-                                <Radar name="추천 배합" dataKey="Blend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.35} strokeWidth={2} />
-                            </RadarChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="flex flex-col justify-center">
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">추천 원료 ({recommended.length}종)</p>
-                        <div className="mt-3 flex flex-wrap gap-1.5">
-                            {recommended.map((b) => (
-                                <button
-                                    key={b.id}
-                                    type="button"
-                                    onClick={() => setSelected(b)}
-                                    className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300 transition-colors hover:border-amber-500/60"
-                                >
-                                    {b.nameKo}
-                                </button>
+                {loggedIn ? (
+                    <>
+                        <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2">
+                            {SLIDER_DEFS.map(({ key, label }) => (
+                                <label key={key} className="block text-xs text-slate-400">
+                                    <div className="mb-1.5 flex items-center justify-between">
+                                        <span className="font-medium uppercase tracking-wider text-slate-300">{label}</span>
+                                        <span className="font-mono text-amber-400">{target[key]}</span>
+                                    </div>
+                                    <input
+                                        type="range"
+                                        min={0}
+                                        max={100}
+                                        step={5}
+                                        value={target[key]}
+                                        onChange={(e) => setTarget((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
+                                        className="w-full accent-amber-500"
+                                    />
+                                </label>
                             ))}
                         </div>
-                        <button
-                            type="button"
-                            onClick={() => {
-                                setMixIds(new Set(recommended.map((b) => b.id)))
-                                setShowMix(true)
-                            }}
-                            className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-opacity hover:opacity-90"
-                        >
-                            <FlaskRound className="h-3.5 w-3.5" />
-                            이 배합 자세히 보기
-                        </button>
+
+                        <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div className="h-56 sm:h-64">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadarChart data={compareChart} outerRadius="75%">
+                                        <PolarGrid stroke="#334155" />
+                                        <PolarAngleAxis dataKey="subject" tick={{ fill: "#cbd5e1", fontSize: 11 }} />
+                                        <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 9 }} />
+                                        <Radar
+                                            name="목표"
+                                            dataKey="Target"
+                                            stroke="#64748b"
+                                            fill="#64748b"
+                                            fillOpacity={0.12}
+                                            strokeWidth={1.5}
+                                            strokeDasharray="4 3"
+                                        />
+                                        <Radar name="추천 배합" dataKey="Blend" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.35} strokeWidth={2} />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </div>
+                            <div className="flex flex-col justify-center">
+                                <p className="text-xs font-medium uppercase tracking-wider text-slate-400">추천 원료 ({recommended.length}종)</p>
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                    {recommended.map((b) => (
+                                        <button
+                                            key={b.id}
+                                            type="button"
+                                            onClick={() => setSelected(b)}
+                                            className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300 transition-colors hover:border-amber-500/60"
+                                        >
+                                            {b.nameEn}
+                                        </button>
+                                    ))}
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setMixIds(new Set(recommended.map((b) => b.id)))
+                                        setShowMix(true)
+                                    }}
+                                    className="mt-5 inline-flex w-fit items-center gap-1.5 rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-opacity hover:opacity-90"
+                                >
+                                    <FlaskRound className="h-3.5 w-3.5" />
+                                    이 배합 자세히 보기
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                ) : (
+                    <div className="mt-6">
+                        <MemberFeatureLock
+                            title="밸런스 추천 배합은 회원 전용 기능입니다"
+                            description="로그인하시면 슬라이더로 원하는 향미를 조정해 실시간 추천 배합과 레이더 차트를 확인하실 수 있습니다."
+                            nextPath="/about/research-lab#botanical-library"
+                        />
                     </div>
-                </div>
+                )}
             </div>
 
             {/* Search */}
@@ -3062,79 +3091,17 @@ export default function BotanicalArchive() {
                 {filteredBotanicals.length === 0 ? (
                     <p className="col-span-full text-center text-sm text-slate-500">검색 결과가 없습니다.</p>
                 ) : null}
-                {filteredBotanicals.map((botanical, index) => {
-                    const isMixed = mixIds.has(botanical.id)
-                    return (
-                        <motion.button
-                            key={botanical.id}
-                            type="button"
-                            onClick={() => setSelected(botanical)}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.4, delay: Math.min(index, 12) * 0.05 }}
-                            whileHover={{ y: -6 }}
-                            className={`group relative flex flex-col overflow-hidden rounded-2xl border p-6 text-left shadow-lg shadow-black/20 transition-colors duration-300 ${
-                                isMixed
-                                    ? "border-amber-500 bg-slate-800 ring-2 ring-amber-500/40"
-                                    : "border-slate-700/60 bg-slate-800 hover:border-amber-500/70 hover:shadow-amber-500/10"
-                            }`}
-                        >
-                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/0 via-transparent to-amber-500/0 opacity-0 transition-opacity duration-300 group-hover:from-amber-500/10 group-hover:opacity-100" />
-
-                            <div className="relative flex items-start justify-between">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
-                                    <Leaf className="h-5 w-5" />
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Sparkles className="h-4 w-4 text-slate-600 transition-colors duration-300 group-hover:text-amber-500/60" />
-                                    <span
-                                        role="button"
-                                        tabIndex={0}
-                                        onClick={(e) => toggleMix(botanical.id, e)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === "Enter" || e.key === " ") {
-                                                e.preventDefault()
-                                                toggleMix(botanical.id, e as unknown as MouseEvent)
-                                            }
-                                        }}
-                                        aria-label={isMixed ? "믹스에서 제외" : "믹스에 추가"}
-                                        aria-pressed={isMixed}
-                                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
-                                            isMixed
-                                                ? "border-amber-500 bg-amber-500 text-slate-950"
-                                                : "border-slate-600 text-transparent hover:border-amber-500/60"
-                                        }`}
-                                    >
-                                        <Check className="h-3.5 w-3.5" />
-                                    </span>
-                                </div>
-                            </div>
-
-                            <h3 className="relative mt-5 font-serif text-xl font-semibold text-slate-50">{botanical.nameKo}</h3>
-                            <p className="relative text-sm text-slate-400">{botanical.nameEn}</p>
-
-                            <div className="relative mt-5 space-y-2 border-t border-slate-700/60 pt-4 text-xs">
-                                <div>
-                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Top</span>
-                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.top}</p>
-                                </div>
-                                <div>
-                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Mid</span>
-                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.mid}</p>
-                                </div>
-                                <div>
-                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Base</span>
-                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.base}</p>
-                                </div>
-                            </div>
-
-                            <div className="relative mt-5 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-400">
-                                <Beaker className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                                <span>{botanical.extraction}</span>
-                            </div>
-                        </motion.button>
-                    )
-                })}
+                {filteredBotanicals.map((botanical, index) => (
+                    <BotanicalCard
+                        key={botanical.id}
+                        botanical={botanical}
+                        index={index}
+                        isMixed={mixIds.has(botanical.id)}
+                        loggedIn={loggedIn}
+                        onSelect={setSelected}
+                        onToggleMix={toggleMix}
+                    />
+                ))}
             </div>
 
             {/* Mix selection bar */}
@@ -3233,7 +3200,7 @@ export default function BotanicalArchive() {
                                                 key={b.id}
                                                 className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300"
                                             >
-                                                {b.nameKo}
+                                                {b.nameEn}
                                             </span>
                                         ))}
                                     </div>
@@ -3314,14 +3281,40 @@ export default function BotanicalArchive() {
 
                                 {/* Info */}
                                 <div className="flex flex-col p-6 sm:p-8">
-                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-500">
-                                        Botanical Archive
-                                    </p>
-                                    <h2 className="mt-2 font-serif text-2xl font-semibold text-slate-50 sm:text-3xl">
-                                        {selected.nameKo}
-                                    </h2>
-                                    <p className="text-sm text-slate-400">{selected.nameEn}</p>
-                                    <p className="mt-1 text-xs italic text-slate-500">{selected.scientificName}</p>
+                                    <div className="flex items-start gap-4">
+                                        <div
+                                            ref={selectedThumbRef}
+                                            className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-700/60 bg-slate-900/60"
+                                        >
+                                            {selectedThumbnail ? (
+                                                // eslint-disable-next-line @next/next/no-img-element -- external Wikimedia URL
+                                                <img src={selectedThumbnail} alt={selected.nameEn} className="h-full w-full object-cover" />
+                                            ) : (
+                                                <Leaf className="h-7 w-7 text-slate-600" />
+                                            )}
+                                        </div>
+                                        <div>
+                                            <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-500">
+                                                Botanical Archive
+                                            </p>
+                                            <h2 className="mt-1 font-serif text-2xl font-semibold text-slate-50 sm:text-3xl">
+                                                {selected.nameEn}
+                                            </h2>
+                                            <p className="text-sm italic text-slate-400">{selected.scientificName}</p>
+                                            <p className="mt-1 text-xs text-slate-500">{selected.nameKo}</p>
+                                        </div>
+                                    </div>
+                                    {selectedPageUrl ? (
+                                        <a
+                                            href={selectedPageUrl}
+                                            target="_blank"
+                                            rel="noreferrer"
+                                            className="mt-3 inline-flex w-fit items-center gap-1 text-xs text-amber-400 hover:underline"
+                                        >
+                                            Wikipedia에서 자세히 보기
+                                            <ExternalLink className="h-3 w-3" />
+                                        </a>
+                                    ) : null}
 
                                     <div className="mt-5 space-y-3 border-t border-slate-700/60 pt-4">
                                         <div className="flex gap-3 text-sm">
