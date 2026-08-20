@@ -18,6 +18,8 @@ import {
     ResponsiveContainer,
 } from "recharts"
 import {
+    getToken,
+    onAuthChanged,
     fetchFlavorLabProjects,
     fetchFlavorLabBotanicals,
     analyzeFlavorLabProject,
@@ -25,6 +27,7 @@ import {
     type FlavorLabBotanical,
     type FlavorLabAnalyzeResult,
 } from "@/lib/auth-client"
+import { MemberFeatureLock } from "@/components/research-lab/member-feature-lock"
 
 type Tab = "aroma" | "taste" | "mouthfeel" | "finish"
 
@@ -54,6 +57,7 @@ function radarData(category: Record<string, number>) {
 }
 
 export default function AiVirtualResearchLab() {
+    const [loggedIn, setLoggedIn] = useState(() => Boolean(getToken()))
     const [projects, setProjects] = useState<FlavorLabProject[]>([])
     const [botanicalCatalog, setBotanicalCatalog] = useState<Map<string, FlavorLabBotanical>>(new Map())
     const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -64,7 +68,14 @@ export default function AiVirtualResearchLab() {
     const [result, setResult] = useState<FlavorLabAnalyzeResult | null>(null)
     const [activeTab, setActiveTab] = useState<Tab>("aroma")
 
+    useEffect(() => onAuthChanged(() => setLoggedIn(Boolean(getToken()))), [])
+
     useEffect(() => {
+        if (!loggedIn) {
+            setLoadingCatalog(false)
+            return
+        }
+        setLoadingCatalog(true)
         Promise.all([fetchFlavorLabProjects(), fetchFlavorLabBotanicals()])
             .then(([projectList, botanicalList]) => {
                 setProjects(projectList)
@@ -73,7 +84,7 @@ export default function AiVirtualResearchLab() {
             })
             .catch((err) => setCatalogError(err instanceof Error ? err.message : "데이터를 불러오지 못했습니다."))
             .finally(() => setLoadingCatalog(false))
-    }, [])
+    }, [loggedIn])
 
     const selectedProject = useMemo(
         () => projects.find((p) => p.id === selectedId) ?? null,
@@ -130,18 +141,28 @@ export default function AiVirtualResearchLab() {
                 </p>
             </div>
 
-            {catalogError ? (
+            {!loggedIn ? (
+                <div className="mx-auto mt-10 max-w-xl">
+                    <MemberFeatureLock
+                        title="AI Virtual Research Lab은 회원 전용 기능입니다"
+                        description="로그인하시면 R&D 프로젝트를 선택해 예상 Flavor DNA와 AI 테이스팅 예측을 확인하실 수 있습니다."
+                        nextPath="/about/research-lab#ai-virtual-lab"
+                    />
+                </div>
+            ) : null}
+
+            {loggedIn && catalogError ? (
                 <p className="mx-auto mt-10 max-w-xl text-center text-sm text-destructive">{catalogError}</p>
             ) : null}
 
-            {loadingCatalog ? (
+            {loggedIn && loadingCatalog ? (
                 <div className="mx-auto mt-14 flex max-w-xl items-center justify-center gap-2 text-sm text-slate-400">
                     <Loader2 className="h-4 w-4 animate-spin" />
                     Research Lab 데이터를 불러오는 중...
                 </div>
             ) : null}
 
-            {!loadingCatalog && !catalogError ? (
+            {loggedIn && !loadingCatalog && !catalogError ? (
                 <div className="mx-auto mt-14 max-w-4xl">
                     {/* Project select */}
                     <label className="block text-xs font-medium uppercase tracking-wider text-slate-400">
