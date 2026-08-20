@@ -3,6 +3,7 @@
 import { PageHeader, Section } from "@/components/page-header"
 import { useI18n } from "@/lib/i18n/i18n-context"
 import BotanicalArchive from "@/components/research-lab/botanical-archive"
+import AiVirtualResearchLab from "@/components/research-lab/ai-virtual-research-lab"
 
 export default function ResearchLabPage() {
   const { t } = useI18n()
@@ -28,6 +29,9 @@ export default function ResearchLabPage() {
       </Section>
       <div id="botanical-library" className="scroll-mt-24 border-t border-border/60">
         <BotanicalArchive />
+      </div>
+      <div id="ai-virtual-lab" className="scroll-mt-24 border-t border-border/60">
+        <AiVirtualResearchLab />
       </div>
       <Section id="lab" title={r.labTitle} className="border-t border-border/60">
         <p>{r.labBody}</p>

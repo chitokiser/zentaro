@@ -2326,3 +2326,99 @@ export async function generateAiCocktail(input: GenerateCocktailInput): Promise<
   if (!res.ok) throw new Error(await parseErrorMessage(res));
   return res.json();
 }
+
+// ---------- AI Virtual Research Lab (Flavor DNA prediction) ----------
+
+export interface FlavorLabBotanicalScores {
+  floral: number; fruity: number; citrus: number; herbal: number; spicy: number;
+  woody: number; earthy: number; vanilla: number; roasted: number;
+  sweet: number; sour: number; bitter: number; umami: number; salty: number; astringency: number;
+  body: number; dryness: number; finish: number;
+}
+
+export interface FlavorLabBotanical {
+  id: string;
+  name: string;
+  localName?: string;
+  origin?: string;
+  plantPart?: string;
+  topAroma: string[];
+  midAroma: string[];
+  baseAroma: string[];
+  scores: FlavorLabBotanicalScores;
+  colorEffect?: string;
+  aromaIntensity: number;
+  flavorIntensity: number;
+  recommendedDoseMin: number;
+  recommendedDoseMax: number;
+  recommendedAbv?: number;
+  extractionMethod: string;
+  extractionTimeHours: number;
+  extractionTemperatureC: number;
+  distillationBehavior: string;
+  notes?: string;
+}
+
+export interface FlavorLabProject {
+  id: string;
+  projectName: string;
+  accentColor?: string;
+  baseSpirit: string;
+  baseAbv: number;
+  targetAbv: number;
+  baseVolumeMl: number;
+  extractionMethod: string;
+  extractionTimeHours: number;
+  extractionTemperatureC: number;
+  botanicals: { botanicalId: string; doseGrams: number }[];
+  version: string;
+}
+
+export interface FlavorDna {
+  aroma: Record<"floral" | "fruity" | "citrus" | "herbal" | "spicy" | "woody" | "earthy" | "vanilla" | "roasted", number>;
+  taste: Record<"sweet" | "sour" | "bitter" | "umami" | "salty" | "astringency", number>;
+  mouthfeel: { light: number; body: number; warmth: number; smoothness: number; dryness: number };
+  finish: { short: number; medium: number; long: number; dry: number; sweet: number; spicy: number };
+}
+
+export interface FlavorLabNarrative {
+  nose: string;
+  attack: string;
+  midPalate: string;
+  finish: string;
+  strengths: string[];
+  risks: string[];
+  recommendation: string;
+}
+
+export interface FlavorLabAnalyzeResult {
+  project: FlavorLabProject;
+  botanicals: (FlavorLabBotanical & { doseGrams: number })[];
+  flavorDna: FlavorDna;
+  narrative: FlavorLabNarrative | null;
+}
+
+export async function fetchFlavorLabProjects(): Promise<FlavorLabProject[]> {
+  const res = await fetch(`${API_URL}/flavor-lab/projects`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function fetchFlavorLabBotanicals(): Promise<FlavorLabBotanical[]> {
+  const res = await fetch(`${API_URL}/flavor-lab/botanicals`);
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}
+
+export async function analyzeFlavorLabProject(
+  id: string,
+  locale: "ko" | "en" | "vi",
+): Promise<FlavorLabAnalyzeResult> {
+  const res = await fetch(`${API_URL}/flavor-lab/projects/${id}/analyze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ locale }),
+  });
+  if (!res.ok) throw new Error(await parseErrorMessage(res));
+  return res.json();
+}

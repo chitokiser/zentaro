@@ -1469,6 +1469,102 @@ const botanicalData: Botanical[] = [
             "베트남 가로수로도 흔히 심는 회화나무의 마른 꽃봉오리로, 루틴 성분이 풍부해 은은한 꽃향과 함께 담백한 뒷맛을 남깁니다.",
         relatedProduct: "ZENTARO Floral Gin",
     },
+    {
+        id: "bai-zhi",
+        nameKo: "백지",
+        nameEn: "Bai Zhi",
+        scientificName: "Angelica dahurica",
+        flavorProfile: {
+            top: "흙내음이 강한 뿌리향",
+            mid: "은은한 쓴맛과 단단한 구조감",
+            base: "깊은 우디함의 여운",
+        },
+        flavorChart: chart(5, 25, 5, 85, 5),
+        extraction: "직접 침출 및 가열 (Maceration & Boiling)",
+        description:
+            "유럽산 안젤리카 루트와는 다른 종으로, 뿌리 특유의 흙내음과 단단한 구조감을 더합니다. 과량 사용 시 쓴맛이 두드러지므로 소량만 배합합니다.",
+        relatedProduct: "ZENTARO Original Dry Gin",
+    },
+    {
+        id: "corn-mint",
+        nameKo: "박하",
+        nameEn: "Corn Mint",
+        scientificName: "Mentha arvensis",
+        flavorProfile: {
+            top: "화하고 청량한 멘톨향",
+            mid: "은은한 그린 노트",
+            base: "가벼운 청량함의 여운",
+        },
+        flavorChart: chart(15, 10, 15, 15, 5),
+        extraction: "증기 주입법 (Vapor Infusion)",
+        description:
+            "페퍼민트·스피어민트와는 다른 종으로, 멘톨 함량이 높아 훨씬 화한 청량감을 냅니다. 진한 허브류와 과하게 배합하면 인상이 강해지므로 균형에 신경 써야 합니다.",
+        relatedProduct: "ZENTARO Citrus Gin",
+    },
+    {
+        id: "butterfly-pea-flower",
+        nameKo: "나비콩꽃",
+        nameEn: "Butterfly Pea Flower",
+        scientificName: "Clitoria ternatea",
+        flavorProfile: {
+            top: "맛에 거의 기여하지 않는 은은한 향",
+            mid: "가벼운 콩과 특유의 그린 노트",
+            base: "거의 느껴지지 않는 여운",
+        },
+        flavorChart: chart(0, 0, 10, 10, 0),
+        extraction: "냉침출 (Cold Maceration)",
+        description:
+            "맛보다는 색을 위한 재료로, 산과 만나면 청색에서 보라·핑크로 변하는 것이 특징입니다. 시트러스를 더했을 때 색이 변하는 연출용으로 주로 활용합니다.",
+        relatedProduct: "ZENTARO Floral Gin",
+    },
+    {
+        id: "pandan-leaf",
+        nameKo: "판단잎",
+        nameEn: "Pandan Leaf",
+        scientificName: "Pandanus amaryllifolius",
+        flavorProfile: {
+            top: "바닐라·코코넛을 닮은 은은한 향",
+            mid: "자스민쌀을 연상시키는 향",
+            base: "부드러운 그린 노트의 여운",
+        },
+        flavorChart: chart(0, 5, 10, 10, 45),
+        extraction: "직접 침출 및 가열 (Maceration & Boiling)",
+        description:
+            "동남아 요리에서 바닐라 대용으로도 쓰이는 잎으로, 세포벽을 파쇄해야 향이 온전히 우러나 잘게 갈아서 침출합니다. 은은한 엽록소 빛깔도 함께 더해집니다.",
+        relatedProduct: "ZENTARO Distilled Soju",
+    },
+    {
+        id: "tsaoko",
+        nameKo: "초과",
+        nameEn: "Tsaoko (Black Cardamom)",
+        scientificName: "Amomum tsaoko",
+        flavorProfile: {
+            top: "스모키하고 강렬한 향",
+            mid: "따뜻한 스파이스",
+            base: "깊고 훈연된 여운",
+        },
+        flavorChart: chart(5, 75, 5, 50, 10),
+        extraction: "직접 침출 및 가열 (Maceration & Boiling)",
+        description:
+            "베트남 쌀국수 육수에도 쓰이는 향신료로, 건조·훈연 과정을 거쳐 일반 카다멈보다 훨씬 스모키하고 강렬한 향을 냅니다. 소량으로도 존재감이 뚜렷합니다.",
+        relatedProduct: "ZENTARO Blue Dry Gin",
+    },
+    {
+        id: "lotus-flower",
+        nameKo: "연꽃",
+        nameEn: "Lotus Flower",
+        scientificName: "Nelumbo nucifera",
+        flavorProfile: {
+            top: "은은하고 우아한 꽃향",
+            mid: "가벼운 차(Tea) 뉘앙스",
+            base: "부드러운 여운",
+        },
+        flavorChart: chart(10, 5, 75, 15, 25),
+        extraction: "냉침출 (Cold Maceration)",
+        description:
+            "연잎차로도 즐겨 마시는 꽃으로, 은은하고 우아한 향이 특징입니다. 젠타로 로터스 진(ZENTARO Lotus Gin) 라인의 핵심 정체성 원료입니다.",
+        relatedProduct: "ZENTARO Lotus Gin",
+    },
 ]
 
 export default function BotanicalArchive() {
