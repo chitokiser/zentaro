@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, type MouseEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, FlaskConical, Leaf, Sparkles, Beaker } from "lucide-react"
+import { X, FlaskConical, Leaf, Sparkles, Beaker, Check, FlaskRound } from "lucide-react"
 import {
     RadarChart,
     PolarGrid,
@@ -42,6 +42,18 @@ function chart(citrus: number, spicy: number, floral: number, earthy: number, sw
         { subject: "Earthy", A: earthy, fullMark: 100 },
         { subject: "Sweet", A: sweet, fullMark: 100 },
     ]
+}
+
+/** Simple average of each selected botanical's 5-axis chart — an illustrative
+ * blend preview, not the dose/extraction-aware engine in the AI Virtual
+ * Research Lab section below. */
+function computeMixChart(selection: Botanical[]): FlavorChartPoint[] {
+    const subjects = ["Citrus", "Spicy", "Floral", "Earthy", "Sweet"]
+    return subjects.map((subject) => {
+        const values = selection.map((b) => b.flavorChart.find((p) => p.subject === subject)?.A ?? 0)
+        const avg = values.length ? values.reduce((sum, v) => sum + v, 0) / values.length : 0
+        return { subject, A: Math.round(avg), fullMark: 100 }
+    })
 }
 
 const botanicalData: Botanical[] = [
@@ -1569,6 +1581,21 @@ const botanicalData: Botanical[] = [
 
 export default function BotanicalArchive() {
     const [selected, setSelected] = useState<Botanical | null>(null)
+    const [mixIds, setMixIds] = useState<Set<string>>(new Set())
+    const [showMix, setShowMix] = useState(false)
+
+    function toggleMix(id: string, e: MouseEvent) {
+        e.stopPropagation()
+        setMixIds((prev) => {
+            const next = new Set(prev)
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
+            return next
+        })
+    }
+
+    const mixSelection = botanicalData.filter((b) => mixIds.has(b.id))
+    const mixChart = computeMixChart(mixSelection)
 
     return (
         <div className="min-h-screen bg-slate-900 px-4 py-16 sm:px-6 lg:px-8">
@@ -1585,57 +1612,210 @@ export default function BotanicalArchive() {
                 </h1>
                 <p className="mx-auto mt-5 max-w-2xl text-sm leading-relaxed text-slate-400 sm:text-base">
                     젠타로 증류소의 비밀 실험실에서 엄선한 보태니컬 원료 {botanicalData.length}종의 향미 구조와 추출 비법을
-                    기록합니다. 동증류기를 거쳐온 각 원료의 풍미는 카드를 눌러 자세히 탐구하실 수 있습니다.
+                    기록합니다. 카드를 눌러 자세히 탐구하거나, 원 모양 버튼으로 여러 원료를 골라 믹스 결과를 미리 볼 수 있습니다.
                 </p>
             </div>
 
             {/* Grid */}
             <div className="mx-auto mt-14 grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                {botanicalData.map((botanical, index) => (
-                    <motion.button
-                        key={botanical.id}
-                        type="button"
-                        onClick={() => setSelected(botanical)}
+                {botanicalData.map((botanical, index) => {
+                    const isMixed = mixIds.has(botanical.id)
+                    return (
+                        <motion.button
+                            key={botanical.id}
+                            type="button"
+                            onClick={() => setSelected(botanical)}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.4, delay: Math.min(index, 12) * 0.05 }}
+                            whileHover={{ y: -6 }}
+                            className={`group relative flex flex-col overflow-hidden rounded-2xl border p-6 text-left shadow-lg shadow-black/20 transition-colors duration-300 ${
+                                isMixed
+                                    ? "border-amber-500 bg-slate-800 ring-2 ring-amber-500/40"
+                                    : "border-slate-700/60 bg-slate-800 hover:border-amber-500/70 hover:shadow-amber-500/10"
+                            }`}
+                        >
+                            <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/0 via-transparent to-amber-500/0 opacity-0 transition-opacity duration-300 group-hover:from-amber-500/10 group-hover:opacity-100" />
+
+                            <div className="relative flex items-start justify-between">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                                    <Leaf className="h-5 w-5" />
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <Sparkles className="h-4 w-4 text-slate-600 transition-colors duration-300 group-hover:text-amber-500/60" />
+                                    <span
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={(e) => toggleMix(botanical.id, e)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === "Enter" || e.key === " ") {
+                                                e.preventDefault()
+                                                toggleMix(botanical.id, e as unknown as MouseEvent)
+                                            }
+                                        }}
+                                        aria-label={isMixed ? "믹스에서 제외" : "믹스에 추가"}
+                                        aria-pressed={isMixed}
+                                        className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-colors ${
+                                            isMixed
+                                                ? "border-amber-500 bg-amber-500 text-slate-950"
+                                                : "border-slate-600 text-transparent hover:border-amber-500/60"
+                                        }`}
+                                    >
+                                        <Check className="h-3.5 w-3.5" />
+                                    </span>
+                                </div>
+                            </div>
+
+                            <h3 className="relative mt-5 font-serif text-xl font-semibold text-slate-50">{botanical.nameKo}</h3>
+                            <p className="relative text-sm text-slate-400">{botanical.nameEn}</p>
+
+                            <div className="relative mt-5 space-y-2 border-t border-slate-700/60 pt-4 text-xs">
+                                <div>
+                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Top</span>
+                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.top}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Mid</span>
+                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.mid}</p>
+                                </div>
+                                <div>
+                                    <span className="font-medium uppercase tracking-wider text-amber-500/80">Base</span>
+                                    <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.base}</p>
+                                </div>
+                            </div>
+
+                            <div className="relative mt-5 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-400">
+                                <Beaker className="h-3.5 w-3.5 shrink-0 text-amber-500" />
+                                <span>{botanical.extraction}</span>
+                            </div>
+                        </motion.button>
+                    )
+                })}
+            </div>
+
+            {/* Mix selection bar */}
+            <AnimatePresence>
+                {mixIds.size > 0 ? (
+                    <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: Math.min(index, 12) * 0.05 }}
-                        whileHover={{ y: -6 }}
-                        className="group relative flex flex-col overflow-hidden rounded-2xl border border-slate-700/60 bg-slate-800 p-6 text-left shadow-lg shadow-black/20 transition-colors duration-300 hover:border-amber-500/70 hover:shadow-amber-500/10"
+                        exit={{ opacity: 0, y: 20 }}
+                        className="fixed inset-x-0 bottom-0 z-40 flex justify-center px-4 pb-6"
                     >
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-500/0 via-transparent to-amber-500/0 opacity-0 transition-opacity duration-300 group-hover:from-amber-500/10 group-hover:opacity-100" />
-
-                        <div className="relative flex items-start justify-between">
-                            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
-                                <Leaf className="h-5 w-5" />
-                            </div>
-                            <Sparkles className="h-4 w-4 text-slate-600 transition-colors duration-300 group-hover:text-amber-500/60" />
+                        <div className="flex items-center gap-4 rounded-full border border-amber-500/40 bg-slate-900/95 px-5 py-3 shadow-2xl shadow-black/50 backdrop-blur">
+                            <span className="text-sm text-slate-200">{mixIds.size}개 선택됨</span>
+                            <button
+                                type="button"
+                                onClick={() => setMixIds(new Set())}
+                                className="text-xs text-slate-400 transition-colors hover:text-slate-200"
+                            >
+                                초기화
+                            </button>
+                            <button
+                                type="button"
+                                disabled={mixIds.size < 2}
+                                onClick={() => setShowMix(true)}
+                                className="flex items-center gap-1.5 rounded-full bg-amber-500 px-4 py-2 text-xs font-semibold text-slate-950 transition-opacity disabled:cursor-not-allowed disabled:opacity-40"
+                            >
+                                <FlaskRound className="h-3.5 w-3.5" />
+                                믹스 결과 보기
+                            </button>
                         </div>
+                    </motion.div>
+                ) : null}
+            </AnimatePresence>
 
-                        <h3 className="relative mt-5 font-serif text-xl font-semibold text-slate-50">{botanical.nameKo}</h3>
-                        <p className="relative text-sm text-slate-400">{botanical.nameEn}</p>
+            {/* Mix Result Modal */}
+            <AnimatePresence>
+                {showMix ? (
+                    <motion.div
+                        key="mix-overlay"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm"
+                        onClick={() => setShowMix(false)}
+                    >
+                        <motion.div
+                            key="mix-modal"
+                            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                            transition={{ duration: 0.25 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="relative w-full max-w-3xl overflow-hidden rounded-2xl border border-amber-500/20 bg-slate-800 shadow-2xl shadow-black/50"
+                        >
+                            <button
+                                type="button"
+                                onClick={() => setShowMix(false)}
+                                className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-slate-700 bg-slate-900/80 text-slate-400 transition-colors hover:border-amber-500/50 hover:text-amber-500"
+                                aria-label="닫기"
+                            >
+                                <X className="h-4 w-4" />
+                            </button>
 
-                        <div className="relative mt-5 space-y-2 border-t border-slate-700/60 pt-4 text-xs">
-                            <div>
-                                <span className="font-medium uppercase tracking-wider text-amber-500/80">Top</span>
-                                <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.top}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium uppercase tracking-wider text-amber-500/80">Mid</span>
-                                <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.mid}</p>
-                            </div>
-                            <div>
-                                <span className="font-medium uppercase tracking-wider text-amber-500/80">Base</span>
-                                <p className="mt-0.5 text-slate-400">{botanical.flavorProfile.base}</p>
-                            </div>
-                        </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2">
+                                <div className="flex flex-col items-center justify-center border-b border-slate-700/60 bg-slate-900/40 p-6 md:border-b-0 md:border-r">
+                                    <div className="h-64 w-full sm:h-72">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <RadarChart data={mixChart} outerRadius="75%">
+                                                <PolarGrid stroke="#334155" />
+                                                <PolarAngleAxis dataKey="subject" tick={{ fill: "#cbd5e1", fontSize: 12 }} />
+                                                <PolarRadiusAxis angle={90} domain={[0, 100]} tick={{ fill: "#64748b", fontSize: 10 }} />
+                                                <Radar
+                                                    name="Mixed Blend"
+                                                    dataKey="A"
+                                                    stroke="#f59e0b"
+                                                    fill="#f59e0b"
+                                                    fillOpacity={0.35}
+                                                    strokeWidth={2}
+                                                />
+                                            </RadarChart>
+                                        </ResponsiveContainer>
+                                    </div>
+                                </div>
 
-                        <div className="relative mt-5 flex items-center gap-2 rounded-lg border border-slate-700/60 bg-slate-900/60 px-3 py-2 text-[11px] text-slate-400">
-                            <Beaker className="h-3.5 w-3.5 shrink-0 text-amber-500" />
-                            <span>{botanical.extraction}</span>
-                        </div>
-                    </motion.button>
-                ))}
-            </div>
+                                <div className="flex flex-col p-6 sm:p-8">
+                                    <p className="text-xs font-medium uppercase tracking-[0.3em] text-amber-500">
+                                        Mixed Flavor DNA
+                                    </p>
+                                    <h2 className="mt-2 font-serif text-2xl font-semibold text-slate-50 sm:text-3xl">
+                                        {mixSelection.length}종 블렌드
+                                    </h2>
+
+                                    <div className="mt-4 flex flex-wrap gap-1.5">
+                                        {mixSelection.map((b) => (
+                                            <span
+                                                key={b.id}
+                                                className="rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] text-amber-300"
+                                            >
+                                                {b.nameKo}
+                                            </span>
+                                        ))}
+                                    </div>
+
+                                    <p className="mt-5 text-sm leading-relaxed text-slate-400">
+                                        선택한 원료들의 5축 향미 수치를 단순 평균한 참고용 시각화입니다. 실제 배합 비율·투입량·추출
+                                        조건까지 반영한 정밀 예측은 아래 <b className="text-slate-300">AI Virtual Research Lab</b>에서
+                                        확인하실 수 있습니다.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setShowMix(false)
+                                            setMixIds(new Set())
+                                        }}
+                                        className="mt-6 self-start rounded-full border border-slate-700 px-4 py-2 text-xs font-medium text-slate-300 transition-colors hover:border-amber-500/50 hover:text-amber-500"
+                                    >
+                                        선택 초기화하고 닫기
+                                    </button>
+                                </div>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                ) : null}
+            </AnimatePresence>
 
             {/* Detail Modal */}
             <AnimatePresence>
