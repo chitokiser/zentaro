@@ -46,12 +46,19 @@ const LEVEL_LABEL: Record<number, string> = {
 
 export function AdminNav() {
   const [adminLevel, setAdminLevel] = useState<number | null>(null)
+  const [adminEmail, setAdminEmail] = useState<string | null>(null)
   const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     fetchMe()
-      .then((me) => setAdminLevel(me.adminLevel))
-      .catch(() => setAdminLevel(null))
+      .then((me) => {
+        setAdminLevel(me.adminLevel)
+        setAdminEmail(me.email)
+      })
+      .catch(() => {
+        setAdminLevel(null)
+        setAdminEmail(null)
+      })
       .finally(() => setLoaded(true))
   }, [])
 
@@ -66,6 +73,12 @@ export function AdminNav() {
       {adminLevel ? (
         <p className="mb-3 text-xs text-muted-foreground">
           내 등급: <span className="font-medium text-primary">{LEVEL_LABEL[adminLevel]}</span>
+          {adminEmail ? (
+            <>
+              {" "}· 로그인 계정:{" "}
+              <span className="font-medium text-primary">{adminEmail}</span>
+            </>
+          ) : null}
         </p>
       ) : null}
       <nav className="mt-1 flex flex-row flex-wrap gap-1 lg:flex-col">
