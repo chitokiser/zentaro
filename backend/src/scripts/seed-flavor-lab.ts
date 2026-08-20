@@ -205,9 +205,34 @@ const BOTANICALS: Record<string, UpsertBotanicalDto> = {
     distillationBehavior: 'Fresh root gives brighter heat than dried — adjust dose by the form used.',
     notes: 'Bright peppery heat that lifts otherwise heavy earthy blends.',
   },
+  'butterfly-pea-flower': {
+    name: 'Butterfly Pea Flower', localName: '나비콩꽃', origin: 'Vietnam', plantPart: 'Flower',
+    topAroma: ['Neutral'], midAroma: ['Faint green'], baseAroma: ['None'],
+    scores: { floral: 5, fruity: 0, citrus: 0, herbal: 5, spicy: 0, woody: 0, earthy: 5, vanilla: 0, roasted: 0, sweet: 0, sour: 0, bitter: 5, umami: 0, salty: 0, astringency: 0, body: 5, dryness: 5, finish: 10 },
+    colorEffect: 'Vivid blue, shifts to violet/pink with acid', aromaIntensity: 10, flavorIntensity: 5,
+    recommendedDoseMin: 0.1, recommendedDoseMax: 0.5, recommendedAbv: 40,
+    extractionMethod: 'Cold Maceration', extractionTimeHours: 12, extractionTemperatureC: 20,
+    distillationBehavior: 'Non-volatile pigment — never distil, cold macerate briefly to avoid diluting color.',
+    notes: 'Contributes almost no flavor — used purely for its pH-reactive blue-to-violet color shift.',
+  },
 };
 
+// Product lineup as directed: ORIGIN / RUBY / SAPPHIRE / EMERALD / RICE WINE.
+const RETIRED_PROJECT_IDS = ['zentaro-pear', 'zentaro-herb', 'zentaro-gin'];
+
 const PROJECTS: Record<string, UpsertProjectDto> = {
+  'zentaro-origin': {
+    projectName: 'ZENTARO ORIGIN', accentColor: '#c08a2e',
+    baseSpirit: 'Rice Spirit', baseAbv: 63, targetAbv: 30, baseVolumeMl: 1000,
+    extractionMethod: 'Maceration & Boiling', extractionTimeHours: 24, extractionTemperatureC: 80,
+    botanicals: [
+      { botanicalId: 'omija', doseGrams: 0.6 },
+      { botanicalId: 'star-anise', doseGrams: 0.1 },
+      { botanicalId: 'cinnamon', doseGrams: 0.1 },
+      { botanicalId: 'ginger', doseGrams: 0.15 },
+    ],
+    version: 'v1.0',
+  },
   'zentaro-ruby': {
     projectName: 'ZENTARO RUBY', accentColor: '#9b1c3f',
     baseSpirit: 'Rice Spirit', baseAbv: 63, targetAbv: 25, baseVolumeMl: 1000,
@@ -220,20 +245,20 @@ const PROJECTS: Record<string, UpsertProjectDto> = {
     ],
     version: 'v1.0',
   },
-  'zentaro-pear': {
-    projectName: 'ZENTARO PEAR', accentColor: '#c9a227',
-    baseSpirit: 'Neutral Grain Spirit', baseAbv: 96, targetAbv: 20, baseVolumeMl: 1000,
-    extractionMethod: 'Cold Maceration', extractionTimeHours: 48, extractionTemperatureC: 18,
+  'zentaro-sapphire': {
+    projectName: 'ZENTARO SAPPHIRE', accentColor: '#1e5fa8',
+    baseSpirit: 'Neutral Grain Spirit', baseAbv: 96, targetAbv: 40, baseVolumeMl: 1000,
+    extractionMethod: 'Cold Maceration', extractionTimeHours: 24, extractionTemperatureC: 20,
     botanicals: [
-      { botanicalId: 'elderflower', doseGrams: 0.6 },
-      { botanicalId: 'vanilla-bean', doseGrams: 0.15 },
-      { botanicalId: 'chamomile', doseGrams: 0.4 },
-      { botanicalId: 'angelica-root', doseGrams: 0.05 },
+      { botanicalId: 'butterfly-pea-flower', doseGrams: 0.3 },
+      { botanicalId: 'elderflower', doseGrams: 0.5 },
+      { botanicalId: 'lemon-peel', doseGrams: 0.25 },
+      { botanicalId: 'coriander-seed', doseGrams: 0.1 },
     ],
     version: 'v1.0',
   },
-  'zentaro-herb': {
-    projectName: 'ZENTARO HERB', accentColor: '#3f6b3f',
+  'zentaro-emerald': {
+    projectName: 'ZENTARO EMERALD', accentColor: '#0f6b3a',
     baseSpirit: 'Rice Spirit', baseAbv: 70, targetAbv: 38, baseVolumeMl: 1000,
     extractionMethod: 'Vapor Infusion', extractionTimeHours: 2, extractionTemperatureC: 78,
     botanicals: [
@@ -246,29 +271,14 @@ const PROJECTS: Record<string, UpsertProjectDto> = {
     ],
     version: 'v1.0',
   },
-  'zentaro-gin': {
-    projectName: 'ZENTARO GIN', accentColor: '#c7a34a',
-    baseSpirit: 'Neutral Grain Spirit', baseAbv: 96, targetAbv: 43, baseVolumeMl: 1000,
-    extractionMethod: 'Co-Distillation', extractionTimeHours: 4, extractionTemperatureC: 78,
+  'zentaro-ricewine': {
+    projectName: 'ZENTARO RICE WINE', accentColor: '#d8c48a',
+    baseSpirit: 'Rice Wine', baseAbv: 16, targetAbv: 14, baseVolumeMl: 1000,
+    extractionMethod: 'Cold Maceration', extractionTimeHours: 24, extractionTemperatureC: 20,
     botanicals: [
-      { botanicalId: 'juniper-berry', doseGrams: 1.2 },
-      { botanicalId: 'coriander-seed', doseGrams: 0.25 },
-      { botanicalId: 'angelica-root', doseGrams: 0.1 },
-      { botanicalId: 'orris-root', doseGrams: 0.03 },
-      { botanicalId: 'lemon-peel', doseGrams: 0.3 },
-      { botanicalId: 'bitter-orange-peel', doseGrams: 0.2 },
-    ],
-    version: 'v1.0',
-  },
-  'zentaro-origin': {
-    projectName: 'ZENTARO ORIGIN', accentColor: '#8a1f2b',
-    baseSpirit: 'Rice Spirit', baseAbv: 63, targetAbv: 30, baseVolumeMl: 1000,
-    extractionMethod: 'Maceration & Boiling', extractionTimeHours: 24, extractionTemperatureC: 80,
-    botanicals: [
-      { botanicalId: 'omija', doseGrams: 0.6 },
-      { botanicalId: 'star-anise', doseGrams: 0.1 },
-      { botanicalId: 'cinnamon', doseGrams: 0.1 },
-      { botanicalId: 'ginger', doseGrams: 0.15 },
+      { botanicalId: 'chamomile', doseGrams: 0.3 },
+      { botanicalId: 'omija', doseGrams: 0.15 },
+      { botanicalId: 'vanilla-bean', doseGrams: 0.05 },
     ],
     version: 'v1.0',
   },
@@ -286,6 +296,11 @@ async function main() {
   for (const [id, dto] of Object.entries(PROJECTS)) {
     await flavorLab.upsertProjectWithId(id, dto);
     console.log(`project: ${id}`);
+  }
+
+  for (const id of RETIRED_PROJECT_IDS) {
+    await flavorLab.removeProject(id).catch(() => undefined);
+    console.log(`removed (if existed): ${id}`);
   }
 
   await app.close();
