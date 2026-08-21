@@ -3289,6 +3289,11 @@ export default function BotanicalArchive() {
                 </p>
             </div>
 
+            <p className="mx-auto mt-8 flex max-w-2xl items-center justify-center gap-2 text-center text-sm text-amber-400/90">
+                <Sparkles className="h-4 w-4 shrink-0 text-amber-500" />
+                재료를 클릭하고 믹스 결과를 참고하여 나만의 시그니처를 배합하세요
+            </p>
+
             {/* Grid */}
             <div className="mx-auto mt-8 grid max-w-6xl grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
                 {filteredBotanicals.length === 0 ? (
