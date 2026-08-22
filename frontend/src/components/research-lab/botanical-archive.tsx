@@ -8,6 +8,7 @@ import { getToken, onAuthChanged } from "@/lib/auth-client"
 import { useWikipediaThumbnail } from "@/lib/wikipedia-thumbnail"
 import { MemberFeatureLock } from "@/components/research-lab/member-feature-lock"
 import { BotanicalCard } from "@/components/research-lab/botanical-card"
+import { BlendAdvisor } from "@/components/research-lab/blend-advisor"
 import {
     RadarChart,
     PolarGrid,
@@ -3085,6 +3086,38 @@ const botanicalData: Botanical[] = [
         description: "재배 당근의 야생 조상뻘 씨앗으로, 은은한 당근 향과 함께 독특한 꽃 뉘앙스를 냅니다.",
         relatedProduct: "ZENTARO Original Dry Gin",
     },
+    {
+        id: "white-pepper",
+        nameKo: "백후추",
+        nameEn: "White Pepper",
+        scientificName: "Piper nigrum",
+        flavorProfile: {
+            top: "날카롭고 깨끗한 자극",
+            mid: "발효 뉘앙스가 섞인 스파이시함",
+            base: "은은하게 오래가는 매운 여운",
+        },
+        flavorChart: chart(5, 65, 5, 30, 10),
+        extraction: "직접 침출 및 가열 (Maceration & Boiling)",
+        description:
+            "흑후추와 같은 열매지만 껍질을 벗기고 발효·건조해 만들어, 흑후추보다 더 날카롭고 깔끔한 매운맛과 은은한 발효향을 냅니다.",
+        relatedProduct: "ZENTARO Original Dry Gin",
+    },
+    {
+        id: "dried-tangerine-peel",
+        nameKo: "진피",
+        nameEn: "Dried Tangerine Peel",
+        scientificName: "Citrus unshiu (dried peel)",
+        flavorProfile: {
+            top: "쌉싸름한 감귤 껍질 향",
+            mid: "묵힌 시트러스의 깊은 향",
+            base: "은은한 쓴맛의 여운",
+        },
+        flavorChart: chart(55, 10, 10, 35, 15),
+        extraction: "증기 주입법 (Vapor Infusion)",
+        description:
+            "귤껍질을 오래 말려 숙성시킨 한방 재료로, 생감귤보다 훨씬 깊고 쌉싸름한 향을 내며 묵힌 기간이 길수록 향이 진해집니다.",
+        relatedProduct: "ZENTARO Original Dry Gin",
+    },
 ]
 
 export default function BotanicalArchive() {
@@ -3261,6 +3294,9 @@ export default function BotanicalArchive() {
                     </div>
                 )}
             </div>
+
+            {/* AI Blend Advisor */}
+            <BlendAdvisor botanicals={botanicalData} loggedIn={loggedIn} />
 
             {/* Search */}
             <div className="mx-auto mt-12 max-w-2xl">
